@@ -1,0 +1,95 @@
+# params/genesis.yaml — the single source of every canonical number.
+# Status: PROPOSAL until Gate 0.4 (owner ratification). Estimates are labeled.
+
+meta:
+  version: 2
+  date: 2026-11-04
+  status: proposal-pending-ratification
+
+network:
+  name: DYNAMIS
+  symbol: DYN
+  settlement: USDS
+  unit_of_work: ERG            # 1 ERG = 1 reference GPU-minute
+
+supply:
+  dyn_initial_mint: 0          # no content premine (anti-Steem law)
+  emission: flow-gated         # Law 19: unlocked only against settled jobs
+  saos_internal: 21000         # measured estate constant (fleet-economy), unchanged
+
+emission_split:                # of flow-gated work emissions
+  verified_work: 45
+  evaluation_markets: 15
+  compute_providers: 20
+  witnesses: 10
+  treasury: 10
+
+witnesses:
+  active: 7
+  standby: 14
+  selection: vrf-over-custody-score
+  duties: [checkpoint_signing, price_feed, challenge_verification, census_judging]
+  slashing: bond-based
+  price_feed_sources:          # ERG anchor sampling (frontier 2026-11)
+    - ionet.H100.hour          # $1.49-2.20/hr measured 2026-05
+    - akash.spot_median
+    - render.spot_median
+    - fleet_measured_cost
+
+attestation_ladder:
+  A: {name: deterministic_checks, cost: ~0}
+  B: {name: benchmark_suite, cost: low}
+  C: {name: sampled_reexecution, cost: medium, default_for_money_jobs: true}
+  D: {name: tee_attestation, cost: medium, overhead_pct_estimate: 5}
+  E: {name: zkml_proof, cost: high, scope: small_models}
+
+power_pool_channels:
+  - provider_enrollment
+  - delegated_stake
+  - witness_duty
+  - fuel_rails_steem_hive
+  - free_ci_cpu_lane
+  - api_arbitrage
+
+rc2:
+  model: stake-accrues-credits
+  regeneration: time+stake
+  purchasable_at_scale: false
+
+escrow:
+  coordination_fee_bps: 500    # inherited from roshpina kernel (5%)
+  settlement_unit: USDS
+
+treasury_policy:               # SOL economics
+  min_runway_months: 6
+  rail_caps:                   # pattern: G28 fail-closed caps
+    max_single_flow_usds: 25000
+    max_daily_usds: 50000
+  doa_classes:
+    T0: {example: routine vendor bill, agent_authority: auto, human: none}
+    T1: {example: committed vendor contract, agent_authority: auto_within_budget, human: notify}
+    T2: {example: spend>2000 or any hire_with_pay, agent_authority: prepare, human: approve}
+    T3: {example: DoA/charter change, new entity, agent_authority: draft, human: veto_keys}
+    X:  {example: client key custody, yield marketing, unmeasured claims, agent_authority: never, human: never}
+
+ports:                         # measured estate map; do not add collisions
+  giant: 3000
+  fleethq: 3002
+  dex_ui: 3010
+  sovereign_gateway: 3011
+  fleet_economy: 3016
+  runner: 3020
+  engine: 3040                 # collides with office-selfcheck — Phase 0.6 resolves
+  office_recruit: 3041
+  boot_verifier: 3042
+  hsm: 3057
+  forge: 3100
+
+entities:
+  template: docs/02-sovereign-operations.md#1
+  first: ent-001               # charter in params/entities/ent-001.yaml (Phase 0.5)
+
+integrations:
+  adopt: [x402, mcp, a2a, erc8004_bridge]
+  adapt: [acp_state_machine, l402, ap2_consent_shapes]
+  reject: [presale_narratives, self_reported_evaluation, shared_agent_computer]
