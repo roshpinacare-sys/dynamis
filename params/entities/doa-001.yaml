@@ -1,0 +1,56 @@
+# params/entities/doa-001.yaml — Delegation of Authority matrix for ent-001.
+# Validates against schemas/doa.schema.json. The policy engine that enforces it is
+# impl/dynamis_core/policy.py (deny-by-default, fail-closed). Changing this file is
+# itself a T3 act: regulator veto keys required.
+
+doa_id: doa-001
+entity_id: ent-001
+
+classes:
+  - class: T0
+    agent_authority: auto
+    human: none
+    examples:
+      - pay a $40 API bill from the ops envelope
+      - renew a domain under $25
+      - post an internal job escrow under $200
+  - class: T1
+    agent_authority: auto_within_budget
+    human: notify
+    examples:
+      - sign a vendor contract up to $500/month
+      - fund a job escrow within the envelope
+      - pay an agent salary stream within the payroll envelope
+  - class: T2
+    agent_authority: prepare
+    human: approve
+    examples:
+      - any spend above $2,000
+      - any hire with pay
+      - any spend that breaches the 6-month runway floor
+  - class: T3
+    agent_authority: draft
+    human: veto_keys
+    examples:
+      - change this DoA matrix or the charter
+      - instantiate a new entity
+      - admit an external witness operator
+  - class: X
+    agent_authority: never
+    human: never
+    examples:
+      - custody client keys beyond escrow
+      - yield marketing or investment promises about DYN
+      - publish an unmeasured claim
+      - expose root keys or root books to any public network
+
+thresholds:
+  t2_threshold_usds_muc: 2000000000        # $2,000
+  t1_notify_above_usds_muc: 500000000      # $500
+  min_runway_months: 6                     # any breach escalates the act to T2
+  rail_caps:                               # G28 pattern: fail-closed caps (genesis)
+    max_single_flow_usds_muc: 25000000000  # $25,000
+    max_daily_usds_muc: 50000000000        # $50,000
+
+change_control:
+  amendment_class: T3

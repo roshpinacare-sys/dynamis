@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynamis.local/schemas/claim.schema.json",
+  "title": "DYNAMIS Claim",
+  "description": "A worker's deliverable on a job (docs/03-protocol.md §1). Artifacts are content-addressed; the receipt binds the run to the runner kit (Law 4).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["claim_id", "job_id", "worker_agent", "artifact_hashes", "receipt_hash", "day"],
+  "properties": {
+    "claim_id": { "$ref": "#/$defs/id" },
+    "job_id": { "$ref": "#/$defs/id" },
+    "worker_agent": { "$ref": "#/$defs/id" },
+    "artifact_hashes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/sha256" },
+      "description": "sha256 of every artifact. A claim without artifacts is not verifiable (Law 4)."
+    },
+    "receipt_hash": { "$ref": "#/$defs/sha256",
+      "description": "Hash of the runner receipt (receipt.schema.json) from sovereign-runner-kit :3020." },
+    "day": { "type": "integer", "minimum": 1 }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

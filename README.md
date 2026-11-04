@@ -46,9 +46,20 @@ The root can exit any public dependency in one working day without losing books 
 | `docs/04-integration.md` | Root contracts, Steem/Hive rail, MCP/A2A/x402, identity, exit runbooks |
 | `docs/05-roadmap.md` | 4 phases / 24 weeks with measured acceptance gates, incl. the SOL track |
 | `docs/06-frontier.md` | Frontier research (GroKVortex verdict, Grok Bot, x402, ERC-8004, A2A, AP2, Virtuals ACP, Olas, DePIN, verifiable inference) — adopt / adapt / reject |
+| `docs/07-security.md` | STRIDE threat model per trust boundary; attack trees; residual risks stated |
+| `docs/08-engineering-handbook.md` | The craft: sim-first development, service checklist, gate discipline |
+| `impl/` | **Executable reference of the protocol loops** (stdlib Python): escrow state machine, DoA policy engine, attestation ladder + Law-9 math, witness price feed, RC², Brier scoring, anti-herd scheduler, flow-gated emission — 61 tests green |
+| `sim/` | **The falsifiable economy model**: flow-gated emission, Law-9 fraud-economics governance loop, treasury solvency — charts + `results/summary.json` |
+| `schemas/` | JSON Schema (2020-12) for every wire object: job, claim, receipt, eval, agent, entity, DoA |
+| `specs/wire.md` | Canonical bytes, `dyn.v1` ops, signature domains, checkpoint format |
+| `specs/state-machines.md` | Formal job lifecycle: transition table, 8 invariants, timeout/liveness |
+| `specs/benchmarks.md` | Capacity measurement & tiering — the pool advertises only receipts |
+| `specs/testing.md` | Per-gate drills, chaos fixtures (sandbox-wipe, stranded-keys, herd-burst, price-spoof) |
+| `specs/api/dynamis-api.yaml` | OpenAPI 3.1 — the public network surface (13 paths) |
 | `specs/gates.yaml` | Machine-readable phase gates — the only law of progress |
 | `params/genesis.yaml` | Single source of every canonical number |
-| `adr/` | Architecture decision records (template + seeds 0001–0004) |
+| `params/entities/` | Entity #1 package for gate 0.5: charter, DoA matrix, KPI tree (schemas-validated) |
+| `adr/` | Architecture decision records (template + seeds 0001–0007) |
 | `research/frontier-2026-11.md` | Raw findings with sources |
 
 ## Reading order (for the executing agent)
@@ -57,12 +68,17 @@ The root can exit any public dependency in one working day without losing books 
 2. `CANON.md` — the laws you may not break.
 3. `specs/gates.yaml` — find the earliest unclosed gate. That is your only queue.
 4. The docs for the phase you are executing (start `docs/05-roadmap.md` → `docs/01-architecture.md`).
-5. `params/genesis.yaml` before writing any number.
+5. `docs/08-engineering-handbook.md` — the craft: sim-first, service checklist.
+6. `params/genesis.yaml` before writing any number; `impl/` and `sim/` before changing any mechanic.
 
 ## Status
 
 - Phase: **architecture / pre-ignition**. No gate is closed yet.
 - The estate this binds to is measured (ports, repos, custody state) and cited in the docs.
+- The engineering layer exists and is tested: 61 impl tests green; the simulator proves
+  the Law-19 emission invariant exactly and keeps the Law-9 fraud margin positive on
+  all seeds; all wire schemas validate; entity #1's charter package is drafted and
+  schema-valid, awaiting owner ratification (gate 0.5).
 - Founding plan: `docs/founding-plan.pdf`. This repo supersedes it wherever they disagree;
   disagreements must be raised as an ADR, not silently resolved.
 

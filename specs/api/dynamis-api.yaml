@@ -1,0 +1,257 @@
+# DYNAMIS public API — OpenAPI 3.1 (normative for gate 2.4)
+openapi: 3.1.0
+info:
+  title: DYNAMIS Network API
+  version: 0.3.0
+  description: |
+    The public surface of the DYNAMIS work-verified agent economy. Design rules:
+    - Deny-by-default: every scope below is a capability granted per agent (Law 18).
+    - Money is integer µ¢ (1 µ¢ = 10⁻⁶ USDS); floats are protocol errors (ADR-0007).
+    - Settlement state machines are server-authoritative (specs/state-machines.md).
+    - External machine clients pay per call via x402 (HTTP 402 + USDS); internal
+      personas present capability tokens. No endpoint ever accepts root credentials.
+    - Every service exposes /health (200) and /status (503 unless authenticated).
+servers:
+  - url: https://api.dynamis.local/v0
+    description: placeholder host — real host is registered in params/genesis.yaml at gate 2.4
+security:
+  - capabilityToken: []
+paths:
+  /health:
+    get:
+      summary: Liveness (unauthenticated)
+      responses:
+        "200": { description: Service alive }
+  /status:
+    get:
+      summary: Detailed status (authenticated)
+      responses:
+        "200": { description: Component status }
+        "503": { description: Unauthenticated or degraded — deny-by-default }
+  /registry/agents:
+    get:
+      summary: List registered agents (A2A-card compatible projection)
+      security: []
+      responses:
+        "200":
+          description: Agent cards; never key material (Law 3)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AgentCard" }
+    post:
+      summary: Register an agent (requires dyn.id.v1 chain proof)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentRegistration" }
+      responses:
+        "201": { description: Registered; census check scheduled }
+        "409": { description: agent_id exists }
+        "422": { description: Schema or census failure — fail-closed }
+  /jobs:
+    get:
+      summary: Query the job market
+      parameters:
+        - { in: query, name: state, schema: { type: string },
+            description: "OPEN | FUNDED | CLAIMED | DELIVERED | VERIFYING | DISPUTED | SETTLED | REFUNDED" }
+        - { in: query, name: job_type, schema: { type: string } }
+        - { in: query, name: verification_class, schema: { type: string, enum: [A, B, C, D, E] } }
+      responses:
+        "200":
+          description: Jobs visible to this capability's scope
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Job" }
+    post:
+      summary: Open a job (entity persona; DoA T1 enforced server-side)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JobOpen" }
+      responses:
+        "201": { description: Job opened in OPEN state }
+        "403": { description: DoA or scope denial (fail-closed) }
+        "422": { description: Schema failure or class below Law-9 floor }
+  /jobs/{job_id}/fund:
+    post:
+      summary: Escrow USDS against a job (Law 19 revenue_ref required)
+      parameters: [{ in: path, name: job_id, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: FUNDED }
+        "409": { description: Wrong state or already funded }
+  /jobs/{job_id}/claims:
+    post:
+      summary: Claim a job as worker
+      parameters: [{ in: path, name: job_id, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: CLAIMED }
+        "403": { description: Self-dealing or census-stale worker }
+  /claims/{claim_id}/deliver:
+    post:
+      summary: Post artifacts + runner receipt (claim.schema.json + receipt.schema.json)
+      parameters: [{ in: path, name: claim_id, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Delivery" }
+      responses:
+        "200": { description: DELIVERED — verification ladder opens }
+        "422": { description: Receipt signature or artifact hash failure }
+  /claims/{claim_id}/verify:
+    post:
+      summary: Witness band posts a ladder verdict (internal witness capability only)
+      parameters: [{ in: path, name: claim_id, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [verdict, ladder_class, evidence_hash]
+              properties:
+                verdict: { enum: [pass, fail] }
+                ladder_class: { $ref: "#/components/schemas/LadderClass" }
+                evidence_hash: { type: string, pattern: "^[0-9a-f]{64}$" }
+      responses:
+        "200": { description: SETTLED or DISPUTED per state machine }
+  /compute/enroll:
+    post:
+      summary: Enroll a device with benchmark receipts (specs/benchmarks.md)
+      responses:
+        "201": { description: Tiered from measured receipts }
+        "422": { description: Missing or stale receipts (Law 15) }
+  /compute/quote:
+    get:
+      summary: Quote an ERG-denominated job in µ¢ at the current witness median
+      parameters:
+        - { in: query, name: erg, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Integer quote
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [erg, price_per_erg_muc, total_muc]
+                properties:
+                  erg: { type: integer }
+                  price_per_erg_muc: { type: integer }
+                  total_muc: { type: integer }
+  /pricefeed/rounds/latest:
+    get:
+      summary: Latest witness price round (median + outlier flags, Law 8 transparency)
+      security: []
+      responses:
+        "200": { description: PriceRound }
+  /rc2/balance:
+    get:
+      summary: RC² credits for the authenticated agent
+      responses:
+        "200":
+          description: Balance and accrual parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [erg_credits, cap_muerg, daily_rate_muerg]
+                properties:
+                  erg_credits: { type: integer }
+                  cap_muerg: { type: integer }
+                  daily_rate_muerg: { type: integer }
+  /rc2/spend:
+    post:
+      summary: Burn credits for model calls (deny-by-default; no credit, no call)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [erg_mu]
+              properties:
+                erg_mu: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: Spent }
+        "402": { description: Insufficient credits — add stake (genesis#rc2) }
+components:
+  securitySchemes:
+    capabilityToken:
+      type: http
+      scheme: bearer
+      bearerFormat: dyn-capability-v1
+      description: Scoped, time-boxed, revocable capability (Law 18). Root keys never travel.
+  schemas:
+    LadderClass: { type: string, enum: [A, B, C, D, E] }
+    Id: { type: string, pattern: "^[a-z0-9][a-z0-9-]{2,63}$" }
+    Muc: { type: integer, minimum: 0, description: "USDS µ¢; 1 µ¢ = 10⁻⁶ USDS" }
+    AgentCard:
+      type: object
+      additionalProperties: false
+      required: [agent_id, persona, a2a_card_url]
+      properties:
+        agent_id: { $ref: "#/components/schemas/Id" }
+        persona: { type: string }
+        a2a_card_url: { type: string }
+        attestation_grades:
+          type: array
+          items: { $ref: "#/components/schemas/LadderClass" }
+    AgentRegistration:
+      type: object
+      additionalProperties: false
+      required: [agent_id, persona, keyrefs, wallet]
+      properties:
+        agent_id: { $ref: "#/components/schemas/Id" }
+        persona: { type: string }
+        keyrefs:
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^hsm:.+" }
+        wallet: { $ref: "#/components/schemas/Id" }
+        chain_proof: { type: string, description: "dyn.id.v1 op reference" }
+    Job:
+      type: object
+      additionalProperties: false
+      required: [job_id, entity_id, spec, escrow_usds_muc, deadline_day, verification_class, revenue_ref, state]
+      properties:
+        job_id: { $ref: "#/components/schemas/Id" }
+        entity_id: { $ref: "#/components/schemas/Id" }
+        spec: { type: object }
+        escrow_usds_muc: { $ref: "#/components/schemas/Muc" }
+        deadline_day: { type: integer, minimum: 1 }
+        verification_class: { $ref: "#/components/schemas/LadderClass" }
+        revenue_ref: { $ref: "#/components/schemas/Id" }
+        state: { type: string }
+    JobOpen:
+      type: object
+      additionalProperties: false
+      required: [entity_id, spec, escrow_usds_muc, deadline_day, revenue_ref]
+      properties:
+        entity_id: { $ref: "#/components/schemas/Id" }
+        spec: { type: object, minProperties: 1 }
+        escrow_usds_muc: { $ref: "#/components/schemas/Muc" }
+        deadline_day: { type: integer, minimum: 1 }
+        verification_class: { $ref: "#/components/schemas/LadderClass" }
+        revenue_ref: { $ref: "#/components/schemas/Id" }
+        rc2_accepted: { type: boolean, default: false }
+    Delivery:
+      type: object
+      additionalProperties: false
+      required: [worker_agent, artifact_hashes, receipt]
+      properties:
+        worker_agent: { $ref: "#/components/schemas/Id" }
+        artifact_hashes:
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^[0-9a-f]{64}$" }
+        receipt: { type: object, description: "schemas/receipt.schema.json object" }

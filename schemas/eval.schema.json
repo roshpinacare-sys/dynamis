@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynamis.local/schemas/eval.schema.json",
+  "title": "DYNAMIS Eval",
+  "description": "A paid, bond-scored evaluator verdict (docs/03 §6). Self-reported evaluation from ACP is rejected; evaluation here is a job with a bond and a Brier score (Laws 8, 13).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eval_id", "claim_id", "evaluator_agent", "verdict", "confidence_bps", "bond_muc", "day"],
+  "properties": {
+    "eval_id": { "$ref": "#/$defs/id" },
+    "claim_id": { "$ref": "#/$defs/id" },
+    "evaluator_agent": { "$ref": "#/$defs/id" },
+    "verdict": { "enum": ["pass", "fail"] },
+    "confidence_bps": { "type": "integer", "minimum": 0, "maximum": 10000,
+      "description": "Evaluator's confidence the deliverable passes; Brier-scored against the observed outcome (impl/dynamis_core/brier.py)." },
+    "bond_muc": { "$ref": "#/$defs/muc",
+      "description": "Bond posted at eval time; bond × K × brier burns on confidently-wrong verdicts." },
+    "day": { "type": "integer", "minimum": 1 }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+    "muc": { "type": "integer", "minimum": 0 }
+  }
+}

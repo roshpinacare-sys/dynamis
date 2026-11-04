@@ -1,0 +1,38 @@
+# params/entities/ent-001.yaml — Entity #1: the network's own operating entity.
+# Gate 0.5: DRAFT pending owner ratification (veto keys). Validates against
+# schemas/entity.schema.json. Budgets are targets until measured (Laws 8, 12).
+
+entity:
+  id: ent-001
+  kind: internal-office        # LLC conversion is the Phase-1 counsel package (docs/02 §7)
+  charter:
+    purpose: >
+      Operate the DYNAMIS network's own business activity: sell the fleet's verified
+      work (content ops, data processing, benchmarked inference) to external clients
+      through personas and rails, so that every future DYN emission is backed by a
+      measured business flow (Law 19). This entity pays the fleet's real costs and
+      issues the fleet's first real invoices.
+    term: "indefinite, review at Phase 3"
+    prohibited:                 # Class X, restated for this entity (Law 20)
+      - custody of client keys beyond escrow
+      - yield marketing or any investment promise about DYN
+      - publishing unmeasured claims about capacity, income, or membership
+      - representing the root network in any public statement (Law 17)
+  doa: doa-001
+  budgets:
+    ops:    { cap_usds_muc: 3000000000, period: monthly }   # $3,000 — docs/02 §1 target
+    growth: { cap_usds_muc: 1500000000, period: monthly }   # $1,500 — measured-attribution gate applies
+  kpi_tree: kpi-001
+  regulator: owner-via-scribe   # the human veto holder through saos-owner-channel
+  crew:                         # departments as bounded roles (docs/02 §2)
+    - chief-of-staff
+    - finance
+    - ops
+    - growth
+    - legal-compliance
+    - support
+    - intelligence
+  ledger: ent-001.jsonl         # the entity's own append-only book at the root (Law 16)
+  keys:
+    signing: hsm:ent-001-signing-rot   # two-soul ceremony before first use (Phase 0.2)
+    rail: persona:ent-001-rail         # scoped persona, never root-representing (Law 17)

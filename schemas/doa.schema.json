@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynamis.local/schemas/doa.schema.json",
+  "title": "DYNAMIS Delegation of Authority matrix",
+  "description": "The spine of autonomous-but-bounded operation (docs/02 §1). The policy engine (impl/dynamis_core/policy.py) is deny-by-default and fail-closed; this matrix is its data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["doa_id", "entity_id", "classes", "thresholds"],
+  "properties": {
+    "doa_id": { "$ref": "#/$defs/id" },
+    "entity_id": { "$ref": "#/$defs/id" },
+    "classes": {
+      "type": "array", "minItems": 5, "maxItems": 5,
+      "description": "Exactly T0, T1, T2, T3, X.",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["class", "agent_authority", "human"],
+        "properties": {
+          "class": { "enum": ["T0", "T1", "T2", "T3", "X"] },
+          "agent_authority": { "enum": ["auto", "auto_within_budget", "prepare", "draft", "never"] },
+          "human": { "enum": ["none", "notify", "approve", "veto_keys", "never"] },
+          "examples": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "thresholds": {
+      "type": "object", "additionalProperties": false,
+      "required": ["t2_threshold_usds_muc"],
+      "properties": {
+        "t2_threshold_usds_muc": { "$ref": "#/$defs/muc" },
+        "t1_notify_above_usds_muc": { "$ref": "#/$defs/muc" },
+        "min_runway_months": { "type": "integer", "minimum": 1 },
+        "rail_caps": {
+          "type": "object", "additionalProperties": false,
+          "required": ["max_single_flow_usds_muc", "max_daily_usds_muc"],
+          "properties": {
+            "max_single_flow_usds_muc": { "$ref": "#/$defs/muc" },
+            "max_daily_usds_muc": { "$ref": "#/$defs/muc" }
+          }
+        }
+      }
+    },
+    "change_control": {
+      "type": "object", "additionalProperties": false,
+      "required": ["amendment_class"],
+      "properties": {
+        "amendment_class": { "const": "T3",
+          "description": "Changing this matrix is itself a T3 act — regulator veto keys required." }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+    "muc": { "type": "integer", "minimum": 0 }
+  }
+}

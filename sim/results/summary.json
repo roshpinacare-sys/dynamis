@@ -1,0 +1,38 @@
+{
+  "model_version": "sim-1.0 (estimates per module docstring; Law 8 applies)",
+  "days": 365,
+  "seeds": [
+    11,
+    23,
+    37,
+    41,
+    53
+  ],
+  "mean_total_settled_revenue_usds": 122562.0,
+  "mean_total_emitted_dyn": 49024800.0,
+  "invariant_emitted_equals_revenue_verified": true,
+  "mean_coordination_fees_usds": 6128.1,
+  "mean_verification_spend_usds": 2428.43,
+  "mean_slash_recovered_usds": 19892.2,
+  "mean_netted_fraud_usds": 1755.0,
+  "mean_law9_margin_usds": 20565.63,
+  "law9_margin_definition": "verification_spend + slash_recovered \u2212 netted_fraud \u2265 0",
+  "law9_holds_all_seeds": true,
+  "mean_treasury_end_usds": 24091.87,
+  "treasury_solvent_all_seeds": true,
+  "final_ladder_class_by_seed": {
+    "11": "B",
+    "23": "B",
+    "37": "C",
+    "41": "B",
+    "53": "B"
+  },
+  "law9_margin_by_seed_usds": {
+    "11": 15081.35,
+    "23": 23269.77,
+    "37": 30611.01,
+    "41": 17683.14,
+    "53": 16182.89
+  },
+  "flows_per_run": 231.4
+}

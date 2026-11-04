@@ -55,14 +55,22 @@ measured reality  >  params/genesis.yaml  >  CANON.md  >  specs/gates.yaml  >  d
 
 ## 5. Engineering style
 
+- **Sim-first (ADR-0005)**: any change to emission, verification, pricing, or market
+  mechanics runs `python sim/simulate_economy.py` green (Law-19 invariant exact, Law-9
+  margin ≥ 0 on every seed) and `python -m unittest discover -s tests` (impl/, all OK)
+  before commit. Red suite = gate violation, not style drift.
 - Deny-by-default everywhere: network, file access, spend, API surfaces.
-- Integers for money (the µ¢ convention of `roshpina/kernel`), no floats in ledgers.
+- Integers for money (the µ¢ convention of `roshpina/kernel`, ADR-0007): 1 µ¢ = 10⁻⁶
+  USDS; dollar literals are written `usds(n)` (impl canonical module), never
+  hand-converted. No floats in canonical payloads — `canon()` raises.
 - Append-only for anything that is a fact: ledgers, receipts, census, evidence.
 - Services speak plain HTTP/JSON with a `/health` (200) and `/status` (503 unless
   authenticated). Register new ports in `params/genesis.yaml` — note the known collision
   on `:3040` (saos-engine vs FleetHQ office-selfcheck) and do not add new ones.
 - Keep the fleet's existing task contract (`netrun.sh`: `status|claim|verify|done`) for
   device work; do not invent a second one.
+- Wire objects validate against `schemas/*.schema.json` before they enter any state
+  machine; a schema nobody runs is a doc, not a gate.
 
 ## 6. Working with the estate
 

@@ -1,0 +1,49 @@
+# params/entities/kpi-001.yaml — KPI tree for ent-001 (Gate 0.5 draft).
+# Shape: one north-star → department KPIs → job specs. Every target is a target until
+# measured (Laws 8, 12); the honest-budget dashboard shows target vs measured from day one.
+
+kpi_tree_id: kpi-001
+entity_id: ent-001
+
+north_star:
+  metric: revenue_verified_settled_usds_monthly
+  definition: >
+    USDS settled through escrowed jobs whose verification ladder passed, paid from
+    real budgets (entity envelopes or external x402 payers), netted of refunds.
+    This — not token price, not post count — is the number Law 19 emits against.
+  target_90d_usds_muc: 600000000     # $600/mo run-rate by Phase 1 end — target, not promise
+  emitted_against: true              # the only KPI that can unlock emission
+
+departments:
+  - id: finance
+    kpis:
+      - metric: invoices_issued_and_settled
+        target: "first real invoice settled by week 6 (gate 1.3)"
+        measured_by: entity book event kind invoice.settled
+      - metric: runway_months
+        floor: 6
+        breach_behavior: "all spend escalates to T2 (policy engine, automatic)"
+  - id: ops
+    kpis:
+      - metric: jobs_delivered_on_deadline_pct
+        target: ">= 80% measured over trailing 30 days"
+        measured_by: escrow event chain
+      - metric: sla_breach_autocredits
+        target: "zero unhandled breaches"
+        measured_by: support queue digest
+  - id: growth
+    kpis:
+      - metric: external_paid_clients
+        target: "1 external x402 client completing a paid job by Phase 2 (gate 2.4)"
+        measured_by: x402 settlement receipts
+      - attribution_gate: "channels stay unwired until attribution is measured (docs/06 §10)"
+  - id: intelligence
+    kpis:
+      - metric: price_feed_rounds_per_day
+        target: ">= 1 witness round/day with >= 3 live samples (impl pricefeed)"
+        measured_by: price.round events
+  - id: support
+    kpis:
+      - metric: ticket_to_escrowed_job_pct
+        target: "100% of inbound paid tickets become escrowed jobs"
+        measured_by: ops-intake queue
