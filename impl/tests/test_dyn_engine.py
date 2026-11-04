@@ -161,6 +161,28 @@ class TestFailClosed(unittest.TestCase):
                 json.loads((self.tmp / "job-refine-1" / rel).read_text())["verdict"],
                 "PASS")
 
+    def test_fail_refunds_budget_and_ends_the_job(self):
+        loop = self._work_and_check(BAD_ARTIFACT)
+        res = loop.refund(day=3, worker_id="agent-fraud-1")
+        self.assertEqual(res["escrow_back_muc"], 500_000_000)
+        self.assertEqual(res["emitted_dyn_mu"], 0)  # Law 19: refund is not a flow
+        self.assertEqual(loop.log["status"], "refunded")
+        with self.assertRaises(EngineError):
+            loop.refund(day=4)                     # terminal — no second bite
+        with self.assertRaises(EngineError):
+            loop.settle(day=4)                     # a refunded job never pays
+        with self.assertRaises(EngineError):
+            loop.work(self.tmp / "good.py")        # money moved back; folder is closed
+
+    def test_refund_requires_fail_evidence(self):
+        loop = new_loop(self.tmp, "job-refok-1")
+        art = self.tmp / "ok.py"
+        art.write_text(ARTIFACT_INVOICE_PARSER)
+        loop.work(art)
+        loop.check(day=2)
+        with self.assertRaises(EngineError):       # PASS run cannot be "refunded"
+            loop.refund(day=3)
+
 
 class TestTarget(unittest.TestCase):
     def test_ground_truth_is_independent_and_exact(self):

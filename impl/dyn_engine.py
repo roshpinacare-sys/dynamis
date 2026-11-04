@@ -53,6 +53,7 @@ import dyn_post
 ENGINE = "dyn.engine.v1"
 STATUS_OPEN, STATUS_WORKING = "open", "working"
 STATUS_PASS, STATUS_FAIL, STATUS_SETTLED = "checked_pass", "checked_fail", "settled"
+STATUS_REFUNDED = "refunded"
 
 
 class EngineError(ValueError):
@@ -227,6 +228,40 @@ class WorkLoop:
         self._save()
         return {"overall": overall, "records": len(records),
                 "runtime_s": round(runtime, 4)}
+
+    # ---------- 3b. the fail path: the machine never pays ----------
+    def refund(self, *, day: int, worker_id: str = "agent-honest-1") -> dict:
+        """check FAIL end-state: escrow goes back to the budget, zero fees, zero
+        emission (Law 19 — REFUNDED is not a settled flow). The burden is on the
+        worker; the arbiter's default is budget wins."""
+        self._require_status((STATUS_FAIL,))
+        verdicts = [_read_json(self.root / rel)["verdict"]
+                    for rel in self.log["evidence"]]
+        if "FAIL" not in verdicts:
+            raise EngineError("refund requires a FAIL run — the evidence on disk "
+                              "does not show a failed check")
+        from agent_kit import resolve_dispute
+        entity = AgentKit(self.log["job"]["entity_id"], "entity-rail",
+                          "hsm:kr-entity", role="entity")
+        j = self.log["job"]
+        machine = entity.open_job(j["job_id"], j["entity_id"], j["spec"],
+                                  j["escrow_usds_muc"], j["deadline_day"],
+                                  j["revenue_ref"])
+        machine.fire("claim", worker=worker_id)
+        claim = Claim(f"cl-{j['job_id']}-{worker_id}", j["job_id"], worker_id,
+                      (self.log["artifact"]["sha256"],),
+                      object_hash({"evidence": self.log["evidence"]}), day)
+        machine.fire("deliver", claim=claim)
+        machine.fire("start_verify")
+        witness_verdict(machine, n_workers=1, reexec_matches=False, seed=day)
+        resolve_dispute(machine)                    # arbiter default: budget wins
+        escrow_back = machine.job.escrow_usds_muc
+        self.log["status"] = STATUS_REFUNDED
+        self._history("refund", escrow_back_muc=escrow_back, fee_muc=0,
+                      emitted_dyn_mu=0, worker=worker_id,
+                      reason="evidence FAIL — burden on worker")
+        self._save()
+        return {"escrow_back_muc": escrow_back, "fee_muc": 0, "emitted_dyn_mu": 0}
 
     # ---------- 4. settle (fail-closed on evidence) ----------
     def settle(self, *, day: int, worker_id: str = "agent-honest-1",

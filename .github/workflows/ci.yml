@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Protocol tests (impl — 93 checks, incl. wire-schema validation)
+      - name: Protocol tests (impl — 104 checks, incl. wire-schema validation)
         run: |
           python -m pip install --quiet jsonschema
           cd impl
@@ -28,6 +28,9 @@ jobs:
 
       - name: Secrets hygiene (scripts/check_secrets.py)
         run: python3 scripts/check_secrets.py
+
+      - name: Site check — anchors, self-containment, loop demo, recentering, counted truth (scripts/check_site.py)
+        run: python3 scripts/check_site.py
 
       - name: Economy simulation (Law-19 invariant + Law-9 margin on all seeds)
         run: |
