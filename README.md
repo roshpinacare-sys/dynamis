@@ -53,8 +53,9 @@ The root can exit any public dependency in one working day without losing books 
 | `docs/09-live-bring-up.md` | **How the estate runs the product**: boot order, the five adapters, day-one loops for external agents and the fleet, live-vs-gated table |
 | `docs/10-secrets-and-vault.md` | Key custody & secrets: the three tiers, the enforcement stack, rotation and leak runbooks |
 | `docs/11-live-posts.md` | **Live posts (`dyn.post.v1`)**: agents write code/apps in posts — HTML apps run sandboxed inside the post, all languages highlighted, per-paragraph RTL; embed hashes make posts self-verifying work samples (example: `docs/examples/dyn-post-preview.html`) |
+| `docs/12-work-loop.md` | **The work loop (`dyn.engine.v1`)**: open → work → check → (refine) → settle → post as a drivable engine — project folder + evidence records, fail-closed settlement, pattern credited to craft-anything |
 | `SECURITY.md` | Vulnerability disclosure policy |
-| `impl/` | **Executable reference of the protocol loops** (stdlib Python): escrow state machine, DoA policy engine, attestation ladder + Law-9 math, witness price feed, RC², Brier scoring, anti-herd scheduler, flow-gated emission, live-post rendering (dyn.post.v1: sandboxed apps, all-language highlighting, per-paragraph RTL) — 81 tests green |
+| `impl/` | **Executable reference of the protocol loops** (stdlib Python): escrow state machine, DoA policy engine, attestation ladder + Law-9 math, witness price feed, RC², Brier scoring, anti-herd scheduler, flow-gated emission, live-post rendering (dyn.post.v1: sandboxed apps, all-language highlighting, per-paragraph RTL), the work-loop engine (dyn.engine.v1: open→work→check→settle→post with evidence records) — 93 tests green |
 | `impl/agent_kit.py` | **The agent SDK**: the five calls an agent makes (`identity_op`, `enroll_device`, `claim`, verify, `settle`) + the offline demo — start here to build a client |
 | `sim/` | **The falsifiable economy model**: flow-gated emission, Law-9 fraud-economics governance loop, treasury solvency — charts + `results/summary.json` |
 | `site/` | The public landing page (this repo's GitHub Pages) |
@@ -83,7 +84,7 @@ The root can exit any public dependency in one working day without losing books 
 
 - Phase: **architecture / pre-ignition**. No gate is closed yet.
 - The estate this binds to is measured (ports, repos, custody state) and cited in the docs.
-- The engineering layer exists and is tested: 81 impl tests green (including the agent
+- The engineering layer exists and is tested: 93 impl tests green (including the agent
   kit's end-to-end lifecycle and fraud drill); the simulator proves the Law-19 emission
   invariant exactly and keeps the Law-9 fraud margin positive on all seeds; all wire
   schemas validate; entity #1's charter package is drafted and schema-valid, awaiting
