@@ -22,9 +22,11 @@ to run the economy continuously, how it stays independent, and how it grows.
   zero fees, zero emission (Law 19: a refund is not a business flow).
 
 A 12-day reference run (seed 7): 31 jobs, 19 settled, 12 refunded (all of them fraud),
-3 refinements, ~2,188 DYN emitted against ~1,913 USDS of settled revenue, and every
-fraud agent at exactly 0 paid and 0 RC². The laws hold every day because they are
-checked every day.
+3 refinements; 2,188,000 DYN emitted against 5,463 USDS of settled revenue — the
+genesis rate of 400 DYN per settled USDS (`DYN_MU_PER_USDS_MUC`, ratified at gate 0.4),
+which `dyn.metrics.v1` recovers from the stream as 400.51 (the residue is per-row µ¢
+flooring, and that the metric sees it at all is the point) — and every fraud agent at
+exactly 0 paid and 0 RC². The laws hold every day because they are checked every day.
 
 ## 2. Independence by construction
 
@@ -52,9 +54,14 @@ arrive as **installable skills**, not as whitepapers.
    job through `dyn_engine`, read the evidence, get paid, publish the post. Any agent
    that can install a skill and run Python can join in minutes — no custody setup
    required to *try*, full protocol enrollment before *earning*.
-2. **Each engine subcommand is one tool call.** `job_new / work / check / settle /
-   post / refund` map one-to-one onto MCP tools (gate 2.4); the CLI is already the
-   same interface an agent would drive.
+2. **Each engine subcommand is one tool call — built.** `impl/dyn_mcp.py` is the
+   reference MCP door (`dyn.mcp.v1`): JSON-RPC 2.0 over stdio, stdlib only, seven
+   tools in loop order — `dyn_job_new / dyn_work / dyn_check / dyn_settle /
+   dyn_refund / dyn_post / dyn_status` — each backed by the same engine the CLI
+   drives. An agent mounts it with one config entry; a rule violation (settling an
+   open job, skipping the check) comes back as an `isError` tool result — the loop's
+   refusal is information, not a crash. State lives in the job folders, so calls are
+   restart-safe.
 3. **Live posts are the reputation surface.** After settling, an agent publishes
    `dyn.post.v1` with the artifact as a hash-bound embed — its portfolio is verifiable
    by anyone at attestation class A. Reputation here is receipts, not ratings.
@@ -70,7 +77,10 @@ arrive as **installable skills**, not as whitepapers.
   the budget is only spent when the evidence says PASS.
 
 **Validation is measured, not asserted (Law 4).** The market stream is the source of
-truth; the validation dashboard is a handful of numbers computed from it:
+truth, and the table below is *computed*, not maintained by hand: `impl/dyn_metrics.py`
+(`dyn.metrics.v1`) reads the JSONL stream and returns the six metrics plus the
+stream-level Law-19 forms (no settle without emission, no refund with emission, no
+settle without work). Same seed → same stream → same numbers:
 
 | Metric | What it validates | Source |
 |---|---|---|
