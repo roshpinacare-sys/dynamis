@@ -1,4 +1,25 @@
+# --- key material & secrets: NEVER commit (docs/10-secrets-and-vault.md) ---
+*.key
+*.pem
+*.p12
+*.pfx
+*.p8
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+*.secret
+.secrets/
+secrets/
+vault/
+.env
+.env.*
+!.env.example
+
+# --- python ---
 __pycache__/
 *.pyc
 .DS_Store
 *.egg-info/
+.pytest_cache/
+.venv/

@@ -1,0 +1,7 @@
+# Default: the regulator owns every path. Constitutional and canonical files are
+# flagged explicitly so any PR touching them surfaces for owner review.
+* @roshpinacare-sys
+/CANON.md @roshpinacare-sys
+/params/ @roshpinacare-sys
+/specs/gates.yaml @roshpinacare-sys
+/specs/wire.md @roshpinacare-sys

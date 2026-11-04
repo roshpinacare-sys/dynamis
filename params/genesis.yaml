@@ -94,3 +94,12 @@ integrations:
   adopt: [x402, mcp, a2a, erc8004_bridge]
   adapt: [acp_state_machine, l402, ap2_consent_shapes]
   reject: [presale_narratives, self_reported_evaluation, shared_agent_computer]
+
+substrate:                     # ADR-0008: DYN is native to the estate stack at every layer
+  root_ledger: fleet_economy_3016          # instrument layer of record today (ADR-0004: one truth)
+  public_work_ledger: dynamis_chain        # own chain core, Steem-family lineage — gate 2.1+
+  third_party_l1_for_value: never          # Law 21: proofs on foreign chains, never value
+  settlement_unit: USDS
+  dyn_issuance: flow_gated_emission        # Law 19: emitted only per settled verified flow
+  anchors: [hive_notary, eth_notary_jummper]
+  bridges: [erc8004_identity_mirror]       # identity only — no token bridge, by construction

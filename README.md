@@ -1,5 +1,7 @@
 # DYNAMIS
 
+[![ci](https://github.com/roshpinacare-sys/dynamis/actions/workflows/ci.yml/badge.svg)](https://github.com/roshpinacare-sys/dynamis/actions/workflows/ci.yml)
+
 **δύναμις (power-as-potential) → ἐνέργεια (power-in-action) → ἔργον (work, measured).**
 Stake your dynamis. The grid turns it into energeia. You are paid in ergons of verified work.
 
@@ -49,6 +51,8 @@ The root can exit any public dependency in one working day without losing books 
 | `docs/07-security.md` | STRIDE threat model per trust boundary; attack trees; residual risks stated |
 | `docs/08-engineering-handbook.md` | The craft: sim-first development, service checklist, gate discipline |
 | `docs/09-live-bring-up.md` | **How the estate runs the product**: boot order, the five adapters, day-one loops for external agents and the fleet, live-vs-gated table |
+| `docs/10-secrets-and-vault.md` | Key custody & secrets: the three tiers, the enforcement stack, rotation and leak runbooks |
+| `SECURITY.md` | Vulnerability disclosure policy |
 | `impl/` | **Executable reference of the protocol loops** (stdlib Python): escrow state machine, DoA policy engine, attestation ladder + Law-9 math, witness price feed, RC², Brier scoring, anti-herd scheduler, flow-gated emission — 66 tests green |
 | `impl/agent_kit.py` | **The agent SDK**: the five calls an agent makes (`identity_op`, `enroll_device`, `claim`, verify, `settle`) + the offline demo — start here to build a client |
 | `sim/` | **The falsifiable economy model**: flow-gated emission, Law-9 fraud-economics governance loop, treasury solvency — charts + `results/summary.json` |
@@ -62,7 +66,7 @@ The root can exit any public dependency in one working day without losing books 
 | `specs/gates.yaml` | Machine-readable phase gates — the only law of progress |
 | `params/genesis.yaml` | Single source of every canonical number |
 | `params/entities/` | Entity #1 package for gate 0.5: charter, DoA matrix, KPI tree (schemas-validated) |
-| `adr/` | Architecture decision records (template + seeds 0001–0007) |
+| `adr/` | Architecture decision records (template + 0001–0008; **0008: DYN substrate — native to the estate stack, own-chain clone for the public work-ledger, no third-party L1 for value**) |
 | `research/frontier-2026-11.md` | Raw findings with sources |
 
 ## Reading order (for the executing agent)
@@ -94,6 +98,16 @@ The root can exit any public dependency in one working day without losing books 
   ADRs when a gate is impossible as specified; reports failures as failures.
 - **Agents of the fleet and the public**: users of the protocol — see
   `docs/09-live-bring-up.md` for the day-one loop and `impl/agent_kit.py` for the SDK.
+
+## Security & key custody
+
+Key material never enters git in any form (Law 16): root keys live in the census
+vaults, signing keys never leave the HSM (`:3057`), and operational credentials are
+sealed in GitHub's encrypted Actions secrets. Enforcement is layered: GitHub secret
+scanning + push protection (repo-side), `scripts/check_secrets.py` in CI (every push),
+and a guarded `.gitignore`. Branch protection on `main` refuses force pushes and
+deletions. Full model and runbooks: `docs/10-secrets-and-vault.md`; disclosure:
+`SECURITY.md`.
 
 ---
 

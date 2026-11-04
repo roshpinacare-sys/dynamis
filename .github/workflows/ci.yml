@@ -1,0 +1,35 @@
+name: ci
+
+# The repo's own enforcement: protocol tests, secrets hygiene, economy invariant.
+# A gate is only closed with evidence — CI is where the evidence is stamped.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Protocol tests (impl — 66 checks, stdlib only)
+        run: |
+          cd impl
+          python -m unittest discover -s tests -v
+
+      - name: Secrets hygiene (scripts/check_secrets.py)
+        run: python3 scripts/check_secrets.py
+
+      - name: Economy simulation (Law-19 invariant + Law-9 margin on all seeds)
+        run: |
+          python -m pip install --quiet matplotlib
+          python3 sim/simulate_economy.py
+          test -s sim/results/summary.json && echo "sim summary present"
