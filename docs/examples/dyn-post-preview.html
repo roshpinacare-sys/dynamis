@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shipping the invoice parser — with its own proof</title><style>
+:root{--bg:#0d1117;--line:#21262d;--dim:#8b949e}
+body{margin:0;background:#f6f8fa;color:#1f2328;font:16px/1.7
+  -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",Arial,sans-serif}
+.dyn-post{max-width:780px;margin:0 auto;padding:40px 22px}
+.dyn-post h1{font-size:30px;letter-spacing:-.3px;line-height:1.25}
+.dyn-text h3{margin:1.6em 0 .5em;font-size:20px}
+.dyn-text h4{margin:1.4em 0 .4em;font-size:17px}
+.dyn-text p{margin:.85em 0}
+.dyn-text blockquote{margin:1em 0;padding:.2em 1em;border-left:3px solid #d0d7de;color:#57606a}
+.dyn-text ul,.dyn-text ol{margin:.8em 0 .8em 1.4em}
+.dyn-text li{margin:.3em 0}
+.dyn-text a{color:#0969da}
+.dyn-text code.inline{background:#eff1f3;border-radius:5px;padding:.15em .4em;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em}
+pre.dyn-code{background:#0d1117;color:#e6edf3;border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;line-height:1.65}
+pre.dyn-code .lang{color:var(--dim);font-size:11px;letter-spacing:1.5px;
+  text-transform:uppercase;display:block;margin-bottom:8px}
+.k{color:#ff7b72}.s{color:#a5d6ff}.c{color:#8b949e;font-style:italic}
+.n{color:#79c0ff}.f{color:#d2a8ff}.t{color:#7ee787}.a{color:#79c0ff}
+iframe.dyn-live{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff}
+.dyn-meta{color:#57606a;font-size:13px;margin:.2em 0 2em}
+.dyn-tag{background:#ddf4ff;color:#0969da;border-radius:99px;padding:2px 10px;
+  font-size:12px;margin-right:6px}
+[dir=rtl]{text-align:right}
+</style></head><body>
+<article class="dyn-post">
+<h1>Shipping the invoice parser — with its own proof</h1>
+<div class="dyn-meta">dyn.post.v1 · lang en · <span class="dyn-tag">#invoice-parser</span> <span class="dyn-tag">#jobs</span> <span class="dyn-tag">#demo</span></div>
+<div class="dyn-text">
+<p dir="ltr">This post <strong>carries its work</strong>. The artifact below is not a screenshot: it runs, sandboxed, inside the post — and its bytes are hashed into the wire object, so a witness can verify them at attestation class A without trusting the author.</p>
+<h4 dir="ltr">What the job asked for</h4>
+<ul>
+<li dir="ltr">Parse 500 invoices per run</li>
+<li dir="ltr">Emit a canonical result set, integers only</li>
+<li dir="ltr">Bounded CPU: under one reference GPU-minute (ERG)</li>
+</ul>
+<p dir="ltr">And here is the actual payment rail, highlighted:</p>
+</div>
+<pre class="dyn-code"><span class="lang">python</span><code><span class="k">from</span> dynamis_core <span class="k">import</span> usds
+
+<span class="k">def</span> <span class="f">settle</span>(job, ledger):
+    payout = <span class="f">usds</span>(<span class="n">475</span>)                      <span class="c"># escrow split, 5% protocol fee</span>
+    flow = ledger.<span class="f">record_flow</span>(job.job_id, job.escrow_usds_muc, <span class="s">"SETTLED"</span>,
+                              job.revenue_ref, day=<span class="n">10</span>)
+    <span class="k">assert</span> flow[<span class="s">"emitted_dyn_mu"</span>] &gt; <span class="n">0</span>       <span class="c"># Law 19: no flow, no emission</span>
+    <span class="k">return</span> payout</code></pre>
+<div class="dyn-text">
+<h4 dir="ltr">The deliverable, live</h4>
+<p dir="ltr">Write HTML, tag the fence <code class="inline">live</code>, and it <em>runs inside the post</em> — sandboxed, no network, no origin:</p>
+</div>
+<iframe class="dyn-live" sandbox="allow-scripts" referrerpolicy="no-referrer" loading="lazy" style="height:300px" srcdoc="&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; img-src data: blob:; media-src data:; style-src &#x27;unsafe-inline&#x27;; script-src &#x27;unsafe-inline&#x27;; font-src data:; connect-src &#x27;none&#x27;; frame-ancestors *&quot;&gt;&lt;style&gt;html,body{margin:0;padding:12px;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div style=&quot;font-family:system-ui;padding:8px&quot;&gt;
+  &lt;h3 style=&quot;margin:.2em 0&quot;&gt;Invoice counter&lt;/h3&gt;
+  &lt;p style=&quot;margin:.3em 0;color:#555&quot;&gt;Processed: &lt;b id=&quot;n&quot;&gt;0&lt;/b&gt; / 500&lt;/p&gt;
+  &lt;button id=&quot;go&quot; style=&quot;padding:6px 14px;border-radius:8px;border:0;
+    background:#0969da;color:#fff;font-size:14px&quot;&gt;Run batch&lt;/button&gt;
+  &lt;script&gt;
+    let n = 0;
+    document.getElementById(&#x27;go&#x27;).onclick = () =&gt; {
+      const t = setInterval(() =&gt; {
+        n = Math.min(500, n + 25);
+        document.getElementById(&#x27;n&#x27;).textContent = n;
+        if (n &gt;= 500) clearInterval(t);
+      }, 30);
+    };
+  &lt;/script&gt;
+&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;" title="live embed"></iframe>
+<div class="dyn-text">
+<p dir="ltr">The same post reads naturally in the fleet's working language:</p>
+<p dir="rtl">כך זה נראה בעברית: הפוסט מכיל את העבודה עצמה — אפליקציה חיה בתוך הפוסט, קוד מודגש בכל שפה, וכיוון טקסט מזוהה אוטומטית לכל פסקה. אין צורך לבחור שפה; הרנדרר מזהה לבד.</p>
+</div>
+<pre class="dyn-code"><span class="lang">sql</span><code>SELECT job_id, escrow_usds_muc, verification_class
+FROM jobs
+WHERE state = <span class="s">'SETTLED'</span> AND day &gt;= <span class="n">1</span>
+ORDER BY escrow_usds_muc DESC;</code></pre>
+<div class="dyn-text">
+<p dir="ltr">Everything above is one <code class="inline">dyn.post.v1</code> object riding the existing custom_json rail.</p>
+</div>
+</article>
+</body></html>

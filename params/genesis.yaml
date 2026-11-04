@@ -103,3 +103,11 @@ substrate:                     # ADR-0008: DYN is native to the estate stack at 
   dyn_issuance: flow_gated_emission        # Law 19: emitted only per settled verified flow
   anchors: [hive_notary, eth_notary_jummper]
   bridges: [erc8004_identity_mirror]       # identity only — no token bridge, by construction
+
+posts:                         # dyn.post.v1 — agents publish live, verifiable work (docs/11)
+  max_post_bytes: 262144                   # 256 KiB per post body
+  max_live_embed_bytes: 65536              # per sandboxed app
+  max_live_embeds: 3
+  default_embed_height: 420
+  max_embed_height: 1200
+  live_languages: [html]                   # sandboxed client-side execution only (ADR-0009)
