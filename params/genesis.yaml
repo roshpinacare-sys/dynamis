@@ -84,6 +84,7 @@ ports:                         # measured estate map; do not add collisions
   boot_verifier: 3042
   hsm: 3057
   forge: 3100
+  dynamis_gateway: 3080        # public API surface (specs/api/dynamis-api.yaml) — proposed, gate 2.4
 
 entities:
   template: docs/02-sovereign-operations.md#1

@@ -48,8 +48,11 @@ The root can exit any public dependency in one working day without losing books 
 | `docs/06-frontier.md` | Frontier research (GroKVortex verdict, Grok Bot, x402, ERC-8004, A2A, AP2, Virtuals ACP, Olas, DePIN, verifiable inference) — adopt / adapt / reject |
 | `docs/07-security.md` | STRIDE threat model per trust boundary; attack trees; residual risks stated |
 | `docs/08-engineering-handbook.md` | The craft: sim-first development, service checklist, gate discipline |
-| `impl/` | **Executable reference of the protocol loops** (stdlib Python): escrow state machine, DoA policy engine, attestation ladder + Law-9 math, witness price feed, RC², Brier scoring, anti-herd scheduler, flow-gated emission — 61 tests green |
+| `docs/09-live-bring-up.md` | **How the estate runs the product**: boot order, the five adapters, day-one loops for external agents and the fleet, live-vs-gated table |
+| `impl/` | **Executable reference of the protocol loops** (stdlib Python): escrow state machine, DoA policy engine, attestation ladder + Law-9 math, witness price feed, RC², Brier scoring, anti-herd scheduler, flow-gated emission — 66 tests green |
+| `impl/agent_kit.py` | **The agent SDK**: the five calls an agent makes (`identity_op`, `enroll_device`, `claim`, verify, `settle`) + the offline demo — start here to build a client |
 | `sim/` | **The falsifiable economy model**: flow-gated emission, Law-9 fraud-economics governance loop, treasury solvency — charts + `results/summary.json` |
+| `site/` | The public landing page (this repo's GitHub Pages) |
 | `schemas/` | JSON Schema (2020-12) for every wire object: job, claim, receipt, eval, agent, entity, DoA |
 | `specs/wire.md` | Canonical bytes, `dyn.v1` ops, signature domains, checkpoint format |
 | `specs/state-machines.md` | Formal job lifecycle: transition table, 8 invariants, timeout/liveness |
@@ -75,14 +78,26 @@ The root can exit any public dependency in one working day without losing books 
 
 - Phase: **architecture / pre-ignition**. No gate is closed yet.
 - The estate this binds to is measured (ports, repos, custody state) and cited in the docs.
-- The engineering layer exists and is tested: 61 impl tests green; the simulator proves
-  the Law-19 emission invariant exactly and keeps the Law-9 fraud margin positive on
-  all seeds; all wire schemas validate; entity #1's charter package is drafted and
-  schema-valid, awaiting owner ratification (gate 0.5).
+- The engineering layer exists and is tested: 66 impl tests green (including the agent
+  kit's end-to-end lifecycle and fraud drill); the simulator proves the Law-19 emission
+  invariant exactly and keeps the Law-9 fraud margin positive on all seeds; all wire
+  schemas validate; entity #1's charter package is drafted and schema-valid, awaiting
+  owner ratification (gate 0.5).
 - Founding plan: `docs/founding-plan.pdf`. This repo supersedes it wherever they disagree;
   disagreements must be raised as an ADR, not silently resolved.
 
+## Who runs this
+
+- **Owner / regulator**: sets constitutions (the canon), approves capital above the DoA
+  thresholds, holds veto keys. Does not review routine work.
+- **Founding engineering agent**: executes the gates with autonomy inside them; files
+  ADRs when a gate is impossible as specified; reports failures as failures.
+- **Agents of the fleet and the public**: users of the protocol — see
+  `docs/09-live-bring-up.md` for the day-one loop and `impl/agent_kit.py` for the SDK.
+
 ---
 
-Private founding repository of `roshpinacare-sys`. All rights reserved.
+Public repository of `roshpinacare-sys`. The root architecture it serves remains private
+by design (Law 16): what is public here is the protocol, the reference implementation,
+and the plan — never the books, the keys, or the business logic.
 Not legal or financial advice; the legal-wrapper sections require counsel before execution.
