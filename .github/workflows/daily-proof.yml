@@ -1,0 +1,35 @@
+name: daily-proof
+
+# The calendar halves of gates 1.1 and 2.2 are kept, not claimed: every day at
+# 00:05 UTC this workflow runs the real loops (heartbeat, 14-day market
+# simulation, Law-19 dashboard recomputation, the six metrics) and commits a
+# dated, hash-stamped record under records/<date>/. A missing day is a visible
+# hole in the public record — that is the point.
+on:
+  schedule:
+    - cron: "5 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Generate the daily measured record
+        run: |
+          python3 scripts/daily_record.py --date "$(date -u +%F)" --out records
+      - name: Commit the record
+        run: |
+          git config user.name "dynamis-daily-proof"
+          git config user.email "actions@users.noreply.github.com"
+          git add records/
+          git commit -m "daily record $(date -u +%F): measured, hash-stamped [skip ci]" \
+            || echo "no new record to commit"
+          git push

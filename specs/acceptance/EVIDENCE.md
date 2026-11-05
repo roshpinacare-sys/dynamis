@@ -18,3 +18,8 @@ Nothing is closed without a line here.
 2026-11-05 | 3.3 entity fleet rollup | python3 impl/dyn_fleet.py view ent-001 ent-002 ent-003 | exit 0; 3 balanced books, revenue 720,000,000 µ¢ measured; read-only proven (digests unchanged); <3 entities refused | DYNAMIS Founding Agent
 2026-11-05 | 1.1 uptime mechanism | python3 scripts/heartbeat.py + .github/workflows/uptime.yml (15-min cron) | exit 0; money/escrow/checkpoint checks all true; uptime_report.py reads beats off the Actions API | DYNAMIS Founding Agent
 2026-11-05 | site counted-truth | python3 scripts/check_site.py | 0 findings; suite collects 227 tests; no forbidden names in public copy | DYNAMIS Founding Agent
+2026-11-05 | suite (incl. daily record) | python3 -m pytest impl/tests/ -q | 231 passed in ~15s (was 227) | DYNAMIS Founding Agent
+2026-11-05 | daily record #1 | python3 scripts/daily_record.py --date 2026-11-06 --out records | exit 0; records/2026-11-06/{dashboard.html,metrics.txt,summary.json}; law19_ok=true, heartbeat_ok=true; record_digest 166bddcc45ef35ceeaeb1b5e3153be56 | DYNAMIS Founding Agent
+2026-11-05 | 1.1 first beat dispatched | POST /actions/workflows/uptime.yml/dispatches ref=main | HTTP 204; cron */15 registered active; uptime_report.py reads the measured % once beats accrue | DYNAMIS Founding Agent
+2026-11-05 | launch-week plan | docs/18-launch-week.md | 7-day schedule (Days 1-7 = 2026-11-06..12) + 9-item human checklist; 14-day window completes 2026-11-19 via daily-proof records | DYNAMIS Founding Agent
+2026-11-05 | site counted-truth | python3 scripts/check_site.py | 0 findings; suite collects 231 tests | DYNAMIS Founding Agent
