@@ -135,3 +135,33 @@ the fleet of three with a consolidated read-only view (3.3), and the ERC-8004
 export standalone (3.5). Evidence rows were also reformatted to the canonical
 gate-id-first form the gate review counts — the review now shows the evidence
 that exists instead of hiding it behind a formatting mismatch.
+
+### Addendum 3 — the three open gates, their agent halves recorded (2026-11-05, continuation)
+
+The gate review showed exactly three gates with zero evidence rows. Their
+agent-executable halves are now recorded and measured, each remaining owner
+act named, not claimed:
+
+- **0.3 (agent half)** — the custody decision is recorded
+  (`specs/acceptance/0.3-custody-decision.md`): the dead army — 46 dead ROT2
+  WIFs (no re-key: two-soul custody forbids exporting dead key material) and
+  LOST-WITH-SANDBOX accounts (re-key impossible by definition) — formally
+  retired; `custom.db` (248 AES-GCM entries) stays sealed estate-side with
+  zero code paths touching it; the in-repo census roster measured clean
+  (158 files, 0 findings). The estate-side `CUSTODY.md` mirror and any
+  on-chain disposal remain owner acts.
+- **1.6 (agent half)** — the counsel packet is assembled and verified file by
+  file (`specs/acceptance/1.6-counsel-packet.md`), with the verbatim ask
+  (entity formation order + token-sale posture) recorded; the engagement
+  letter remains a human signature.
+- **3.1 (prep half)** — the witness operator runbook (`docs/20`) is verified
+  as the onboarding kit candidate #1 receives: duties, bonds and slash
+  conditions (`docs/11`), the one-command dry-run (four attacks rejected,
+  fail-closed, measured transcript in `records/`), and the offline
+  chain-verification path any third party can run. The three external
+  signatures and the 14 active days remain the calendar window (docs/18
+  Day 5).
+
+Every gate in the review now carries at least one evidence row; what still
+separates the project from "running" is unchanged and unchanged-sized:
+calendar windows and human signatures.
