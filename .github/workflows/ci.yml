@@ -20,11 +20,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Protocol tests (impl — 231 checks, incl. wire-schema validation)
+      - name: Protocol tests (impl — 241 checks, incl. wire-schema validation)
         run: |
           python -m pip install --quiet jsonschema
           cd impl
           python -m unittest discover -s tests -v
+
+      - name: Params mirror — genesis.yaml vs code constants (scripts/params_check.py)
+        run: python3 scripts/params_check.py
 
       - name: Secrets hygiene (scripts/check_secrets.py)
         run: python3 scripts/check_secrets.py

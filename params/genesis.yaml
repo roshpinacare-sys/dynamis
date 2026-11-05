@@ -15,6 +15,7 @@ network:
 supply:
   dyn_initial_mint: 0          # no content premine (anti-premine law)
   emission: flow-gated         # Law 19: unlocked only against settled jobs
+  dyn_mu_per_usds_muc: 400     # the rate: 400 DYN-µ per settled µ¢ (dynamis_core/emission.py)
   saos_internal: 21000         # measured estate constant (fleet-economy), unchanged
 
 emission_split:                # of flow-gated work emissions
@@ -56,11 +57,21 @@ rc2:
   regeneration: time+stake
   purchasable_at_scale: false
 
+bench:                         # benchmark suite — same ruler for every device (dyn_bench.py)
+  tier_thresholds_muc:
+    T4: 50000
+    T3: 25000
+    T2: 10000
+    T1: 0
+  work_budget_steps: 20000     # identical work for every device — same ruler
+  challenge_seeds: [0xC0FFEE, 0xD1CE5, 0xBADC0DE]
+
 escrow:
   coordination_fee_bps: 500    # inherited from roshpina kernel (5%)
   settlement_unit: USDS
 
 treasury_policy:               # SOL economics
+  t2_threshold_usds: 2000      # machine leaf: spend > $2,000 is capital (policy.T2_THRESHOLD_MUC)
   min_runway_months: 6
   rail_caps:                   # pattern: G28 fail-closed caps
     max_single_flow_usds: 25000

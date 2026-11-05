@@ -30,10 +30,15 @@ when asked), **W** = witness operator, **C** = counsel.
 ### Day 1 — Fri 2026-11-06 · Owner ratifications (Gate 0.4)
 - **O** ratifies the labeled genesis parameters: bench tier thresholds
   (`impl/dyn_bench.py` `TIERS`), emission rate (`DYN_MU_PER_USDS_MUC = 400`),
-  market fee bps. Each is a named constant today; ratification moves the
-  values into `params/genesis.yaml` with a signed commit.
+  market fee bps. The values already live in `params/genesis.yaml` — every
+  leaf the code mirrors is there, and `scripts/params_check.py` proves the
+  mirror holds (CI enforces it: a divergence fails the build). Ratification
+  is: confirm the values, set `meta.status: ratified`, flip the ADR statuses,
+  sign the commit, and run the proof:
+  `python3 scripts/params_check.py --status`
 - **O** executes treasury op #1 for real (2.5 world half) under committee.
-- Evidence: signed commit touching `params/genesis.yaml`; EVIDENCE.md line.
+- Evidence: signed commit touching `params/genesis.yaml`; the params_check
+  line `0 divergences`; EVIDENCE.md entry.
 
 ### Day 2 — Sat 2026-11-07 · Counsel + the persistent host (Gates 1.6, 1.1)
 - **C** receives the counsel packet: `docs/02` (constitution), entity charters,
@@ -82,8 +87,11 @@ when asked), **W** = witness operator, **C** = counsel.
   re-seal. The veto-gated loop is code-tested (`docs/16`); this is its first
   live execution.
 - **A** runs `scripts/uptime_report.py --days 7`: the ≥ 99% number, measured.
-- **A** publishes `records/gate-review-2026-11-12.md`: every gate, its
-  evidence, its status. Everything closes except 2.2's window.
+- **A** generates the review straight from the registry, joined with the
+  evidence actually on record — no hand-typed statuses:
+  `python3 scripts/gate_review.py --evidence > records/gate-review-2026-11-12.md`
+- **A** publishes that review: every gate, its owner, its acceptance
+  criterion, its evidence count. Everything closes except 2.2's window.
 - Evidence: the review doc itself; EVIDENCE.md lines for each closed gate.
 
 ### Days 8–14 (through 2026-11-19) · The dashboard window completes
