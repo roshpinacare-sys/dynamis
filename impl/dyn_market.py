@@ -22,7 +22,8 @@ engine and benji.org/stageshow teaches for demos: the loop is the product.
   python3 dyn_market.py run --days 30 --out market.jsonl
 
 Stdlib only (ADR-0007). Per-job escrow chains live in each job folder; the
-market-level view below is the flow stream (a chain-wide ledger is gate 3).
+market-level view below is the flow stream, with exact µ¢ amounts on the money
+rows — the chain-wide ledger that replays it is `dyn_ledger.py` (gate 2.1).
 """
 from __future__ import annotations
 
@@ -116,7 +117,8 @@ class Market:
                          count=count, currencies=("USD", "EUR"), buyer_count=20,
                          day=self.day)
             self._emit("open", job=job_id, agent=agent.agent_id,
-                       value_usds=value_usds, count=count,
+                       value_usds=value_usds, value_muc=usds(value_usds),
+                       count=count,
                        cls=loop.log["job"]["verification_class"])
             day_stats["jobs"] += 1
             agent.jobs += 1
@@ -156,6 +158,7 @@ class Market:
                 self._emit("settle", job=job_id, agent=agent.agent_id,
                            payout_usds=out["payout_muc"] // 1_000_000,
                            fee_usds=out["fee_muc"] // 1_000_000,
+                           payout_muc=out["payout_muc"], fee_muc=out["fee_muc"],
                            emitted_dyn_mu=out["emitted_dyn_mu"],
                            chain_ok=out["chain_ok"])
             else:
@@ -164,6 +167,7 @@ class Market:
                 day_stats["refunded"] += 1
                 self._emit("refund", job=job_id, agent=agent.agent_id,
                            escrow_back_usds=back["escrow_back_muc"] // 1_000_000,
+                           escrow_back_muc=back["escrow_back_muc"],
                            emitted_dyn_mu=0)
         return day_stats
 

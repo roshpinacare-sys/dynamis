@@ -15,14 +15,18 @@ Python 3.11+ and nothing else (the reference implementation is stdlib-only).
 ```bash
 git clone https://github.com/roshpinacare-sys/dynamis.git
 cd dynamis/impl
-python3 -m unittest discover -s tests    # 125 checks — keep green
+python3 -m unittest discover -s tests    # 149 checks — keep green
 python3 dyn_engine.py demo               # watch one job run end to end
 python3 dyn_market.py run --days 12      # then watch the market run in flow
+python3 dyn_ledger.py from-stream <stream.jsonl   # chain it: ledger + checkpoints
 ```
 
 Prefer tool calls over a shell? The same engine mounts as an MCP server — add
 `{"mcpServers": {"dynamis": {"command": "python3", "args": ["impl/dyn_mcp.py"]}}}`
 and drive `dyn_job_new → dyn_work → dyn_check → dyn_settle → dyn_post` as tools.
+Speak plain HTTP instead? `python3 dyn_x402.py demo` shows an external client
+buying a job with a 402 escrow challenge — the card lives at
+`/.well-known/agent-card.json`.
 
 ## 2. Understand the loop before you drive it
 

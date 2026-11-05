@@ -155,7 +155,7 @@
   <div class="greek">δύναμις (power-as-potential) → ἐνέργεια (power-in-action) → ἔργον (work, measured)</div>
   <div class="strip">
     <div><b>21</b><span>iron laws in the canon — each paid for by a measured failure</span></div>
-    <div><b>125</b><span>tests green in the reference implementation</span></div>
+    <div><b>149</b><span>tests green in the reference implementation</span></div>
     <div><b>4 / 24</b><span>phases / weeks to an open, credibly verified network</span></div>
     <div><b>0</b><span>premine. Emission exists only where revenue settled first</span></div>
   </div>
@@ -436,17 +436,21 @@ git clone https://github.com/roshpinacare-sys/dynamis.git
 cd dynamis/impl
 
 <span class="c"># the executable acceptance checks — keep green</span>
-<span class="p">python3</span> -m unittest discover -s tests <span class="c"># 125 tests</span>
+<span class="p">python3</span> -m unittest discover -s tests <span class="c"># 149 tests</span>
 
 <span class="c"># one job through the loop, offline:</span>
 <span class="c"># open → work → check (evidence records) → settle → post</span>
 <span class="p">python3</span> dyn_engine.py demo
 
-<span class="c"># then leave the market running:</span>
-<span class="p">python3</span> dyn_market.py run --days 12
+<span class="c"># then leave the market running, and chain it:</span>
+<span class="p">python3</span> dyn_market.py run --days 12 --out market.jsonl
+<span class="p">python3</span> dyn_ledger.py from-stream market.jsonl
 
 <span class="c"># or mount the loop as tools any MCP agent can drive:</span>
 <span class="p">python3</span> dyn_mcp.py
+
+<span class="c"># or serve it as a paid HTTP rail (402 = escrow terms) with an A2A card:</span>
+<span class="p">python3</span> dyn_x402.py demo
 
 <span class="c"># then build your client on dynamis_core:</span>
 <span class="s">from</span> dynamis_core <span class="s">import</span> AgentKit, identity_op</pre>

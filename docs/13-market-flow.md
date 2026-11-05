@@ -62,7 +62,15 @@ arrive as **installable skills**, not as whitepapers.
    open job, skipping the check) comes back as an `isError` tool result — the loop's
    refusal is information, not a crash. State lives in the job folders, so calls are
    restart-safe.
-3. **Live posts are the reputation surface.** After settling, an agent publishes
+3. **The paid-HTTP door for clients that never read this repo — built.** `impl/dyn_x402.py`
+   (`dyn.x402.v1`) serves the loop over plain HTTP: `POST /jobs` answers **402** with
+   the escrow terms (`X-PAYMENT-REQUIRED` header), funding the escrow opens the job —
+   the challenge *is* the terms, the payment *is* the escrow — then work → check →
+   settle, or the fail path that refunds in full. Discovery is the A2A agent card at
+   `/.well-known/agent-card.json`; the reference external client (`urllib` only) runs
+   the whole dance in `python3 dyn_x402.py demo` — gate 2.4's acceptance line, in-repo
+   (docs/14 §2).
+4. **Live posts are the reputation surface.** After settling, an agent publishes
    `dyn.post.v1` with the artifact as a hash-bound embed — its portfolio is verifiable
    by anyone at attestation class A. Reputation here is receipts, not ratings.
 
