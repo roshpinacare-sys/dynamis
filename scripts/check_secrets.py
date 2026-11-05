@@ -25,6 +25,14 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SELF = Path(__file__).resolve()
 
+# Detector-fixture allowance — one source of truth, imported from census.py.
+# Files whose PURPOSE is carrying synthetic credential shapes for the detector
+# tests. Always named in the scan's output; nothing else is exempt. This keeps
+# the scanners able to test themselves without ever going quiet about it.
+import sys as _sys  # noqa: E402
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+from census import ALLOWED_FIXTURES  # noqa: E402
+
 # (label, pattern) — high-signal credential shapes only.
 PATTERNS = [
     ("github fine-grained PAT", re.compile(r"github_pat_[A-Za-z0-9_]{18,}")),
@@ -55,9 +63,14 @@ def is_binary(blob: bytes) -> bool:
 
 def main() -> int:
     findings: list[str] = []
+    fixtures: list[str] = []
     files = tracked_files()
     for path in files:
         if path.resolve() == SELF:
+            continue
+        rel = str(path.relative_to(REPO))
+        if rel in ALLOWED_FIXTURES:
+            fixtures.append(rel)
             continue
         name = path.name
         if name in FORBIDDEN_NAMES or name.endswith(FORBIDDEN_SUFFIXES):
@@ -91,7 +104,9 @@ def main() -> int:
         print("The matched content is not printed here. Remove the secret from the")
         print("file, rotate the credential at its provider, and see docs/10 §5.")
         return 1
-    print(f"secret scan: clean ({len(files)} tracked files)")
+    print(f"secret scan: clean ({len(files) - len(fixtures)} files scanned, "
+          f"{len(fixtures)} allowlisted detector fixture(s): "
+          f"{', '.join(fixtures) or 'none'})")
     return 0
 
 
