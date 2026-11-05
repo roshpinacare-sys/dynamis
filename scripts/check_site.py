@@ -12,8 +12,11 @@ filmed with what stdlib gives us, so this script measures what is measurable:
                     cursor, reduced-motion fallback and aria label;
   4. recentering    no legacy chain names anywhere in the public copy — DYNAMIS is
                     promoted as its own independent network; rails are adapters;
-  5. counted truth  the test-count strip in the hero equals the number of tests the
-                    suite actually collects (measured here, not remembered).
+  5. counted truth  every test-count the page mentions (hero strip, body copy,
+                    code comments) equals the number of tests the suite actually
+                    collects (measured here, not remembered);
+  6. english-only   no CJK characters anywhere in the public copy — the site,
+                    like every deliverable, is English.
 
 Exit 0 and a report, or exit 1 with the findings. Wired into CI after the test suite.
 """
@@ -69,13 +72,23 @@ def check() -> list[str]:
         if re.search(name, text, re.IGNORECASE):
             fails.append(f"legacy chain name in public copy: {name}")
 
-    # 5. counted truth — the strip's number vs the suite's real count
+    # 5. counted truth — every "N tests" mention must equal the suite's real count
     real = collect_tests()
     m = re.search(r"<b>(\d+)</b><span>tests green", html)
     if not m:
         fails.append("test-count strip not found in hero")
     elif int(m.group(1)) != real:
         fails.append(f"hero claims {m.group(1)} tests but the suite collects {real}")
+    for m in re.finditer(r"(\d[\d,]*)\s+tests", text):
+        n = int(m.group(1).replace(",", ""))
+        if n != real:
+            fails.append(f"stale test count {n} in page body "
+                         f"(suite collects {real})")
+
+    # 6. english-only — no CJK characters in the public copy
+    cjk = re.findall(r"[\u4e00-\u9fff\u3040-\u30ff]", html)
+    if cjk:
+        fails.append(f"CJK characters in public copy: {''.join(cjk[:8])}")
     return fails, real
 
 

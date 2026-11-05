@@ -4,6 +4,11 @@ Executed per `specs/gates.yaml` (machine-readable). Owners: **O** = owner/regula
 decisions, **A** = executing agent. A phase starts only when the earlier gate is closed
 with evidence (the fleet's own anti-fantasy rule).
 
+**On numbering:** the phases are numbered **0–3** — four phases in total. There is no
+"Phase 4": the fourth phase is *Phase 3, Commonwealth*, and when it closes, the network
+is open and the roadmap is complete. Post-roadmap work (expansion, integrations,
+partner rails) is described in `docs/13`, not as a new phase.
+
 ## Phase 0 — Ignition (weeks 1–2)
 
 Custody, canon, and the first entity. Everything else waits.

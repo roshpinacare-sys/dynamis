@@ -76,8 +76,11 @@ def build_record(date: str, *, out_dir: Path, seed: int = DEFAULT_SEED,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     from dynamis_core.canonical import object_hash
+    # The digest covers the measured facts only — the generation timestamp is
+    # honest metadata but must not change how the day's record verifies.
     rec["record_digest"] = object_hash(
-        {k: v for k, v in rec.items() if k != "record_digest"})[:32]
+        {k: v for k, v in rec.items()
+         if k not in ("record_digest", "generated_at")})[:32]
     (day_dir / "summary.json").write_text(
         json.dumps(rec, indent=2) + "\n", encoding="utf-8")
     return rec
