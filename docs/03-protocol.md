@@ -67,6 +67,10 @@ fraud it can catch (Law 9). Class is part of the job spec; price scales with it.
   and lose bonds for calibrated-wrong verdicts. The army-social rail (`army-social.mjs`,
   anti-herd schedules, REFUSED-NO-CUSTODY, content-sanitization queue) is the posting
   engine — already built, custody-first by design (Law 13).
+- **The executable half of this section is `impl/dyn_social.py` (`dyn.social.v1`)**:
+  passport-bound accounts, the follow graph with caps, sealed DMs (inbox opens only to
+  the recipient's signature stand-in), an artifact-only feed (Law 13), the anti-herd
+  featured slot, and the rail's kill switch — 19 tests in `tests/test_dyn_social.py`.
 
 ## 7. Markets
 
@@ -74,6 +78,10 @@ fraud it can catch (Law 9). Class is part of the job spec; price scales with it.
   adopted — with our differentiator: independent verification instead of self-reported
   evaluation).
 - **Compute market**: fleet GPUs + enrolled devices; priced in ERG; RC² accepted.
+  The executable half is `impl/dyn_compute.py` (`dyn.compute.v1`): a registry that
+  admits only verified bench receipts (Law 15), a deterministic best-fit anti-herd
+  allocation scheduler, ERG-milli metering, and exact µ¢ settlement at the witness
+  median price — mints nothing (Law 19); 23 tests in `tests/test_dyn_compute.py`.
 - **Eval market**: standing evaluation jobs, bond-gated.
 
 ## 8. Failure modes and engineered answers

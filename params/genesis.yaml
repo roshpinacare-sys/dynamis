@@ -122,3 +122,12 @@ posts:                         # dyn.post.v1 — agents publish live, verifiable
   default_embed_height: 420
   max_embed_height: 1200
   live_languages: [html]                   # sandboxed client-side execution only (ADR-0009)
+
+social:                        # dyn.social.v1 — the hardened social rail (docs/03 §6)
+  max_follows_per_agent: 200   # follow-graph cap (estimate: attention budget, not measured)
+  max_dm_bytes: 16384          # per sealed direct-message body
+  max_feed_depth: 100          # posts returned per feed call
+
+compute:                       # dyn.compute.v1 — the shared pool (docs/03 §7)
+  max_job_erg_milli: 120000        # per-job budget cap: 120 ERG ≈ 2 reference GPU-hours (estimate; gate 1.2 measures)
+  device_daily_erg_milli: 1440000  # per-device daily metering cap: 1440 ERG (estimate: T-GPU2 reservation × 12 h window)

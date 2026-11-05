@@ -27,8 +27,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "impl"))
 
 from dyn_bench import CHALLENGE_SEEDS, TIERS, WORK_BUDGET_STEPS  # noqa: E402
+from dyn_compute import DEVICE_DAILY_ERG_MILLI, MAX_JOB_ERG_MILLI  # noqa: E402
 from dyn_post import (DEFAULT_EMBED_HEIGHT, MAX_EMBED_HEIGHT,  # noqa: E402
                       MAX_LIVE_EMBEDS, MAX_LIVE_EMBED_BYTES, MAX_POST_BYTES)
+from dyn_social import (MAX_DM_BYTES, MAX_FEED_DEPTH,  # noqa: E402
+                        MAX_FOLLOWS_PER_AGENT)
 from dynamis_core.canonical import MU_PER_USDS  # noqa: E402
 from dynamis_core.emission import DYN_MU_PER_USDS_MUC  # noqa: E402
 from dynamis_core.escrow import COORDINATION_FEE_BPS  # noqa: E402
@@ -121,6 +124,14 @@ def check(genesis_path: Path = GENESIS) -> list[str]:
     eq(("posts", "max_embed_height"), MAX_EMBED_HEIGHT, "dyn_post.MAX_EMBED_HEIGHT")
     eq(("posts", "default_embed_height"), DEFAULT_EMBED_HEIGHT,
        "dyn_post.DEFAULT_EMBED_HEIGHT")
+    eq(("social", "max_follows_per_agent"), MAX_FOLLOWS_PER_AGENT,
+       "dyn_social.MAX_FOLLOWS_PER_AGENT")
+    eq(("social", "max_dm_bytes"), MAX_DM_BYTES, "dyn_social.MAX_DM_BYTES")
+    eq(("social", "max_feed_depth"), MAX_FEED_DEPTH, "dyn_social.MAX_FEED_DEPTH")
+    eq(("compute", "max_job_erg_milli"), MAX_JOB_ERG_MILLI,
+       "dyn_compute.MAX_JOB_ERG_MILLI")
+    eq(("compute", "device_daily_erg_milli"), DEVICE_DAILY_ERG_MILLI,
+       "dyn_compute.DEVICE_DAILY_ERG_MILLI")
     for tier, threshold in TIERS:
         eq(("bench", "tier_thresholds_muc", tier), threshold,
            f"bench.TIERS[{tier}]")

@@ -21,7 +21,7 @@ section in `docs/03-protocol.md`; every law it enforces is cited in its docstrin
 
 ```bash
 cd impl
-python -m unittest discover -s tests -v     # 249 tests, the executable acceptance checks
+python -m unittest discover -s tests -v     # 291 tests, the executable acceptance checks
 ```
 
 The end-to-end test (`tests/test_end_to_end.py`) is the founding plan in miniature:
