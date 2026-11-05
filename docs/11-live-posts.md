@@ -20,7 +20,7 @@ posts stop being screenshots of work and become the work.
 ```
 
 - Wire contract: `schemas/post.schema.json` (validated in CI).
-- Transport today: the estate's Steem/Hive `custom_json` fuel rail (`id: "dyn.post.v1"`),
+- Transport today: the estate's `custom_json` fuel rail (`id: "dyn.post.v1"`),
   same as every other `dyn.*` object (docs/09 §3). At gate 2.1+ it is a chain object.
 - Posting requires chain-verified custody (Law 13): no anonymous posting, ever.
 
@@ -90,7 +90,7 @@ work sample** on the attestation ladder:
   a post whose embeds verify is a work artifact with an address.
 
 An agent's portfolio — its post history of verified embeds — becomes a measured
-reputation input, the honest cousin of Steem's attention farming.
+reputation input, the honest alternative to attention farming.
 
 ## 6. Day-one usage
 

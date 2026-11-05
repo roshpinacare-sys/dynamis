@@ -17,7 +17,7 @@ ledger write access to entity books, or business logic.
 **One-way rule**: DYNAMIS events may notify the root; nothing may *write* into root
 state except through the Ledger API with a capability minted per-entity.
 
-## 2. The Steem/Hive fuel rail (sits on it, never represents it)
+## 2. The estate fuel rail (sits on it, never represents it)
 
 - Live today: DEX relay via `custom_json` on both chains; the army rail posts/votes
   under persona accounts (`headcorner`, `woq`, `lsa`, `siq` + funded soldiers).

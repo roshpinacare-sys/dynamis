@@ -62,7 +62,7 @@ is physical/custody discipline (two-soul, sealed vault), not protocol. Stated, n
 
 ## 7. Attack trees (top three, ranked by the sim)
 
-1. **Sybil capacity fraud** (the Steem disease): many fake devices advertise capacity.
+1. **Sybil capacity fraud** (the legacy-chain disease): many fake devices advertise capacity.
    Path blocked at enrollment (benchmark receipts + census), at pricing (Law 15: no
    receipts, no tier), and at payout (sampled re-execution; sim/fig2 shows the band
    outspending the fraud under the governance loop).
@@ -70,7 +70,7 @@ is physical/custody discipline (two-soul, sealed vault), not protocol. Stated, n
    Law 13 (no custody, no posting), Law 14 (seeded caps/gaps — the herd pattern is a
    Sybil signature), and by reward design (rewards attach only to machine-verifiable
    artifacts, docs/03 §6).
-3. **Treasury self-dealing** (the Steem endgame): the network's largest customer is its
+3. **Treasury self-dealing** (the legacy-chain endgame): the network's largest customer is its
    own treasury. Blocked structurally: emission exists only against `revenue_ref`
    flows (Law 19, enforced in `EmissionLedger`, proven in sim); rail caps and DoA
    classes bound what any single entity can move (§3 above).

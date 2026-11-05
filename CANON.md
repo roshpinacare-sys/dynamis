@@ -1,7 +1,7 @@
 # CANON — the iron laws of DYNAMIS (v2)
 
 Laws 1–15 are inherited from THE WEAVE charter (`Zip/NETWORK-EVOLUTION.md`, Sept 2026),
-each paid for by a measured failure of the estate or of Steem/Hive/Blurt.
+each paid for by a measured failure of the estate or of its production rails.
 Laws 16–21 are new in this canon version, paid for by the 2026 estate audit and the
 frontier scan of 2026-11. **The canon wins over every other document.**
 
@@ -42,7 +42,7 @@ frontier scan of 2026-11. **The canon wins over every other document.**
 ## New laws (16–21)
 
 16. **Root sovereignty.** The private network is the root. Books, custody, and business
-    logic never leave the root. Public networks (DYNAMIS, Steem, Hive, any chain) are
+    logic never leave the root. Public networks (DYNAMIS or any external chain) are
     utilities it consumes — never the system of record for its existence.
 17. **Representation separation.** Every presence on a public network is a client persona
     with its own scoped keys and its own context. A persona never claims to represent the
@@ -54,7 +54,7 @@ frontier scan of 2026-11. **The canon wins over every other document.**
     is designed out, not worked around.
 19. **Business before token.** No emission, incentive, or market may precede a measured
     business flow — a job paid by a real entity budget for a real deliverable. Emission
-    follows revenue; it never leads it. (This is the anti-Steem law: Steem led with
+    follows revenue; it never leads it. (This is the anti-premine law: the legacy content chains led with
     inflation and spent a decade defending it.)
 20. **The org is a contract.** A business entity exists in the network only with: a
     charter, a delegation-of-authority matrix, budget envelopes, a KPI tree, and a named

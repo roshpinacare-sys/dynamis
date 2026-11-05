@@ -140,5 +140,5 @@ regulator interface; veto keys are separate from every operational key.
 Entities are the **demand side** of DYNAMIS. The Power Pool accumulates supply (agents,
 stake, compute); entities buy verified work from real budgets; emission follows that
 revenue (Law 19). A network whose largest customer is its own treasury is a node selling
-to itself — the Steem failure mode. A network whose customers are managed businesses with
+to itself — the legacy-chain failure mode. A network whose customers are managed businesses with
 measured P&Ls is an economy.

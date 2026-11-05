@@ -31,10 +31,10 @@ from dynamis_core import (Claim, EmissionLedger, Job, JobMachine, PowerAccount,
                           accrue, sample_for_reexecution, usds, object_hash)
 
 # dyn.id.v1 — the cross-network identity proof, in the estate's saos.id.v1 shape.
-# An agent posts this op as custom_json on Steem/Hive; the chain text itself carries
+# An agent posts this op as custom_json on the estate rails; the rail text itself carries
 # the binding (agent_id ↔ persona account ↔ HSM keyref fingerprint). Nothing secret.
 def identity_op(agent_id: str, persona: str, keyref: str, day: int,
-                networks: tuple[str, ...] = ("steem", "hive")) -> dict:
+                networks: tuple[str, ...] = ("rail_a", "rail_b")) -> dict:
     payload = {
         "op": "id.prove", "v": 1, "agent": agent_id, "persona": persona,
         "keyref_fp": object_hash({"keyref": keyref})[:16], "day": day,
@@ -139,7 +139,7 @@ def demo() -> int:
     fraud = AgentKit("agent-fraud-1", "fraud.persona", "hsm:kr-fraud",
                      stake_dyn_mu=2_500_000)
 
-    print("== 1. identity ops (posted as dyn.id.v1 custom_json on Steem/Hive) ==")
+    print("== 1. identity ops (posted as dyn.id.v1 custom_json on the estate rails) ==")
     for k in (honest, fraud):
         op = identity_op(k.passport.agent_id, k.passport.persona,
                          k.passport.keyrefs[0], k.day)

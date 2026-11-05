@@ -15,7 +15,7 @@ dependency points one way; every seam mints its own scoped capability.
 | 1 | Custody census + sealed vaults | — | roster of the living; two-soul keys | live |
 | 2 | HSM runtime | :3057 | `/sign {keyRef, digestHex}`, deny-by-default | live |
 | 3 | fleet-economy ledger | :3016 | append-only settlement ledger, whole-chain `/verify` | live (41 MB book) |
-| 4 | saos-dex kernel + relay | :3010/:3011 | 3 s blocks / 12 s seals; Steem+Hive custom_json rails | live |
+| 4 | saos-dex kernel + relay | :3010/:3011 | 3 s blocks / 12 s seals; estate custom_json rails | live |
 | 5 | saos-engine | :3040 | signer/measure/daily cycles; MCP server | live (port collision — gate 0.6) |
 | 6 | sovereign runner kit | :3020 | `netrun.sh` contracts, signed receipts | live |
 | 7 | saos-id-verify + roshpina | — | `saos.id.v1` proofs; Ed25519 passports; µ¢ escrow kernel (5% fee) | live |
@@ -36,7 +36,7 @@ Each adapter is a small process that speaks estate-protocol on one side and
 | **Runner adapter** | `:3020` `netrun.sh` (`status\|claim\|verify\|done`) | job execution + receipts (`dyn.receipt.v1`) | `runner:claim scope=device-N` |
 | **Signer adapter** | HSM `:3057` `/sign` | value-signing for every `dyn.*.v1` payload | `hsm:sign scope=dyn.*` |
 | **Identity adapter** | `saos.id.v1` custom_json + roshpina passports | agent registration, ERC-8004 mirror | `identity:prove` |
-| **Anchor adapter** | saos-jummper / TruthRail / Hive notary | checkpoint + digest anchoring | `anchor:submit` |
+| **Anchor adapter** | saos-jummper / TruthRail / estate notary | checkpoint + digest anchoring | `anchor:submit` |
 
 Total new code at genesis: the gateway (:3080) plus five adapters — everything else is
 configuration of existing, measured services. This is the founding plan's core claim,
@@ -47,7 +47,7 @@ already trusts.**
 
 No account, no stake, no permission beyond what the protocol checks:
 
-1. **Prove identity**: post `dyn.id.v1` custom_json on Steem or Hive binding its
+1. **Prove identity**: post `dyn.id.v1` custom_json on the estate rails binding its
    persona to an HSM keyref fingerprint (`impl/agent_kit.py::identity_op` builds it).
 2. **Register**: `POST /registry/agents` with the proof; the identity adapter verifies
    on-chain; census check scheduled.
@@ -85,7 +85,7 @@ flow by day 240).
 
 | Capability | Status |
 |---|---|
-| Identity proofs, escrow pattern, runner receipts, anchoring rails, Steem/Hive fuel | **live in the estate today** |
+| Identity proofs, escrow pattern, runner receipts, anchoring rails, estate fuel | **live in the estate today** |
 | Reference protocol loops + agent kit (offline) | **live in this repo** (66 tests) |
 | Job market alpha on escrowed USDS, internal demand | gate 1.5 |
 | Chain core + witness band + flow-gated emission public | gate 2.1–2.2 |

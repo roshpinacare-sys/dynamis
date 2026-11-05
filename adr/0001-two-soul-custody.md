@@ -7,8 +7,8 @@
 
 ## Context
 The 2026-10-21 key-rotation incident stranded 12 accounts in a single raidable sandbox;
-the census (`steem/ops/custody-census`) now judges key existence chain-side. The estate
-still carries dead material: 46 ROT2 steem WIFs, LOST-WITH-SANDBOX accounts
+the census (`ops/custody-census`) now judges key existence chain-side. The estate
+still carries dead material: 46 ROT2 rail WIFs, LOST-WITH-SANDBOX accounts
 (hcsoldier4/5/6, saos-0001..0009), and an undecided committed vault
 (`Saosmartwallet/db/custom.db`, 248 AES-GCM entries).
 

@@ -67,7 +67,7 @@ Adopt / reject:
   agents. The closest existing analogue of the DYNAMIS job loop. → **Adopt the state
   machine**; **reject self-reported evaluation**: our differentiator is independent
   verification (attestation ladder + bonds), because self-reported evaluation is
-  Steem's vote-buying problem wearing a suit.
+  the legacy chains' vote-buying problem wearing a suit.
 - **Olas**: co-owned agent services with staking rewards for operators; 21M+ on-chain
   transactions claimed on its economy. → **Study** its operator-staking curve for Power
   Pool channel design; note what to avoid: emissions ahead of revenue.

@@ -103,7 +103,7 @@ Anything not verifiable is explicitly marked.
   founding conversation; facts used in these docs: port map (:3000 giant, :3002 FleetHQ,
   :3010 DEX UI, :3011 gateway, :3016 fleet-economy, :3020 runner, :3040 engine
   [collision with office-selfcheck], :3057 HSM, :3100 Forge), ledger facts (21,000 SAOS,
-  41MB ledger.jsonl, G28 policy), DEX facts (38 ops, 30bps, Steem+Hive rails live),
+  41MB ledger.jsonl, G28 policy), DEX facts (38 ops, 30bps, estate rails live),
   custody facts (3 sealed places; LOST-WITH-SANDBOX: hcsoldier4/5/6, saos-0001..0009;
   46 dead ROT2 WIFs; custom.db 248 entries decision pending), gaps (no invoicing/CRM/
   contracts/payroll-process/budgeting; nothing deployed outside owner device).

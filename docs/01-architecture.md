@@ -6,22 +6,22 @@ The founding plan (Chapter 5) described DYNAMIS as six layers of a public networ
 This document completes the picture with the truth underneath: the public network is a
 leaf on top of a private root. The root already exists and is measured:
 
-- **Engine**: `steem/mini-services/saos-engine` — ~300 modules, `:3040`; signer/measure/
+- **Engine**: `mini-services/saos-engine` — ~300 modules, `:3040`; signer/measure/
   daily cycles; MCP server (`mcp.mjs`) exposing `saos_law`, `saos_status`, `saos_doctor`,
   `saos_anchors`, `saos_join`.
 - **Money**: `fleet-economy` — hash-chain ledger (`:3016`), append-only `ledger.jsonl`
   (41 MB live), double-balance, fixed supply 21,000 SAOS, constant-product AMM, G28
   external-liquidity routing policy (fail-closed).
 - **Exchange**: `saos-dex` — 38-op deterministic kernel, escrow orderbook + AMM (30 bps,
-  70/30), 3s blocks sealed every 12, relay "THE DOOR" with live **Steem + Hive
+  70/30), 3s blocks sealed every 12, relay "THE DOOR" with live **estate
   custom_json** rails and per-chain circuit breakers.
 - **Custody**: `vault-home` (sealed AES-256 vault + boot scripts), `Saosmartwallet/
   packages/hsm-runtime` (`:3057`, deny-by-default, hash-chained audit), custody census
-  (`steem/ops/custody-census`), `CUSTODY.md` as the one registry.
+  (`ops/custody-census`), `CUSTODY.md` as the one registry.
 - **Execution**: `sovereign-runner-kit` (runner `:3020`, whitelisted commands, signed
   receipts, `netrun.sh` task contract), `saos-runtime` heartbeat, `Autonomy` (59
   scheduled workflows), `Pulse`/`GridWatch` control planes, `ops-intake` metered queue.
-- **Identity**: `saos-id-verify` (one secp256k1 scalar proves Steem+Hive+Blurt+EVM via
+- **Identity**: `saos-id-verify` (one secp256k1 scalar proves estate-rail + EVM identities via
   `saos.id.v1` custom_json), `roshpina` Ed25519 action passports, µ¢ double-entry kernel
   with 5%-fee escrow and Merkle audit log.
 - **Anchoring**: `saos-jummper` (batched ETH-mainnet proof notary, ~$0.10/batch),
@@ -34,7 +34,7 @@ leaf on top of a private root. The root already exists and is measured:
 
 ```
 L5  HUMANS            owner regulator console · veto keys · BRIEFING outbox
-L4  INTERFACES        MCP · A2A agent cards · x402 endpoints · Steem/Hive rail · REST
+L4  INTERFACES        MCP · A2A agent cards · x402 endpoints · estate rail · REST
 L3  SOVEREIGN OPS     org engine · finance spine · treasury · entity templates   ← NEW
 L2  MARKETS           job market · eval markets · compute market · RC² credits
 L1  PROTOCOL          DYNAMIS chain: identity, work ledger, attestation, emission

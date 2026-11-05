@@ -13,7 +13,7 @@ rather than launching on someone else's chain — and stated that a clone of ano
 blockchain is acceptable if that serves the sovereign architecture better. The estate
 already operates the required machinery: the `fleet-economy` hash-chain ledger
 (`:3016`, append-only, whole-chain `/verify`) as the accounting root, the DEX kernel
-with a Steem/Hive custom_json fuel rail, and anchoring rails (Hive notary, batched ETH
+with an estate custom_json fuel rail, and anchoring rails (estate notary, batched ETH
 notary) for external verifiability. Law 16 (root sovereignty) and Law 21 (exit is a
 right) forbid making the root's value layer dependent on infrastructure it does not
 control.
@@ -23,8 +23,8 @@ control.
    Rejected: value records and validators fall under foreign governance; exit is no
    longer one working day; fees and uptime are someone else's risk. This is the one
    option Law 21 forbids outright for value.
-2. **Own chain derived from a proven codebase** (Steem/Hive/Blurt-family lineage —
-   code the estate already operates at production scale via SteemLand).
+2. **Own chain derived from a proven codebase** (a proven open-ledger lineage —
+   code the estate already operates at production scale via the estate's flagship deployment).
    Accepted as the **public work-ledger** (gate 2.1+): the estate controls validators,
    upgrade cadence, and economics; the lineage is battle-tested and matches the social
    rail already in use.
@@ -41,10 +41,10 @@ holds value**:
 - **Root / inner economy (now)**: DYN exists as a flow-gated instrument on the kernel
   ledger (`:3016`); USDS is the settlement unit; escrow is the roshpina kernel pattern.
 - **Public work-ledger (gate 2.1+)**: the DYNAMIS chain is the estate's **own chain
-  core**, derived from the Steem-family codebase the estate already runs — a clone by
+  core**, derived from the open-ledger codebase the estate already runs — a clone by
   lineage, sovereign by control. Emission is computed there from verified flows
   (Law 19) and mirrored back as instrument entries.
-- **External verifiability (now)**: anchoring via the existing Hive notary and batched
+- **External verifiability (now)**: anchoring via the existing estate notary and batched
   ETH notary rails — proofs on foreign chains, never value on foreign chains.
 - **Bridges**: the only cross-chain artifacts are the ERC-8004 mirror (identity, not
   value) and notary digests. No token bridge is planned; a token bridge would be a
@@ -54,7 +54,7 @@ holds value**:
 The network's value layer is a superset of machinery the fleet already measures and
 operates, so the bring-up (`docs/09-live-bring-up.md`) needs no new trust assumptions.
 The emission ledger and the kernel ledger share one truth per entity. Cost: the public
-chain inherits Steem-family governance pathologies — which the canon (evidence-window,
+chain inherits open-ledger governance pathologies — which the canon (evidence-window,
 witness band, work verification) exists to fix, and which are mitigated at genesis
 rather than patched later.
 

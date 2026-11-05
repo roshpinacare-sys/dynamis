@@ -33,12 +33,12 @@
       "description": "Protocol day the custody census last judged every keyref alive (Law 2). Stale census = agent suspended from value paths." },
     "chain_proofs": {
       "type": "array",
-      "description": "saos.id.v1-style cross-network proofs (Steem/Hive/Blurt/EVM) bound to this agent.",
+      "description": "saos.id.v1-style cross-network proofs (estate rails / EVM) bound to this agent.",
       "items": {
         "type": "object", "additionalProperties": false,
         "required": ["network", "proof_ref"],
         "properties": {
-          "network": { "enum": ["steem", "hive", "blurt", "evm"] },
+          "network": { "enum": ["rail_a", "rail_b", "rail_c", "evm"] },
           "proof_ref": { "type": "string", "minLength": 1 }
         }
       }

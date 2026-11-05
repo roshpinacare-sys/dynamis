@@ -71,7 +71,7 @@ Two chains, both sha256-linked, both re-derivable by anyone (Law 4):
    formalized in schemas/receipt.schema.json.
 
 Checkpointing (§4) anchors Merkle roots of both chain types to: (a) the fleet-economy
-ledger (`:3016`, append-only with whole-chain `/verify`), (b) Steem/Hive free
+ledger (`:3016`, append-only with whole-chain `/verify`), (b) estate free
 custom_json notary (~5,000 anchors/day capacity), (c) the ETH batch notary (~$0.10 per
 batch) for high-value epochs. Anchors prove existence; the data stays at the root
 (Law 16).

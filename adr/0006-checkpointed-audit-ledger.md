@@ -10,7 +10,7 @@ DYNAMIS needs shared state (jobs, escrows, receipts, witnesses) but does not nee
 launch a full proof-of-stake chain on day one. The estate already operates: a
 hash-chain economy ledger with whole-chain verification (`:3016`), 3-second DEX blocks
 sealed every 12 (the pulse pattern), batched anchoring (~$0.10/batch on ETH, free
-custom_json notary on Steem/Hive), and a witness selection model (VRF over measured
+custom_json notary on the estate rails), and a witness selection model (VRF over measured
 custody). Building a novel BFT network first would spend the roadmap's riskiest weeks
 on infrastructure nobody is paying for yet.
 

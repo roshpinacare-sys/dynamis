@@ -9,7 +9,7 @@
 The estate's own audit lesson (FLEET-AUDIT-2026-11-01: machinery 60, economics 0) is
 that this fleet builds machinery faster than it builds economies. Protocol economics —
 emission rates, verification budgets, slashing multiples — cannot be argued into
-correctness; Steem argued its inflation pool into a decade of defense.
+correctness; a legacy chain argued its inflation pool into a decade of defense.
 
 ## Decision
 Every change to emission, verification, pricing, or market mechanics follows the order

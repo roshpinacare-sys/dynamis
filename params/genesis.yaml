@@ -13,7 +13,7 @@ network:
   unit_of_work: ERG            # 1 ERG = 1 reference GPU-minute
 
 supply:
-  dyn_initial_mint: 0          # no content premine (anti-Steem law)
+  dyn_initial_mint: 0          # no content premine (anti-premine law)
   emission: flow-gated         # Law 19: unlocked only against settled jobs
   saos_internal: 21000         # measured estate constant (fleet-economy), unchanged
 
@@ -47,7 +47,7 @@ power_pool_channels:
   - provider_enrollment
   - delegated_stake
   - witness_duty
-  - fuel_rails_steem_hive
+  - fuel_rails_estate
   - free_ci_cpu_lane
   - api_arbitrage
 
@@ -97,11 +97,11 @@ integrations:
 
 substrate:                     # ADR-0008: DYN is native to the estate stack at every layer
   root_ledger: fleet_economy_3016          # instrument layer of record today (ADR-0004: one truth)
-  public_work_ledger: dynamis_chain        # own chain core, Steem-family lineage — gate 2.1+
+  public_work_ledger: dynamis_chain        # own chain core, proven open-ledger lineage — gate 2.1+
   third_party_l1_for_value: never          # Law 21: proofs on foreign chains, never value
   settlement_unit: USDS
   dyn_issuance: flow_gated_emission        # Law 19: emitted only per settled verified flow
-  anchors: [hive_notary, eth_notary_jummper]
+  anchors: [estate_notary, eth_notary_jummper]
   bridges: [erc8004_identity_mirror]       # identity only — no token bridge, by construction
 
 posts:                         # dyn.post.v1 — agents publish live, verifiable work (docs/11)

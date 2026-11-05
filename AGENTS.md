@@ -44,7 +44,7 @@ measured reality  >  params/genesis.yaml  >  CANON.md  >  specs/gates.yaml  >  d
    unless a measured receipt exists. "Soon" is a forbidden word in deliverables.
 4. **Capability, not credential**: integrations receive scoped, time-boxed, revocable
    capability tokens. One-way dependencies only (Law 18).
-5. **Representation separation** (Law 17): a persona on Steem/Hive/DYNAMIS never claims
+5. **Representation separation** (Law 17): a persona on any rail or chain never claims
    to represent the root, another persona, or a business entity unless its charter says so.
 6. **Business before token** (Law 19): no emission may precede a measured business flow.
 7. **Kill switches**: every service you build ships with an armed, tested kill switch.

@@ -1,4 +1,4 @@
-"""Flow-gated emission (Law 19) — the anti-Steem law, executable.
+"""Flow-gated emission (Law 19) — the anti-premine law, executable.
 
 No emission, incentive, or market may precede a measured business flow. This module
 holds the emission splitter and refuses, at the type level, to emit DYN for anything

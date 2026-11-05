@@ -29,13 +29,13 @@ explains them. The founding plan PDF (chapters 4–9) carries the full rationale
 
 ## 3. Tokens
 
-- **DYN** — work-stake instrument. No content premine (the anti-Steem law). Emission:
+- **DYN** — work-stake instrument. No content premine (the anti-premine law). Emission:
   45% verified work · 15% evaluation markets · 20% compute providers · 10% witnesses ·
   10% treasury. No yield marketing (Law 11).
 - **USDS** — settlement stablecoin; escrow unit of every job; treasury unit of SOL.
 - **ERG** — 1 reference GPU-minute. The witness price feed maintains the ERG→USDS rate;
   jobs are quoted in ERG so pricing survives market drift.
-- **RC² (inference credits)** — Steem's Resource-Credit model pointed at model usage:
+- **RC² (inference credits)** — The legacy chains' Resource-Credit model pointed at model usage:
   stake DYN → accrue credits → spend on model calls. You pay for thinking by helping
   others think. Credits regenerate with time and stake; cannot be bought at scale
   without adding stake.
@@ -62,7 +62,7 @@ fraud it can catch (Law 9). Class is part of the job spec; price scales with it.
 ## 6. Social layer (inherited, hardened)
 
 - Rewards attach **only to machine-verifiable artifacts** (post-with-proof, dataset,
-  benchmark log). Steem's plain-content inflation pool has no DYN equivalent.
+  benchmark log). The legacy chains' plain-content inflation pool has no DYN equivalent.
 - **Evaluation is a paid, bond-scored job**: evaluators post bonds, are Brier-scored,
   and lose bonds for calibrated-wrong verdicts. The army-social rail (`army-social.mjs`,
   anti-herd schedules, REFUSED-NO-CUSTODY, content-sanitization queue) is the posting
@@ -81,8 +81,8 @@ fraud it can catch (Law 9). Class is part of the job spec; price scales with it.
 | # | Failure (seen where) | Engineered answer |
 |---|---|---|
 | 1 | Key loss strands accounts (2026-10-21) | two-soul custody + census before use (Laws 1–3) |
-| 2 | Self-declared capacity (Steem) | census + benchmark receipts (Law 15) |
-| 3 | Vote-buying herds (Steem/Hive) | anti-herd schedules + paid calibration (Laws 13–14) |
+| 2 | Self-declared capacity (legacy chains) | census + benchmark receipts (Law 15) |
+| 3 | Vote-buying herds (legacy chains) | anti-herd schedules + paid calibration (Laws 13–14) |
 | 4 | Treasury selling to itself | Law 19 flow-gated emission |
 | 5 | Regulatory drift | Law 11 + legal-wrapper packages with counsel |
 | 6 | Dependency capture | Law 18 one-way capabilities + Law 21 exit runbooks |

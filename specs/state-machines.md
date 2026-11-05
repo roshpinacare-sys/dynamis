@@ -72,7 +72,7 @@ Time is the protocol day (wire.md §5); one clock, no drift between scheduling s
 
 - ACP's escrow→deliver→evaluate→settle shape is adopted; self-reported evaluation is
   replaced by the verification transition (I4) — that is the differentiator.
-- Steem's failure mode (payout by narrative vote) cannot be expressed: there is no
+- The legacy chains' failure mode (payout by narrative vote) cannot be expressed: there is no
   transition that moves value without passing through `VERIFYING` (or an arbiter).
 - Refund-biased defaults: every stall path returns funds. The state machine can lose
   liveness temporarily; it can never lose custody — custody errors are the

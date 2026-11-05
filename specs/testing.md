@@ -65,7 +65,7 @@ that evidence. Nothing here is self-attested; every drill emits a receipt or a l
 |---|---|---|
 | sandbox-wipe | the fleet's four wipes/month | every component boots from chain/sealed state; nothing human-recoverable |
 | stranded-keys | 2026-10-21 incident | census flags before any value path touches them |
-| herd-burst | Steem vote-herd pattern | anti-herd schedule + caps hold; Sybil signature flagged |
+| herd-burst | legacy vote-herd pattern | anti-herd schedule + caps hold; Sybil signature flagged |
 | price-feed spoof | witness outlier | medianizer flags bond-burn candidate; band median unaffected |
 
 ## 4. Coverage floor
