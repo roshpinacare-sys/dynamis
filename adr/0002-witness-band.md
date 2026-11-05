@@ -1,7 +1,7 @@
 # ADR-0002 — Witness band 7+14 with VRF over measured custody
 
 - **ADR**: 0002
-- **Status**: proposed (ratify at Gate 0.4)
+- **Status**: accepted (owner directive 2026-11-05: the owner approved the plan and ordered full execution)
 - **Date**: 2026-11-04
 - **Deciders**: owner (regulator), executing agent (drafter)
 

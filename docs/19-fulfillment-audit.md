@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **291 tests green** (was 249), the params mirror holds leaf by leaf,
+tested. The suite is **301 tests green** (was 249; 291 at the audit's first writing), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -82,3 +82,41 @@ beat in it is already done and evidenced.
 **The one-line answer to "is there a match?":** every capability the original ask named
 now exists as tested code with public evidence; what remains between here and a live
 network is measured calendar time and nine human signatures — not engineering.
+
+## Addendum, same day (2026-11-05) — the directive unblocked the queue
+
+The owner then ordered: stop deferring to far-future decisions, examine everything
+from git, and execute what the plan needs now. Applied the same day, with evidence:
+
+- **Gate 0.4 closed** under the owner's explicit directive ("I approve the plan.
+  Execute everything.", quoted verbatim in `params/genesis.yaml` meta.status):
+  genesis parameters ratified, ADRs 0001–0004 flipped to accepted. The signature
+  path remains open for the owner's signed commit.
+- **Gate 0.6 applied**: saos-engine moved off the colliding :3040 to :3045 across
+  params, README, docs/01, docs/09, and AGENTS.md.
+- **Gate 0.2 (public half) evidenced**: scripts/census.py — 151 tracked files
+  scanned, zero key material found, the sealed Actions secret verified by name;
+  6 tests. The estate-side two-soul half stays estate-side (docs/10).
+- **Gate 0.5 (schema half) evidenced**: params/entities/ent-001.yaml validates
+  against schemas/entity.schema.json; the regulator is named (owner-via-scribe).
+- **Gates 1.3 / 1.4 / 1.5 / 2.3 measured**: scripts/gate_runs.py →
+  records/gate-runs-2026-11-05.md — one invoice issued → paid → anchored (chain
+  ok), 4 workers accrued and paid with the trial balance balanced, 9 jobs
+  settled / 5 refunded with the fraudster paid zero, and the witness band
+  catching forged evidence with a full refund and zero emission.
+- **The joining KPI is a measured artifact**: impl/dyn_onboard.py measures the
+  reference journey (identity → funded starter → first settled job → first
+  published post) at ~0.001 s offline; the live measurement repeats the same
+  steps over the MCP/x402 doors once the persistent host runs (gate 1.1).
+- **The founding-plan PDF still carried 69 legacy-chain mentions** — the
+  representation scrub (b71211d) never reached the rendered PDF. Scrubbed at the
+  generator source, regenerated (26 pp), verified 0 findings, and a CI checker
+  (scripts/check_plan_pdf.py) now enforces it.
+- **Gate 0.1 scanned — honestly still open**: the clearance scan
+  (specs/acceptance/0.1-clearance.md) found a live same-field conflict
+  (dynamisnetwork.com, "Agentic Intelligence Infrastructure") plus secondary
+  users, and no token collision on CoinGecko. The gate stays open pending the
+  owner's filing decision with counsel — its acceptance criterion requires "no
+  unresolved conflicts", and conflicts exist.
+
+Suite: **301 tests green** (was 291 at the audit's first writing, 249 before it).

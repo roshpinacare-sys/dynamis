@@ -16,7 +16,7 @@ dependency points one way; every seam mints its own scoped capability.
 | 2 | HSM runtime | :3057 | `/sign {keyRef, digestHex}`, deny-by-default | live |
 | 3 | fleet-economy ledger | :3016 | append-only settlement ledger, whole-chain `/verify` | live (41 MB book) |
 | 4 | saos-dex kernel + relay | :3010/:3011 | 3 s blocks / 12 s seals; estate custom_json rails | live |
-| 5 | saos-engine | :3040 | signer/measure/daily cycles; MCP server | live (port collision — gate 0.6) |
+| 5 | saos-engine | :3045 | signer/measure/daily cycles; MCP server | live (moved off :3040 — gate 0.6 resolved 2026-11-05) |
 | 6 | sovereign runner kit | :3020 | `netrun.sh` contracts, signed receipts | live |
 | 7 | saos-id-verify + roshpina | — | `saos.id.v1` proofs; Ed25519 passports; µ¢ escrow kernel (5% fee) | live |
 | 8 | anchoring (saos-jummper / TruthRail) | — | ~$0.10 batched ETH notary; zero-gas heartbeat | live |

@@ -71,7 +71,7 @@ measured reality  >  params/genesis.yaml  >  CANON.md  >  specs/gates.yaml  >  d
 - Append-only for anything that is a fact: ledgers, receipts, census, evidence.
 - Services speak plain HTTP/JSON with a `/health` (200) and `/status` (503 unless
   authenticated). Register new ports in `params/genesis.yaml` — note the known collision
-  on `:3040` (saos-engine vs FleetHQ office-selfcheck) and do not add new ones.
+  on `:3040` (resolved 2026-11-05: saos-engine moved to `:3045`, gate 0.6) and do not add new ones.
 - Keep the fleet's existing task contract (`netrun.sh`: `status|claim|verify|done`) for
   device work; do not invent a second one.
 - Wire objects validate against `schemas/*.schema.json` before they enter any state

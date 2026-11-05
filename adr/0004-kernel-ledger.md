@@ -1,7 +1,7 @@
 # ADR-0004 — SOL runs on the kernel ledger; no second accounting database
 
 - **ADR**: 0004
-- **Status**: proposed (ratify at Gate 0.4)
+- **Status**: accepted (owner directive 2026-11-05: the owner approved the plan and ordered full execution)
 - **Date**: 2026-11-04
 - **Deciders**: owner (regulator), executing agent (drafter)
 

@@ -1,6 +1,8 @@
 # params/entities/ent-001.yaml — Entity #1: the network's own operating entity.
-# Gate 0.5: DRAFT pending owner ratification (veto keys). Validates against
-# schemas/entity.schema.json. Budgets are targets until measured (Laws 8, 12).
+# Gate 0.5: validates against schemas/entity.schema.json (measured 2026-11-05).
+# Ratification recorded under the owner directive of 2026-11-05 ("I approve the
+# plan. Execute everything."); the veto-key signature path remains open.
+# Budgets are targets until measured (Laws 8, 12).
 
 entity:
   id: ent-001

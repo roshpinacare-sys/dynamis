@@ -4,7 +4,7 @@
 meta:
   version: 2
   date: 2026-11-04
-  status: proposal-pending-ratification
+  status: ratified  # owner directive 2026-11-05, verbatim: "I approve the plan. Execute everything." (chat; signature path remains open)
 
 network:
   name: DYNAMIS
@@ -90,7 +90,7 @@ ports:                         # measured estate map; do not add collisions
   sovereign_gateway: 3011
   fleet_economy: 3016
   runner: 3020
-  engine: 3040                 # collides with office-selfcheck — Phase 0.6 resolves
+  engine: 3045                 # moved off :3040 (office-selfcheck collision) — gate 0.6, 2026-11-05
   office_recruit: 3041
   boot_verifier: 3042
   hsm: 3057

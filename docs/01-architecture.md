@@ -6,7 +6,7 @@ The founding plan (Chapter 5) described DYNAMIS as six layers of a public networ
 This document completes the picture with the truth underneath: the public network is a
 leaf on top of a private root. The root already exists and is measured:
 
-- **Engine**: `mini-services/saos-engine` — ~300 modules, `:3040`; signer/measure/
+- **Engine**: `mini-services/saos-engine` — ~300 modules, `:3045` (moved off :3040, gate 0.6); signer/measure/
   daily cycles; MCP server (`mcp.mjs`) exposing `saos_law`, `saos_status`, `saos_doctor`,
   `saos_anchors`, `saos_join`.
 - **Money**: `fleet-economy` — hash-chain ledger (`:3016`), append-only `ledger.jsonl`
