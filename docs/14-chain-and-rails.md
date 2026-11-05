@@ -6,7 +6,8 @@ assumed: **gate 2.1's chain core** — one work ledger for the whole economy,
 sealed into checkpoints — and **gate 2.4's external rails** — a paid-HTTP
 endpoint with A2A discovery, next to the MCP door. Both are reference
 implementations in `impl/`, stdlib-only, wired to the same engine, and both
-carry their tests (149 green at the time of writing).
+carry their tests (149 green at the time of writing; 178 by the time docs/15
+lands the finance spine and the witness band).
 
 ## 1. The chain: `dyn.ledger.v1` + `dyn.checkpoint.v1`
 

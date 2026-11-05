@@ -45,7 +45,8 @@ ACTIVE_WITNESSES = 7
 BFT_THRESHOLD = 5        # ≥ 5 of 7: BFT ≤ 1 Byzantine with 7
 WITNESSES = tuple(f"witness-{i}" for i in range(1, ACTIVE_WITNESSES + 1))
 SIG_DOMAIN = "dyn.checkpoint.sig"
-KINDS = ("open", "work", "check", "refine", "settle", "refund", "post")
+KINDS = ("open", "work", "check", "refine", "settle", "refund", "post",
+         "witness", "anchor")
 
 
 # --------------------------------------------------------------------------
@@ -190,7 +191,8 @@ def ledger_from_rows(rows: list[dict]) -> WorkLedger:
     led = WorkLedger()
     carry = {"payout_muc", "fee_muc", "emitted_dyn_mu", "escrow_back_muc",
              "value_muc", "sha256", "overall", "value_usds", "count",
-             "cls", "note"}
+             "cls", "note", "sampled", "leader", "matches", "forged",
+             "reason"}
     for r in rows:
         body = {k: v for k, v in r.items()
                 if k not in ("day", "event", "job", "agent") and k in carry}

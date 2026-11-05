@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dynamis_core import PowerAccount, accrue, usds
 from dyn_engine import ARTIFACT_INVOICE_PARSER, WorkLoop
+from dyn_witness import forge_pass, review as witness_review
 
 MARKET = "dyn.market.v1"
 
@@ -59,7 +60,7 @@ class Agent:
         self.rc2_muerg = 0
 
     def first_attempt(self, rng: random.Random) -> str:
-        if self.behavior == "fraud":
+        if self.behavior in ("fraud", "forger"):
             return "bad"
         if self.behavior == "flaky" and rng.random() < 0.75:
             return "bad"                    # most days the first build is wrong
@@ -74,25 +75,33 @@ class Market:
     """The loop, left running: days pass, jobs flow, the laws hold every day."""
 
     def __init__(self, *, seed: int = 7, entity_id: str = "ent-001",
-                 revenue_ref: str = "env-ops-001", root: str | Path | None = None) -> None:
+                 revenue_ref: str = "env-ops-001", root: str | Path | None = None,
+                 witness: bool = False) -> None:
         self.rng = random.Random(seed)
         self.seed = seed
         self.entity_id = entity_id
         self.revenue_ref = revenue_ref
         self.root = Path(root) if root else Path(tempfile.mkdtemp(prefix="dyn-market-"))
         self.own_root = root is None
+        # witness=True admits a forger (forges evidence after a FAIL) and stands
+        # the band behind every settlement: sampled re-execution or no payout.
+        # Default runs are byte-identical to the pre-band stream.
+        self.witness = witness
         self.agents: list[Agent] = []
         for i in range(1, 4):
             self.agents.append(Agent(f"agent-honest-{i}", "honest"))
         self.agents.append(Agent("agent-flaky-1", "flaky"))
         for i in range(1, 3):
             self.agents.append(Agent(f"agent-fraud-{i}", "fraud"))
+        if witness:
+            self.agents.append(Agent("agent-forger-1", "forger"))
         self.day = 0
         self.stream: list[dict] = []
         self.emitted_dyn_mu = 0
         self.refunded_muc = 0
         self.fees_muc = 0
         self.refined = 0
+        self.forged_caught = 0
 
     # ---------- streaming ----------
     def _emit(self, event: str, **detail) -> None:
@@ -146,21 +155,52 @@ class Market:
                     self._emit("check", job=job_id, agent=agent.agent_id,
                                overall=res["overall"])
 
+            if res["overall"] != "PASS" and self.witness \
+                    and agent.behavior == "forger" and self.rng.random() < 0.6:
+                # the attack the band exists for: a failed build made to look
+                # paid-for — evidence records edited, worklog status flipped
+                forge_pass(root)
+                loop = WorkLoop(root)          # reload: the folder changed on disk
+                res = {"overall": "PASS"}
+                self._emit("check", job=job_id, agent=agent.agent_id,
+                           overall="PASS", note="presented by worker (forged)")
+
             if res["overall"] == "PASS":
-                out = loop.settle(day=self.day, worker_id=agent.agent_id,
-                                  persona=f"{agent.agent_id}.persona",
-                                  keyref=f"hsm:kr-{agent.agent_id}")
-                self.emitted_dyn_mu += out["emitted_dyn_mu"]
-                self.fees_muc += out["fee_muc"]
-                agent.paid_muc += out["payout_muc"]
-                agent.rc2_muerg += accrue(agent.wallet, days=1)
-                day_stats["settled"] += 1
-                self._emit("settle", job=job_id, agent=agent.agent_id,
-                           payout_usds=out["payout_muc"] // 1_000_000,
-                           fee_usds=out["fee_muc"] // 1_000_000,
-                           payout_muc=out["payout_muc"], fee_muc=out["fee_muc"],
-                           emitted_dyn_mu=out["emitted_dyn_mu"],
-                           chain_ok=out["chain_ok"])
+                forged = False
+                if self.witness:
+                    cls = loop.log["job"]["verification_class"]
+                    v = witness_review(root, day=self.day, cls=cls)
+                    self._emit("witness", job=job_id, agent=agent.agent_id,
+                               cls=cls, sampled=v["sampled"],
+                               leader=v["leader"], matches=v["matches"],
+                               forged=v["forged"])
+                    forged = v["forged"]
+                if forged:
+                    loop = WorkLoop(root)      # reload: overrule rewrote evidence
+                    back = loop.refund(day=self.day, worker_id=agent.agent_id)
+                    self.refunded_muc += back["escrow_back_muc"]
+                    day_stats["refunded"] += 1
+                    self.forged_caught += 1
+                    self._emit("refund", job=job_id, agent=agent.agent_id,
+                               escrow_back_usds=back["escrow_back_muc"] // 1_000_000,
+                               escrow_back_muc=back["escrow_back_muc"],
+                               emitted_dyn_mu=0,
+                               reason="forged evidence caught by sampled re-execution")
+                else:
+                    out = loop.settle(day=self.day, worker_id=agent.agent_id,
+                                      persona=f"{agent.agent_id}.persona",
+                                      keyref=f"hsm:kr-{agent.agent_id}")
+                    self.emitted_dyn_mu += out["emitted_dyn_mu"]
+                    self.fees_muc += out["fee_muc"]
+                    agent.paid_muc += out["payout_muc"]
+                    agent.rc2_muerg += accrue(agent.wallet, days=1)
+                    day_stats["settled"] += 1
+                    self._emit("settle", job=job_id, agent=agent.agent_id,
+                               payout_usds=out["payout_muc"] // 1_000_000,
+                               fee_usds=out["fee_muc"] // 1_000_000,
+                               payout_muc=out["payout_muc"], fee_muc=out["fee_muc"],
+                               emitted_dyn_mu=out["emitted_dyn_mu"],
+                               chain_ok=out["chain_ok"])
             else:
                 back = loop.refund(day=self.day, worker_id=agent.agent_id)
                 self.refunded_muc += back["escrow_back_muc"]
@@ -183,6 +223,8 @@ class Market:
             "market": MARKET, "seed": self.seed, "days": days,
             "jobs_opened": sum(1 for r in self.stream if r["event"] == "open"),
             "settled": settled, "refunded": refunds, "refined": self.refined,
+            "witnessed": sum(1 for r in self.stream if r["event"] == "witness"),
+            "forged_caught": self.forged_caught,
             "emitted_dyn_mu": self.emitted_dyn_mu,
             "fees_usds": self.fees_muc // 1_000_000,
             "escrow_refunded_usds": self.refunded_muc // 1_000_000,
@@ -196,6 +238,8 @@ class Market:
                     r["emitted_dyn_mu"] == 0 for r in self.stream if r["event"] == "refund"),
                 "no_payout_without_pass": all(
                     r["emitted_dyn_mu"] > 0 for r in self.stream if r["event"] == "settle"),
+                "forged_evidence_never_paid": self.forged_caught == sum(
+                    1 for r in self.stream if r["event"] == "witness" and r["forged"]),
             },
         }
         if out:

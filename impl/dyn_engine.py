@@ -263,6 +263,32 @@ class WorkLoop:
         self._save()
         return {"escrow_back_muc": escrow_back, "fee_muc": 0, "emitted_dyn_mu": 0}
 
+    def witness_overrule(self, *, day: int, true_evidence_dir, leader: str) -> dict:
+        """The band re-executed the work and the on-disk evidence is forged:
+        replace the evidence with what re-execution actually produced and
+        reinstate FAIL. The only path PASS → FAIL, and it carries the proof —
+        the replacement records are the sandbox's own, hash-pinned to the same
+        artifact and inputs."""
+        self._require_status((STATUS_PASS,))
+        true_evidence_dir = Path(true_evidence_dir)
+        import shutil
+        ev_dir = self.root / "evidence"
+        shutil.rmtree(ev_dir, ignore_errors=True)
+        shutil.copytree(true_evidence_dir, ev_dir)
+        self.log["evidence"] = [
+            f"evidence/{p.name}" for p in sorted(ev_dir.glob("0*.json"))]
+        verdicts = [_read_json(self.root / rel)["verdict"]
+                    for rel in self.log["evidence"]]
+        if "FAIL" not in verdicts:
+            raise EngineError("witness_overrule requires a FAIL in the "
+                              "re-executed evidence — no proof, no overrule")
+        self.log["status"] = STATUS_FAIL
+        self._history("witness", leader=leader, finding="forged_evidence",
+                      day=day, records=len(self.log["evidence"]))
+        self._save()
+        return {"status": STATUS_FAIL, "records": len(self.log["evidence"]),
+                "leader": leader}
+
     # ---------- 4. settle (fail-closed on evidence) ----------
     def settle(self, *, day: int, worker_id: str = "agent-honest-1",
                persona: str = "honest.persona", keyref: str = "hsm:kr-honest") -> dict:
