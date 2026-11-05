@@ -53,9 +53,14 @@ when asked), **W** = witness operator, **C** = counsel.
 ### Day 3 — Sun 2026-11-08 · Power pool + witness dry-run (Gates 1.3, 3.1 prep)
 - **O** enrolls the first real power-pool provider against `dyn.pool.v1`
   (the enrollment flow is code-tested; this is the first real device).
-- **A** runs the witness dry-run: generate witness keypairs, simulate the
-  5-of-7 checkpoint seal with the real keys on a scratch ledger, hand the
-  operator runbook to witness candidate #1.
+- **A** runs the witness dry-run — one command drives the real seal code end
+  to end: scratch ledger → every 12-entry window sealed with 5-of-7
+  signatures → four attacks (substituted entry, forged signature, thin
+  quorum, edited body) must each fail closed:
+  `python3 scripts/witness_dryrun.py --out records/witness-dryrun-2026-11-08.md`
+- **A** hands witness candidate #1 the operator runbook (`docs/20`) — the
+  measured transcript is already on record
+  (`records/witness-dryrun-2026-11-05.md`, verdict: DRY-RUN GREEN).
 - Evidence: provider enrolled; dry-run transcript committed to `records/`.
 
 ### Day 4 — Mon 2026-11-09 · Entity #2 / #3 on real budgets (Gates 2.5, 3.3)
@@ -75,11 +80,17 @@ when asked), **W** = witness operator, **C** = counsel.
   externally-sealed checkpoint.
 
 ### Day 6 — Wed 2026-11-11 · External discovery (Gate 3.5)
+- **A** validates the export set offline before publishing — the manifest
+  root and every card digest must recompute with no runtime:
+  `python3 scripts/check_cards.py /tmp/cards.json` (or bare, to self-check
+  the bridge's sample set). Anything edited after export fails with the
+  exact finding and a non-zero exit.
 - **A** publishes the ERC-8004 card + A2A agent card + skill package to the
   discovery surfaces (the bridge exports all three offline already); a second
   agent instance — not sharing state with this repo — discovers DYN, reads the
   cards, and completes the handshake without root dependency.
-- Evidence: discovery log of the external instance; card fingerprints match.
+- Evidence: validator output `0 findings`; discovery log of the external
+  instance; card fingerprints match.
 
 ### Day 7 — Thu 2026-11-12 · Amendment #1 + gate review (Gates 3.4, week close)
 - **O** executes amendment #1 end-to-end on the live charter: propose → T2
