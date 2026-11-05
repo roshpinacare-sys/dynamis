@@ -120,3 +120,18 @@ from git, and execute what the plan needs now. Applied the same day, with eviden
   unresolved conflicts", and conflicts exist.
 
 Suite: **301 tests green** (was 291 at the audit's first writing, 249 before it).
+
+### Addendum 2 — the drill suite, completed (2026-11-05, continuation)
+
+With the owner's standing order ("continue"), the remaining executable halves
+were measured in one re-runnable command (`scripts/gate_runs.py`, twelve
+drills, transcript `records/gate-runs-2026-11-05.md`): the collusion drill
+(2.1 — three colluding verification records caught by independent
+re-execution, refund in full), the Law-19 dashboard green over the measured
+stream (2.2), the x402 paid job over real HTTP (2.4), entity #2's day-one
+checklist with its own elapsed time sealed into the ledger (2.5), T2 blocked
+without regulator approval (2.6), the Brier-scored calibration report (3.2),
+the fleet of three with a consolidated read-only view (3.3), and the ERC-8004
+export standalone (3.5). Evidence rows were also reformatted to the canonical
+gate-id-first form the gate review counts — the review now shows the evidence
+that exists instead of hiding it behind a formatting mismatch.
