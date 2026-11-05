@@ -12,3 +12,9 @@ Nothing is closed without a line here.
 2026-11-05 | 3.2 evaluation market | python3 impl/dyn_eval.py demo | exit 0; 3 bond-scored seats scored, ECE 3613 bps, worst bucket named, report digest published | DYNAMIS Founding Agent
 2026-11-05 | 3.4 amendment loop | python3 impl/dyn_governance.py demo | exit 0; am-001 draft→sim→veto→executed; log {'ok': True, 'rows': 4}; refusal paths tested | DYNAMIS Founding Agent
 2026-11-05 | 3.5 ERC-8004 bridge | python3 impl/dyn_bridge.py export - + test_import_isolation | exit 0; cards + offline-verifiable manifest root; zero runtime importers | DYNAMIS Founding Agent
+2026-11-05 | suite (incl. bench/fleet/dashboard) | python3 -m pytest impl/tests/ -q | 227 passed in ~15s (was 208) | DYNAMIS Founding Agent
+2026-11-05 | 1.2 benchmark receipts + challenges | python3 impl/dyn_bench.py run dev-001 | exit 0; measured 2,307,692 µ-steps/s → tier T4; tampered receipt refused in tests; challenge digests issued | DYNAMIS Founding Agent
+2026-11-05 | 2.2 emission dashboard | python3 impl/dyn_market.py run --days 14 --out market.jsonl && python3 impl/dyn_dashboard.py from-stream | exit 0; invariant holds: 2,436,000,000,000 µDYN emitted on 6,090,000,000 µ¢ verified revenue; broken invariant refuses to render (test) | DYNAMIS Founding Agent
+2026-11-05 | 3.3 entity fleet rollup | python3 impl/dyn_fleet.py view ent-001 ent-002 ent-003 | exit 0; 3 balanced books, revenue 720,000,000 µ¢ measured; read-only proven (digests unchanged); <3 entities refused | DYNAMIS Founding Agent
+2026-11-05 | 1.1 uptime mechanism | python3 scripts/heartbeat.py + .github/workflows/uptime.yml (15-min cron) | exit 0; money/escrow/checkpoint checks all true; uptime_report.py reads beats off the Actions API | DYNAMIS Founding Agent
+2026-11-05 | site counted-truth | python3 scripts/check_site.py | 0 findings; suite collects 227 tests; no forbidden names in public copy | DYNAMIS Founding Agent

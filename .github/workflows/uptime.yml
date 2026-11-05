@@ -1,0 +1,24 @@
+name: uptime
+
+# Gate 1.1's measurement mechanism: a 15-minute heartbeat over the core loops
+# (canonical money, fail-closed escrow, sealed ledger checkpoints). Each run is
+# one beat; the run history IS the uptime record — `scripts/uptime_report.py`
+# measures ">= 99% over 7 days" from it. Failures surface here, loudly.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Heartbeat — core loops selfcheck
+        run: python3 scripts/heartbeat.py
