@@ -14,7 +14,7 @@ runs the engine (dyn.engine.v1) continuously over protocol days:
   - every event streams as one JSONL row (the market's audit trail);
   - the day ends with a summary; the same seed replays the same market.
 
-This is the architecture using the engine בשוטף (in flow): not a demo you run once
+This is the architecture using the engine in flow: not a demo you run once
 but a loop you can leave running — the same property craft-anything built into its
 engine and benji.org/stageshow teaches for demos: the loop is the product.
 
