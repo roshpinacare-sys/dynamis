@@ -16,6 +16,10 @@ and, when GH_TOKEN or GH_TOKEN_FILE is present, verifies that the repository's
 encrypted Actions secrets exist and that no secret VALUE is reachable here
 (the API exposes names only, by design — that is the point).
 
+One explicit, always-visible exception: detector-fixture files (the census
+test's own synthetic key shapes) are allowlisted and named in every scan's
+output — never silently exempt.
+
 Scope honesty: this proves the public half of gate 0.2 ("zero plaintext keys
 found on device scan") for the public artifact. The estate-side two-soul
 verification (every key exists in two independent places) runs in the estate
@@ -30,6 +34,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# Detector-fixture allowlist: files whose PURPOSE is to carry synthetic key
+# shapes for the detector tests. Explicitly named in every scan's output so
+# the exception is always visible, never silent. Nothing else is exempt.
+ALLOWED_FIXTURES = {
+    "impl/tests/test_census.py",
+}
 
 PEM_RE = re.compile(
     r"-----BEGIN (?:[A-Z ]* )?PRIVATE KEY(?: BLOCK)?-----")
@@ -86,9 +97,13 @@ def check_actions_secrets() -> list[str]:
 def main() -> int:
     findings: list[str] = []
     scanned = 0
+    allowlisted = []
     for rel in tracked_files():
         p = ROOT / rel
         if not p.is_file():
+            continue
+        if rel in ALLOWED_FIXTURES:
+            allowlisted.append(rel)
             continue
         scanned += 1
         low = rel.lower()
@@ -101,8 +116,9 @@ def main() -> int:
         for code in scan_text(text):
             findings.append(f"{code}: {rel}")
     findings += check_actions_secrets()
-    print(f"census: scanned {scanned} tracked files, "
-          f"{len(findings)} findings")
+    print(f"census: scanned {scanned} tracked files "
+          f"({len(allowlisted)} allowlisted detector fixtures: "
+          f"{', '.join(allowlisted) or 'none'}), {len(findings)} findings")
     for f in findings[:20]:
         print(f"  FINDING: {f}")
     return 1 if findings else 0

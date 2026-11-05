@@ -43,6 +43,10 @@ class TestRepoScan(unittest.TestCase):
                              cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
         self.assertIn("0 findings", out.stdout)
+        # the detector fixture itself must be visible in the scan's output,
+        # never silently exempt
+        self.assertIn("allowlisted detector fixtures: impl/tests/test_census.py",
+                      out.stdout)
 
 
 if __name__ == "__main__":
