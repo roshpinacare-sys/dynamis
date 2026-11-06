@@ -296,6 +296,15 @@ def _ev_store(root: Path, ev: Evidence) -> str:
     return ev.id
 
 
+def dispute_on_record(ledger: "WorkLedger", worker: str) -> str | None:
+    """The job of the worker's first dispute on this chain's ledger, if any —
+    the ban gate reads it; redemption is a new identity, not a whitewash."""
+    for e in ledger.entries:
+        if e["kind"] == "dispute" and e["agent"] == worker:
+            return e["job_id"]
+    return None
+
+
 # --------------------------------------------------------------------------
 # the web parser: title, headings, links, visible text
 # --------------------------------------------------------------------------
@@ -454,7 +463,8 @@ class CraftJob:
         self._ask(qid, f"Approve the study and release the build? Escrow "
                        f"{self.manifest['escrow_usds_muc'] // 1_000_000} USDS; "
                        f"{len(evs)} evidence record(s), {len(unknowns)} open "
-                       f"question(s). approve / deny.", kind="approval")
+                       f"question(s). approve / deny.", kind="approval",
+                  facts_sha=object_hash(facts))
         self.manifest["note"] += f"; approval card open ({qid}) — the buyer decides before the build"
         self._step("study", "inspecting", f"captured {len(evs)} evidence record(s)")
         self._step("build", "needs_you",
@@ -664,6 +674,12 @@ class CraftJob:
               statement: str | None = None) -> dict:
         self._require(statuses=("studied", "checked_fail"))
         self._no_open_approval("the build")
+        banned = dispute_on_record(ledger, worker)
+        if banned:
+            raise CraftError(
+                f"{worker} has a dispute on the chain's ledger (job {banned}) — "
+                "a worker caught forging does not build again under this "
+                "identity (passports are the sybil boundary)")
         if not files:
             raise CraftError("an empty build claims nothing — write the project "
                              "(the reference engine's #736: a builder can't hide "
@@ -1087,25 +1103,30 @@ class CraftJob:
         if not game["verified"]:
             witness_verdict(machine, n_workers=1, reexec_matches=False, seed=day)
             resolve_dispute(machine, to_worker=False)   # the burden is on the worker
+            why = ("input substitution: the facts on disk are not the facts the "
+                   "buyer approved" if not game["facts_ok"]
+                   else "fresh re-execution disagrees with the delivered check")
             self.manifest["status"] = "checked_fail"    # the truth is reinstated
-            self.manifest["note"] = ("the band overruled: fresh re-execution disagrees "
-                                     "with the delivered check — escrow refunded in full")
+            self.manifest["note"] = f"the band overruled: {why} — escrow refunded in full"
             self.manifest["step"] = "build"
             self._save()
             ledger.append(day=day, kind="dispute", job_id=self.manifest["job_id"],
                           agent=worker_id, leader=game["leader"],
                           delivered=game["delivered_digest"],
-                          reexecuted=game["reexecuted_digest"])
+                          reexecuted=game["reexecuted_digest"],
+                          facts_ok=game["facts_ok"])
             return {"verdict": "disputed", "payout_muc": 0, "fee_muc": 0,
                     "emitted_dyn_mu": 0, "rc2_added_muerg": 0,
                     "chain_ok": machine.verify_chain(), "leader": game["leader"],
                     "delivered": game["delivered_digest"],
-                    "reexecuted": game["reexecuted_digest"]}
+                    "reexecuted": game["reexecuted_digest"],
+                    "facts_ok": game["facts_ok"]}
         witness_verdict(machine, n_workers=1, reexec_matches=True, seed=day)
         result = AgentKit(worker_id, persona, keyref,
                           stake_dyn_mu=2_500_000, day=day).settle(machine, led)
         result["verdict"] = "paid"
         result["leader"] = game["leader"]
+        result["facts_ok"] = game["facts_ok"]
         self.manifest["status"] = "settled"
         self.manifest["note"] = (f"settled: payout {result['payout_muc']:,} µ¢, "
                                  f"emitted {result['emitted_dyn_mu']:,} DYN µ"
@@ -1163,13 +1184,16 @@ class CraftJob:
         return wire
 
     # ---------- inbox: open questions and the buyer's approval cards ----------
-    def _ask(self, qid: str, question: str, kind: str = "question") -> None:
+    def _ask(self, qid: str, question: str, kind: str = "question",
+             facts_sha: str | None = None) -> None:
         inbox = self.root / "inbox"
         inbox.mkdir(parents=True, exist_ok=True)
+        item = {"id": qid, "kind": kind, "question": question,
+                "status": "open", "answer": "", "answered_by": ""}
+        if facts_sha is not None:               # the buyer approves THESE facts
+            item["facts_sha"] = facts_sha
         self._atomic(inbox / f"{qid}.json", json.dumps(
-            {"id": qid, "kind": kind, "question": question,
-             "status": "open", "answer": "", "answered_by": ""},
-            indent=1, sort_keys=True) + "\n")
+            item, indent=1, sort_keys=True) + "\n")
 
     def _open_approval(self) -> str | None:
         inbox = self.root / "inbox"

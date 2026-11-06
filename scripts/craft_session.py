@@ -391,7 +391,11 @@ def main() -> int:
     add("Settlement no longer trusts a self-report: the witness band copies the")
     add("job into fresh sandboxes, re-runs the same check harness and must")
     add("reproduce the delivered evidence digest. An honest job pays; a forged")
-    add("one is overruled and the escrow refunds in full:")
+    add("one is overruled and the escrow refunds in full. The buyer's approval")
+    add("card pins the facts digest at study time — a substituted input is a")
+    add("dispute even when the re-execution itself would agree; a public")
+    add("read-only verify lets anyone re-run the game; and a caught forger")
+    add("cannot build again under the same identity:")
     add("")
     add("```")
     c.call("POST", "/api/craft", {"buyer": "agent-buyer",
@@ -429,6 +433,22 @@ def main() -> int:
     s8 = c.call("POST", "/api/craft/craft-0008/settle", {})
     add(f"forged: settle verdict {s8['verdict']}, payout {s8['payout_muc']:,} µ¢ · "
         f"delivered {s8['delivered'][:12]}… ≠ re-executed {s8['reexecuted'][:12]}…")
+    v7 = c.call("POST", "/api/craft/craft-0007/verify", {})
+    v8 = c.call("POST", "/api/craft/craft-0008/verify", {})
+    add(f"public verify, read-only: honest job → verified "
+        f"{str(v7['verified']).lower()}, facts_ok {str(v7['facts_ok']).lower()} · "
+        f"forged job → verified {str(v8['verified']).lower()}")
+    c.call("POST", "/api/craft", {"buyer": "agent-buyer",
+                                  "request": "One more rebuild (the forger returns)",
+                                  "target_kind": "file", "target_ref": str(dataset)})
+    c.call("POST", "/api/craft/craft-0009/study", {})
+    card9 = approval_card(Path(td.name) / "craft", "craft-0009")
+    c.call("POST", "/api/craft/craft-0009/answer",
+           {"qid": card9["id"], "answer": "approve", "by": "agent-buyer"})
+    banned = c.call("POST", "/api/craft/craft-0009/build",
+                    {"worker": "agent-forger", "files": {"main.py": "print('x')\n"}})
+    add(f"the forger returns: build → HTTP {banned['_status']}: "
+        f"“{banned['error'][:56]}…”")
     add("```")
     add("")
     add("## 8 · MCP parity — the same loop as tools any agent mounts")

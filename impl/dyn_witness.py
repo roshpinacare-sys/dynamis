@@ -170,6 +170,25 @@ def craft_reexecute(job_root: str | Path, *, day: int | None = None,
             "agree": len(set(digests)) == 1}
 
 
+def approval_facts_pin(job_root: str | Path) -> str | None:
+    """The facts digest the buyer's approval card pinned at study time — the
+    root of the game: the inputs themselves are bound to what the buyer saw."""
+    inbox = Path(job_root) / "inbox"
+    if not inbox.is_dir():
+        return None
+    for p in sorted(inbox.glob("*.json")):
+        item = _read_json(p)
+        if item.get("kind") == "approval":
+            return item.get("facts_sha")
+    return None
+
+
+def facts_digest(job_root: str | Path) -> str:
+    """Canonical digest over the facts on disk right now."""
+    return object_hash(json.loads(
+        (Path(job_root) / "capture" / "facts.json").read_text()))
+
+
 def craft_verify(job_root: str | Path, *, day: int | None = None,
                  delivered_digest: str | None = None) -> dict:
     """The settle-time question: does a fresh re-execution reproduce the
@@ -183,9 +202,12 @@ def craft_verify(job_root: str | Path, *, day: int | None = None,
         delivered_digest = craft_evidence_digest(manifest["checks"][-1])
     game = craft_reexecute(job_root, day=day)
     truth = game["digests"][0]
-    ok = game["agree"] and truth == delivered_digest
+    pin, now = approval_facts_pin(job_root), facts_digest(job_root)
+    facts_ok = pin is None or pin == now
+    ok = game["agree"] and truth == delivered_digest and facts_ok
     return {"verified": ok, "delivered_digest": delivered_digest,
-            "reexecuted_digest": truth, **game}
+            "reexecuted_digest": truth, "facts_ok": facts_ok,
+            "facts_pin": pin, "facts_now": now, **game}
 
 
 def forge_pass(job_root: str | Path) -> dict:

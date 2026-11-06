@@ -140,6 +140,17 @@ ordered by severity; manifest writes are fsync'd write-then-rename (a torn
 write leaves the old record intact); ledger entries carry Merkle inclusion
 proofs with sides preserved, verifiable against the root without the ledger.
 
+The game then grew roots, teeth and eyes: the buyer's approval card pins the
+facts digest at study time, so a substituted input is a dispute even when the
+re-execution itself would agree (the pin binds the inputs; the sandbox binds
+the execution); `POST /api/craft/{id}/verify` and a `craft_verify` MCP tool
+re-run the whole game read-only — verification is re-runnable by anyone, not
+a settlement-time event; and a worker with a dispute on the chain's ledger
+cannot build again under that identity. The honest boundary: wallets in this
+rail are per-kit ephemeral, so the teeth are access control, not stake; and
+the ban binds the passport, so sybil resistance is the identity rail's job,
+not the craft loop's.
+
 ## 8 · The honest residue
 
 What stays open after this pass, and why: pixel screenshots and layout metrics

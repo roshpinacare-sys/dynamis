@@ -1,4 +1,4 @@
-# The craft session — 2026-11-06 18:24 UTC
+# The craft session — 2026-11-06 19:28 UTC
 
 `dyn.craft.v1` on the live network (pattern credit: storytold/craft-anything):
 study a target with evidence behind every answer, build a version, check how
@@ -11,7 +11,7 @@ process.
 ## 1 · The first craft job — a dataset, studied, built wrong, refused
 
 ```
-study: 1 evidence record(s) (ev_d6060ded54981ca61…), 1 open question(s)
+study: 1 evidence record(s) (ev_fe88d4180f0b19d81…), 1 open question(s)
 captured: 7241 bytes, 605 lines, type json, sha256 53e9a631874b06bf…
 the loop pauses on the buyer's card: q-002 — “Approve the study and release the build? Escrow 500 USDS; …”
 ```
@@ -94,12 +94,18 @@ round 1: similarity 100% — FAIL (100% alike — claims fail: its title matches
 Settlement no longer trusts a self-report: the witness band copies the
 job into fresh sandboxes, re-runs the same check harness and must
 reproduce the delivered evidence digest. An honest job pays; a forged
-one is overruled and the escrow refunds in full:
+one is overruled and the escrow refunds in full. The buyer's approval
+card pins the facts digest at study time — a substituted input is a
+dispute even when the re-execution itself would agree; a public
+read-only verify lets anyone re-run the game; and a caught forger
+cannot build again under the same identity:
 
 ```
 honest: check about 100% like the original, 5 of 5 claims hold → settle verdict paid, payout 475,000,000 µ¢, leader witness-5
 forge target: check FAIL (about 0% like the original, 1 of 5 claims hold)
 forged: settle verdict disputed, payout 0 µ¢ · delivered 59edfae5aa48… ≠ re-executed 24d2ebc653af…
+public verify, read-only: honest job → verified true, facts_ok true · forged job → verified false
+the forger returns: build → HTTP 400: “agent-forger has a dispute on the chain's ledger (job cr…”
 ```
 
 ## 8 · MCP parity — the same loop as tools any agent mounts
@@ -109,7 +115,7 @@ the engine's seven — one engine, three surfaces, as the reference engine
 puts it. The flow below runs through the MCP dispatch itself:
 
 ```
-tools/list: 16 tools — craft_tools: ['craft_open', 'craft_study', 'craft_build', 'craft_check', 'craft_settle', 'craft_refund', 'craft_post', 'craft_answer', 'craft_view']
+tools/list: 17 tools — craft_tools: ['craft_open', 'craft_study', 'craft_build', 'craft_check', 'craft_settle', 'craft_verify', 'craft_refund', 'craft_post', 'craft_answer', 'craft_view']
 craft flow via MCP: check PASS, similarity 100%
 craft_settle via MCP: payout 475,000,000 µ¢, emitted 200,000,000,000 DYN µ
 ```
@@ -117,8 +123,8 @@ craft_settle via MCP: payout 475,000,000 µ¢, emitted 200,000,000,000 DYN µ
 ## 9 · The chain of record — the craft loop writes the same ledger
 
 ```
-work ledger: True · 53 entries · Law-19 invariant: settled 2,500,000,000 µ¢ → emitted 1,000,000,000,000 DYN µ · holds: True
-session: 8 craft jobs · craft payouts 2,375,000,000 µ¢ · 1 refund, fees 0, emission 0
+work ledger: True · 56 entries · Law-19 invariant: settled 2,500,000,000 µ¢ → emitted 1,000,000,000,000 DYN µ · holds: True
+session: 9 craft jobs · craft payouts 2,375,000,000 µ¢ · 1 refund, fees 0, emission 0
 ```
 
 ## Named limitations — on the record

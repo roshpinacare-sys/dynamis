@@ -145,6 +145,20 @@ def h_craft_settle(a: dict) -> dict:
         keyref=a.get("keyref", f"hsm:kr-{worker}"))
 
 
+def h_craft_verify(a: dict) -> dict:
+    from dyn_witness import craft_evidence_digest
+    from dyn_witness import craft_verify as run_game
+    job = CraftJob(a["root"])
+    m = job.manifest
+    if not m.get("checks"):
+        raise ValueError("no check on the record to verify")
+    out = run_game(job.root, day=int(a.get("day", 1)),
+                   delivered_digest=craft_evidence_digest(m["checks"][-1]))
+    out["job_id"] = m["job_id"]
+    out["status"] = m["status"]
+    return out
+
+
 def h_craft_refund(a: dict) -> dict:
     return CraftJob(a["root"]).refund(ledger=_craft_ledger(), day=int(a.get("day", 1)))
 
@@ -214,6 +228,8 @@ _TOOLS_SPEC: list[dict] = [
      _schema({"root": _ROOT["root"], "worker": {"type": "string"},
               "persona": {"type": "string"}, "keyref": {"type": "string"},
               "day": {"type": "integer"}}, ["root"]), h_craft_settle),
+    ("craft_verify", "Re-run the verification game read-only: fresh re-execution must reproduce the submitted check and the facts must match the buyer's approval pin. No money moves.",
+     _schema({"root": _ROOT["root"], "day": {"type": "integer"}}, ["root"]), h_craft_verify),
     ("craft_refund", "The fail path: a FAIL round or a buyer's deny — escrow returns, zero fees, zero emission.",
      _schema({"root": _ROOT["root"], "day": {"type": "integer"}}, ["root"]), h_craft_refund),
     ("craft_post", "Publish the settled proof as a dyn.post.v1 wire object carrying the shipped bytes.",

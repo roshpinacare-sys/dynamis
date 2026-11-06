@@ -928,5 +928,119 @@ class TestDurabilityAndProofs(unittest.TestCase):
                 proof, root))
 
 
+class TestRootsTeethEyes(CraftMixin, unittest.TestCase):
+    """The game gets roots (inputs bound to the buyer's pin), eyes (anyone
+    can re-run it, read-only) and teeth (a caught forger cannot build)."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.d = Path(self._td.name)
+        self.ledger = WorkLedger()
+        self.target = self._dataset(self.d)
+        self._n = 0
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _job_through_check(self, name="rt", program=None):
+        self._n += 1
+        job = self._open_file_job(self.d / f"{name}{self._n}", self.target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        job.build(worker="agent-worker",
+                  files=program or report_program(json.loads(
+                      (job.root / "capture" / "facts.json").read_text())),
+                  ledger=self.ledger, day=1)
+        job.check(ledger=self.ledger, day=1)
+        return job
+
+    def test_the_approval_card_pins_the_facts(self):
+        from dyn_witness import approval_facts_pin, facts_digest
+        job = self._job_through_check()
+        card = next(p for p in (job.root / "inbox").glob("*.json")
+                    if json.loads(p.read_text())["kind"] == "approval")
+        self.assertEqual(card and json.loads(card.read_text())["facts_sha"],
+                         facts_digest(job.root))
+        self.assertEqual(approval_facts_pin(job.root), facts_digest(job.root))
+
+    def test_a_facts_substitution_is_disputed(self):
+        job = self._job_through_check()
+        self.assertTrue(job.manifest["checks"][-1]["passed"])
+        facts = json.loads((job.root / "capture" / "facts.json").read_text())
+        facts["substituted"] = "different target entirely"
+        (job.root / "capture" / "facts.json").write_text(
+            json.dumps(facts, indent=1, sort_keys=True) + "\n")
+        out = job.settle(ledger=self.ledger, day=1)
+        self.assertEqual(out["verdict"], "disputed")
+        self.assertFalse(out["facts_ok"])
+        self.assertIn("input substitution", job.manifest["note"])
+
+    def test_the_public_verify_re_runs_the_game_read_only(self):
+        import unittest.mock
+        import tempfile as _tf
+        from dyn_app import Dynamis
+        from dyn_witness import craft_verify
+        with _tf.TemporaryDirectory() as sd:
+            net = Dynamis(state_root=Path(sd))
+            net.join("agent-buyer", "persona-buyer")
+            net.join("agent-builder", "persona-builder")
+            net.open_craft(buyer="agent-buyer", request="verify me",
+                           target_kind="file", target_ref=str(self.target))
+            net.craft_study("craft-0001")
+            card = next(p for p in (Path(sd) / "craft" / "craft-0001" / "inbox").glob("*.json")
+                        if json.loads(p.read_text())["kind"] == "approval")
+            net.craft_answer("craft-0001", card.stem, "approve", "agent-buyer")
+            job = net._craft("craft-0001")
+            job.build(worker="agent-builder",
+                      files=report_program(json.loads(
+                          (job.root / "capture" / "facts.json").read_text())),
+                      ledger=net.ledger, day=net.day)
+            net.craft_check("craft-0001")
+            before = (job.root / "craft.json").read_text()
+            out = net.craft_verify_route("craft-0001")
+            self.assertTrue(out["verified"])
+            self.assertTrue(out["facts_ok"])
+            self.assertEqual((job.root / "craft.json").read_text(), before)
+            # a forged record fails the same public door: the door reads the
+            # record the job holds, the disk is what re-execution trusts
+            net._craft("craft-0001").manifest["checks"][-1]["similarity_milli"] = 999
+            out2 = net.craft_verify_route("craft-0001")
+            self.assertFalse(out2["verified"])
+
+    def test_a_caught_forger_cannot_build_again(self):
+        job = self._open_file_job(self.d / "ban1", self.target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        job.build(worker="agent-forger", files={"main.py": "print('junk')"},
+                  ledger=self.ledger, day=1)
+        job.check(ledger=self.ledger, day=1)
+        m = job.manifest
+        m["checks"][-1].update({"passed": True, "similarity_milli": 1000,
+                                "summary": "forged"})
+        for c in m["checks"][-1]["claims"]:
+            c["passed"] = True
+        m["checks"][-1]["unknowns"] = []
+        m["status"] = "checked_pass"
+        job._save()
+        self.assertEqual(job.settle(ledger=self.ledger, day=1)["verdict"], "disputed")
+        chain = self.ledger            # the chain's ledger carries the dispute
+        job2 = self._open_file_job(self.d / "ban2", self.target)
+        job2.study(ledger=self.ledger, day=1)
+        self._approve(job2)
+        with self.assertRaisesRegex(CraftError, "dispute on the chain"):
+            job2.build(worker="agent-forger", files={"main.py": "print('x')"},
+                       ledger=chain, day=1)
+
+    def test_the_mcp_verify_tool_runs_the_game(self):
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from dyn_mcp import h_craft_verify
+        job = self._job_through_check(name="mv")
+        out = h_craft_verify({"root": str(job.root), "day": 1})
+        self.assertTrue(out["verified"])
+        self.assertEqual(out["job_id"], job.manifest["job_id"])
+
+
 if __name__ == "__main__":
     unittest.main()

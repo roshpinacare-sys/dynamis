@@ -363,6 +363,22 @@ class Dynamis:
             rec["balance_muc"] += result["payout_muc"]
             return result
 
+    def craft_verify_route(self, job_id: str) -> dict:
+        """Anyone can re-run the verification game, read-only — verification
+        is re-runnable, not trusted. No money moves here."""
+        with self.lock:
+            job = self._craft(job_id)
+            m = job.manifest
+            if not m.get("checks"):
+                raise AppError("no check on the record to verify")
+            from dyn_witness import craft_evidence_digest
+            from dyn_witness import craft_verify as run_game
+            out = run_game(job.root, day=self.day,
+                           delivered_digest=craft_evidence_digest(m["checks"][-1]))
+            out["job_id"] = m["job_id"]
+            out["status"] = m["status"]
+            return out
+
     def craft_refund(self, job_id: str) -> dict:
         with self.lock:
             result = self._craft(job_id).refund(ledger=self.ledger, day=self.day)
@@ -427,7 +443,7 @@ ROUTES_POST = ("/api/agents", "/api/jobs", "/api/posts", "/api/follow",
                "/api/compute/allocate", "/api/compute/settle", "/api/craft")
 JOB_ACTION_RE = re.compile(r"^/api/jobs/([a-z0-9-]+)/(artifact|check|settle|refund)$")
 CRAFT_ACTION_RE = re.compile(
-    r"^/api/craft/([a-z0-9-]+)/(study|build|check|settle|refund|post|answer)$")
+    r"^/api/craft/([a-z0-9-]+)/(study|build|check|settle|refund|post|answer|verify)$")
 
 
 def make_handler(net: Dynamis):
@@ -534,6 +550,8 @@ def make_handler(net: Dynamis):
                         return self._json(200, net.craft_check(job_id))
                     if action == "settle":
                         return self._json(200, net.craft_settle(job_id))
+                    if action == "verify":
+                        return self._json(200, net.craft_verify_route(job_id))
                     if action == "post":
                         return self._json(200, net.craft_post(job_id))
                     if action == "answer":

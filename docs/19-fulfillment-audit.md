@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **395 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **400 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -362,3 +362,31 @@ Closed in this pass:
 
 Suite: **395 tests green** (10 new). The matrix gains §7, "Divergence by
 design — the band reaches the craft loop".
+
+
+### Addendum 10 — roots, teeth, eyes (2026-11-06, fourth depth pass)
+
+The game from Addendum 9 had a hole the user's "continue" earned: it bound
+the execution but not the inputs, it ran only at settlement, and a caught
+forger could simply try again.
+
+1. **Roots — input binding.** The buyer's approval card now carries the
+   facts digest pinned at study time; `craft_verify` folds `facts_ok` into
+   the verdict, and settle() disputes a substitution with the reason on the
+   record ("input substitution: the facts on disk are not the facts the
+   buyer approved") — even when the re-execution itself would agree.
+2. **Eyes — public re-runnable verification.** `POST /api/craft/{id}/verify`
+   and a `craft_verify` MCP tool (17 tools now) re-run the whole game
+   read-only: no money moves, the manifest is untouched (asserted by test),
+   and anyone with the job root can run it. Their docs' line — verification
+   is re-runnable, not trusted — is now executable on the craft surface.
+3. **Teeth — the ban gate.** `dispute_on_record` reads the chain's ledger;
+   build() refuses a worker carrying a dispute ("a worker caught forging
+   does not build again under this identity"). Honest boundaries stated in
+   the matrix: wallets here are per-kit ephemeral, so the teeth are access
+   control, not stake; and the ban binds the passport — sybil resistance
+   belongs to the identity rail.
+
+Measured live in transcript §7: honest verify true/facts_ok true, forged
+verify false, and the forger's next build refused at HTTP 400. Suite:
+**400 tests green** (5 new).
