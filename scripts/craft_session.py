@@ -7,10 +7,11 @@ it pay. This session is the proof it runs on the network, including the
 refinements the loop grew after the first study: the buyer's approval cards,
 multi-page web likeness, the fixes brief that drives a refine round with
 exact values, the runs check (a console program judged by its recorded runs),
-and MCP parity (the same actions as tools). Job one is built wrong and the
+the verification game (a forged check overruled by fresh re-execution), and
+MCP parity (the same actions as tools). Job one is built wrong and the
 machine refuses to pay it; the corrected rebuild, a multi-page rebuild, a
-fixes-driven refine, a runs-judged rebuild and the MCP flow settle. Every
-number is read off the running process.
+fixes-driven refine, a runs-judged rebuild, a forged settle and the MCP flow
+settle. Every number is read off the running process.
 
   python3 scripts/craft_session.py --out records/craft-session-<date>.md
 
@@ -129,12 +130,13 @@ def main() -> int:
     add("`dyn.craft.v1` on the live network (pattern credit: storytold/craft-anything):")
     add("study a target with evidence behind every answer, build a version, check how")
     add("alike it is, refine what fails — and only then does the escrow move. This")
-    add("session also measures the three refinements the loop grew: the buyer's")
-    add("approval cards, per-page likeness for the web kind, and MCP parity. Every")
-    add("number is read off the running process.")
+    add("session also measures the refinements the loop grew: the buyer's")
+    add("approval cards, per-page likeness for the web kind, the runs check, the")
+    add("verification game, and MCP parity. Every number is read off the running")
+    add("process.")
     add("")
 
-    for who in ("agent-buyer", "agent-builder"):
+    for who in ("agent-buyer", "agent-builder", "agent-forger"):
         c.call("POST", "/api/agents", {"agent_id": who, "persona": f"persona-{who}"})
 
     # ---- job one: built wrong, refused, refunded ----
@@ -384,7 +386,52 @@ def main() -> int:
         f"{'PASS' if rb['passed'] else 'FAIL'} ({rb['note'][:76]}…)")
     add("```")
     add("")
-    add("## 7 · MCP parity — the same loop as tools any agent mounts")
+    add("## 7 · The verification game — a forged check cannot get paid")
+    add("")
+    add("Settlement no longer trusts a self-report: the witness band copies the")
+    add("job into fresh sandboxes, re-runs the same check harness and must")
+    add("reproduce the delivered evidence digest. An honest job pays; a forged")
+    add("one is overruled and the escrow refunds in full:")
+    add("")
+    add("```")
+    c.call("POST", "/api/craft", {"buyer": "agent-buyer",
+                                  "request": "Rebuild this dataset report honestly",
+                                  "target_kind": "file", "target_ref": str(dataset)})
+    c.call("POST", "/api/craft/craft-0007/study", {})
+    card7 = approval_card(Path(td.name) / "craft", "craft-0007")
+    c.call("POST", "/api/craft/craft-0007/answer",
+           {"qid": card7["id"], "answer": "approve", "by": "agent-buyer"})
+    c.call("POST", "/api/craft/craft-0007/build",
+           {"worker": "agent-builder", "files": {"main.py": good}})
+    rr7 = c.call("POST", "/api/craft/craft-0007/check", {})
+    s7 = c.call("POST", "/api/craft/craft-0007/settle", {})
+    add(f"honest: check {rr7['summary']} → settle verdict {s7['verdict']}, "
+        f"payout {s7['payout_muc']:,} µ¢, leader {s7['leader']}")
+    c.call("POST", "/api/craft", {"buyer": "agent-buyer",
+                                  "request": "Rebuild the same dataset report (this one lies)",
+                                  "target_kind": "file", "target_ref": str(dataset)})
+    c.call("POST", "/api/craft/craft-0008/study", {})
+    card8 = approval_card(Path(td.name) / "craft", "craft-0008")
+    c.call("POST", "/api/craft/craft-0008/answer",
+           {"qid": card8["id"], "answer": "approve", "by": "agent-buyer"})
+    c.call("POST", "/api/craft/craft-0008/build",
+           {"worker": "agent-forger",
+            "files": {"main.py": "print('not a report at all')"}})
+    rr8 = c.call("POST", "/api/craft/craft-0008/check", {})
+    add(f"forge target: check FAIL ({rr8['summary']})")
+    lj = net.craft["craft-0008"]["job"].manifest   # the worker's own record
+    lj["checks"][-1].update({"passed": True, "similarity_milli": 1000,
+                             "summary": "about 100% like the original"})
+    for cl in lj["checks"][-1]["claims"]:
+        cl["passed"] = True
+    lj["checks"][-1]["unknowns"] = []
+    lj["status"] = "checked_pass"
+    s8 = c.call("POST", "/api/craft/craft-0008/settle", {})
+    add(f"forged: settle verdict {s8['verdict']}, payout {s8['payout_muc']:,} µ¢ · "
+        f"delivered {s8['delivered'][:12]}… ≠ re-executed {s8['reexecuted'][:12]}…")
+    add("```")
+    add("")
+    add("## 8 · MCP parity — the same loop as tools any agent mounts")
     add("")
     add("The dyn.mcp.v1 stdio server now carries the craft loop as nine tools beside")
     add("the engine's seven — one engine, three surfaces, as the reference engine")
@@ -438,7 +485,7 @@ def main() -> int:
     chain = c.call("GET", "/api/chain")
     state = c.call("GET", "/api/state")
     inv = chain["invariant"]
-    add("## 8 · The chain of record — the craft loop writes the same ledger")
+    add("## 9 · The chain of record — the craft loop writes the same ledger")
     add("")
     add("```")
     add(f"work ledger: {chain['verify']['ok']} · {chain['entries']} entries · "

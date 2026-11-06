@@ -1057,7 +1057,8 @@ class CraftJob:
         if last["unknowns"]:
             raise CraftError("unknowns on the record block settlement — "
                              "missing evidence never counts as alike")
-        from agent_kit import AgentKit, witness_verdict
+        from agent_kit import AgentKit, resolve_dispute, witness_verdict
+        from dyn_witness import craft_evidence_digest, craft_verify
         worker_id = self.manifest["worker"]
         led = EmissionLedger()
         entity = AgentKit("ent-001", "entity-rail", "hsm:kr-entity", role="entity")
@@ -1074,12 +1075,41 @@ class CraftJob:
                             (object_hash(last),), receipt, day)
         machine.fire("deliver", claim=claim)
         machine.fire("start_verify")
+        # the verification game, for real: the witness band re-runs the same
+        # check harness in fresh sandboxes and must reproduce the delivered
+        # evidence — a worker's self-report alone never pays (Law 19)
+        game = craft_verify(self.root, day=day,
+                            delivered_digest=craft_evidence_digest(last))
+        self.manifest["verification"] = {
+            "verified": game["verified"], "leader": game["leader"],
+            "band": game["band"], "delivered_digest": game["delivered_digest"],
+            "reexecuted_digest": game["reexecuted_digest"]}
+        if not game["verified"]:
+            witness_verdict(machine, n_workers=1, reexec_matches=False, seed=day)
+            resolve_dispute(machine, to_worker=False)   # the burden is on the worker
+            self.manifest["status"] = "checked_fail"    # the truth is reinstated
+            self.manifest["note"] = ("the band overruled: fresh re-execution disagrees "
+                                     "with the delivered check — escrow refunded in full")
+            self.manifest["step"] = "build"
+            self._save()
+            ledger.append(day=day, kind="dispute", job_id=self.manifest["job_id"],
+                          agent=worker_id, leader=game["leader"],
+                          delivered=game["delivered_digest"],
+                          reexecuted=game["reexecuted_digest"])
+            return {"verdict": "disputed", "payout_muc": 0, "fee_muc": 0,
+                    "emitted_dyn_mu": 0, "rc2_added_muerg": 0,
+                    "chain_ok": machine.verify_chain(), "leader": game["leader"],
+                    "delivered": game["delivered_digest"],
+                    "reexecuted": game["reexecuted_digest"]}
         witness_verdict(machine, n_workers=1, reexec_matches=True, seed=day)
         result = AgentKit(worker_id, persona, keyref,
                           stake_dyn_mu=2_500_000, day=day).settle(machine, led)
+        result["verdict"] = "paid"
+        result["leader"] = game["leader"]
         self.manifest["status"] = "settled"
         self.manifest["note"] = (f"settled: payout {result['payout_muc']:,} µ¢, "
-                                 f"emitted {result['emitted_dyn_mu']:,} DYN µ")
+                                 f"emitted {result['emitted_dyn_mu']:,} DYN µ"
+                                 " · verified by fresh re-execution")
         self._save()
         ledger.append(day=day, kind="settle", job_id=self.manifest["job_id"],
                       agent=worker_id, payout_muc=result["payout_muc"],
@@ -1220,7 +1250,14 @@ class CraftJob:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_name(path.name + f".tmp{os.getpid()}")
         tmp.write_text(text, encoding="utf-8")
+        with open(tmp, "rb") as fh:               # the bytes reach the platter
+            os.fsync(fh.fileno())
         os.replace(tmp, path)
+        dfd = os.open(path.parent, os.O_RDONLY)   # so does the rename itself
+        try:
+            os.fsync(dfd)
+        finally:
+            os.close(dfd)
 
     def _require(self, statuses: tuple[str, ...]) -> None:
         if not self.manifest:

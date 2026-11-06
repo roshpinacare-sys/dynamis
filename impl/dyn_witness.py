@@ -114,6 +114,80 @@ def reexecute(job_root: str | Path, *,
         shutil.rmtree(sandbox, ignore_errors=True)
 
 
+CRAFT_DIGEST_FIELDS = ("check", "passed", "similarity_milli", "claims", "summary")
+CRAFT_WITNESSES = 3
+
+
+def craft_evidence_digest(check_result: dict) -> str:
+    """Canonical digest over what a craft settlement stands on, the same
+    projection rule as evidence_digest: the fields forgery touches and the
+    settlement needs — the check id, the verdict, the likeness, every
+    claim's title/passed/detail, the person's summary line — and deliberately
+    NOT the round number, timestamps, runtime or the fixes brief (a later
+    honest re-execution must reproduce the digest; ADR-0007 keeps floats off
+    the canonical wire, so likeness rides as per-mille)."""
+    r = check_result
+    return object_hash({
+        "check": r["check"], "passed": r["passed"],
+        "similarity_milli": r.get("similarity_milli"),
+        "claims": [{"title": c["title"], "passed": c["passed"],
+                    "detail": c.get("detail", "")} for c in r["claims"]],
+        "summary": r.get("summary", ""),
+    })
+
+
+def craft_reexecute(job_root: str | Path, *, day: int | None = None,
+                    witnesses: int = CRAFT_WITNESSES) -> dict:
+    """The verification game over a craft job, as the band runs it over an
+    engine job: the leader (VRF stand-in) and the next witnesses each copy
+    the job folder into a fresh sandbox, reinstate the status and re-run the
+    SAME check harness — independence comes from fresh execution, not
+    reimplemention. Deterministic harness, so the witnesses must agree; any
+    disagreement between the re-executed truth and the delivered check is
+    the forgery signal."""
+    from dyn_craft import CraftJob          # lazy: dyn_craft imports agent_kit
+    from dyn_ledger import WorkLedger
+    root = Path(job_root)
+    manifest = _read_json(root / "craft.json")
+    leader_day = day or manifest["deadline_day"]
+    band = (leader_for(manifest["job_id"], leader_day),)
+    band += tuple(w for w in WITNESSES if w != band[0])[:max(1, witnesses) - 1]
+    digests: list[str] = []
+    for w in band:
+        sandbox = Path(tempfile.mkdtemp(prefix="dyn-witness-craft-"))
+        try:
+            copy = sandbox / root.name
+            shutil.copytree(root, copy)
+            job = CraftJob(copy)
+            if job.manifest["status"] not in ("built", "checked_fail"):
+                job.manifest["status"] = "built"   # sandbox only; disk untouched
+                job.manifest["step"] = "check"
+            res = job.check(ledger=WorkLedger(), day=leader_day)
+            digests.append(craft_evidence_digest(res))
+        finally:
+            shutil.rmtree(sandbox, ignore_errors=True)
+    return {"leader": band[0], "band": list(band), "digests": digests,
+            "agree": len(set(digests)) == 1}
+
+
+def craft_verify(job_root: str | Path, *, day: int | None = None,
+                 delivered_digest: str | None = None) -> dict:
+    """The settle-time question: does a fresh re-execution reproduce the
+    check the worker submits for settlement? The delivered digest must come
+    from the submitter's own record (the caller passes it from memory); the
+    re-executed truth is computed from the artifact on disk. A forger who
+    edits either side trips the other."""
+    root = Path(job_root)
+    if delivered_digest is None:
+        manifest = _read_json(root / "craft.json")
+        delivered_digest = craft_evidence_digest(manifest["checks"][-1])
+    game = craft_reexecute(job_root, day=day)
+    truth = game["digests"][0]
+    ok = game["agree"] and truth == delivered_digest
+    return {"verified": ok, "delivered_digest": delivered_digest,
+            "reexecuted_digest": truth, **game}
+
+
 def forge_pass(job_root: str | Path) -> dict:
     """The seeded attack: edit evidence verdicts to PASS and flip the worklog
     status — what a cheating worker does before requesting settlement. This

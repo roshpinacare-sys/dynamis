@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **385 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **395 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -119,7 +119,7 @@ from git, and execute what the plan needs now. Applied the same day, with eviden
   owner's filing decision with counsel — its acceptance criterion requires "no
   unresolved conflicts", and conflicts exist.
 
-Suite: **385 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
+Suite: **395 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
 
 ### Addendum 2 — the drill suite, completed (2026-11-05, continuation)
 
@@ -324,6 +324,41 @@ Ported, claim-for-claim where the source allows:
    refusal reads "The build isn't working yet — the loop is out of rounds….
    The buyer may refund; the escrow never pays a failing build."
 
-The suite is 385 tests green (7 new). The matrix carries a new §7, "The
+The suite is 385 tests green (7 new). The matrix carries a new §6, "The
 engine loop, ported", and its residue (§8) names the runs layer's own
 limitation: two sample inputs are a sample, not a behaviour spec.
+
+### Addendum 9 — the verification game (2026-11-06, third depth pass)
+
+The user's push: take it a step forward, engineering-wise. The sharpest gap
+found: the witness band — 7 witnesses, VRF-stand-in leader ordering, sampled
+re-execution, the `forge_pass` attack demo — existed for the engine demo, but
+the craft loop's settlement passed `reexec_matches=True` as a constant.
+Settlement trusted the worker's self-report.
+
+Closed in this pass:
+
+1. **The band generalized to the craft loop.** `craft_evidence_digest`
+   (documented projection, floats excluded per ADR-0007, round-blind),
+   `craft_reexecute` (leader + witnesses, fresh sandboxes, same harness),
+   `craft_verify` — and settle() now runs the game before any money moves.
+2. **A real bug, found by the live session harness and fixed:** the first
+   comparison read both digests from disk, so a forgery edited only in
+   memory got paid. The delivered digest now comes from the submitter's own
+   record; the re-executed truth comes from the artifact on disk. Forgeries
+   on either side trip it.
+3. **The dispute path is live:** verify_fail → DISPUTED → resolve_budget →
+   escrow refunded in full, job back to checked_fail, `dispute` ledger kind
+   added to the chain. Measured live in transcript §7: honest settle pays
+   (leader witness-5); a forged check settles as disputed with payout 0 and
+   both digests printed.
+4. **The measurer is itself tested:** a seeded mutation battery proves the
+   likeness function bounded (50 mutations), sensitive to a single changed
+   word, and ordered by mutation severity.
+5. **Durability and proofs:** manifest/check-result writes are fsync'd
+   write-then-rename — a simulated torn write leaves the old record intact
+   and a retry lands clean; ledger entries now carry Merkle inclusion proofs
+   (sides preserved) verifiable against the root without ledger access.
+
+Suite: **395 tests green** (10 new). The matrix gains §7, "Divergence by
+design — the band reaches the craft loop".

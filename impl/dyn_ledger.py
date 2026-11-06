@@ -46,7 +46,7 @@ BFT_THRESHOLD = 5        # ≥ 5 of 7: BFT ≤ 1 Byzantine with 7
 WITNESSES = tuple(f"witness-{i}" for i in range(1, ACTIVE_WITNESSES + 1))
 SIG_DOMAIN = "dyn.checkpoint.sig"
 KINDS = ("open", "work", "check", "refine", "settle", "refund", "post",
-         "witness", "anchor", "approve")
+         "witness", "anchor", "approve", "dispute")
 
 
 # --------------------------------------------------------------------------
@@ -94,6 +94,37 @@ class WorkLedger:
             level = [object_hash([level[i], level[i + 1]])
                      for i in range(0, len(level), 2)]
         return level[0]
+
+    def inclusion_proof(self, seq: int) -> list[str]:
+        """The siblings needed to prove entries[seq] is in the chain's root —
+        the receipt a settler hands the buyer's auditor. Same pairing rule as
+        merkle_root (odd node duplicated)."""
+        hashes = [e["hash"] for e in self.entries]
+        i = next(i for i, e in enumerate(self.entries) if e["seq"] == seq)
+        proof: list[str] = []
+        level = list(hashes)
+        while len(level) > 1:
+            if len(level) % 2:
+                level.append(level[-1])
+            if i % 2:
+                proof.append({"s": level[i - 1], "side": "left"})
+            else:
+                proof.append({"s": level[min(i + 1, len(level) - 1)],
+                              "side": "right"})
+            level = [object_hash([level[j], level[j + 1]])
+                     for j in range(0, len(level), 2)]
+            i //= 2
+        return proof
+
+    @staticmethod
+    def verify_inclusion(entry_hash: str, proof: list[str], root: str) -> bool:
+        """Recompute the root from the leaf and its siblings — anyone with
+        the proof and the root, no ledger access needed."""
+        h = entry_hash
+        for step in proof:
+            sib = step["s"]
+            h = object_hash([sib, h] if step["side"] == "left" else [h, sib])
+        return h == root
 
     def all_checkpoints(self, *, day: int = 0,
                         witnesses: tuple[str, ...] = WITNESSES,

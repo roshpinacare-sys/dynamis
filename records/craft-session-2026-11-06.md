@@ -1,16 +1,17 @@
-# The craft session — 2026-11-06 17:45 UTC
+# The craft session — 2026-11-06 18:24 UTC
 
 `dyn.craft.v1` on the live network (pattern credit: storytold/craft-anything):
 study a target with evidence behind every answer, build a version, check how
 alike it is, refine what fails — and only then does the escrow move. This
-session also measures the three refinements the loop grew: the buyer's
-approval cards, per-page likeness for the web kind, and MCP parity. Every
-number is read off the running process.
+session also measures the refinements the loop grew: the buyer's
+approval cards, per-page likeness for the web kind, the runs check, the
+verification game, and MCP parity. Every number is read off the running
+process.
 
 ## 1 · The first craft job — a dataset, studied, built wrong, refused
 
 ```
-study: 1 evidence record(s) (ev_060fc0283576ea847…), 1 open question(s)
+study: 1 evidence record(s) (ev_d6060ded54981ca61…), 1 open question(s)
 captured: 7241 bytes, 605 lines, type json, sha256 53e9a631874b06bf…
 the loop pauses on the buyer's card: q-002 — “Approve the study and release the build? Escrow 500 USDS; …”
 ```
@@ -88,7 +89,20 @@ and the check still refuses (and a missing route page would refuse too):
 round 1: similarity 100% — FAIL (100% alike — claims fail: its title matches the original, every studied page…)
 ```
 
-## 7 · MCP parity — the same loop as tools any agent mounts
+## 7 · The verification game — a forged check cannot get paid
+
+Settlement no longer trusts a self-report: the witness band copies the
+job into fresh sandboxes, re-runs the same check harness and must
+reproduce the delivered evidence digest. An honest job pays; a forged
+one is overruled and the escrow refunds in full:
+
+```
+honest: check about 100% like the original, 5 of 5 claims hold → settle verdict paid, payout 475,000,000 µ¢, leader witness-5
+forge target: check FAIL (about 0% like the original, 1 of 5 claims hold)
+forged: settle verdict disputed, payout 0 µ¢ · delivered 59edfae5aa48… ≠ re-executed 24d2ebc653af…
+```
+
+## 8 · MCP parity — the same loop as tools any agent mounts
 
 The dyn.mcp.v1 stdio server now carries the craft loop as nine tools beside
 the engine's seven — one engine, three surfaces, as the reference engine
@@ -100,11 +114,11 @@ craft flow via MCP: check PASS, similarity 100%
 craft_settle via MCP: payout 475,000,000 µ¢, emitted 200,000,000,000 DYN µ
 ```
 
-## 8 · The chain of record — the craft loop writes the same ledger
+## 9 · The chain of record — the craft loop writes the same ledger
 
 ```
-work ledger: True · 41 entries · Law-19 invariant: settled 2,000,000,000 µ¢ → emitted 800,000,000,000 DYN µ · holds: True
-session: 6 craft jobs · craft payouts 1,900,000,000 µ¢ · 1 refund, fees 0, emission 0
+work ledger: True · 53 entries · Law-19 invariant: settled 2,500,000,000 µ¢ → emitted 1,000,000,000,000 DYN µ · holds: True
+session: 8 craft jobs · craft payouts 2,375,000,000 µ¢ · 1 refund, fees 0, emission 0
 ```
 
 ## Named limitations — on the record

@@ -100,7 +100,7 @@ keep their split: hard claims for what the source proves, notes for guidance.
   WorkLedger chain, and the settled proof published as a dyn.post.v1 post whose
   embeds carry the shipped bytes.
 
-## 7 · The engine loop, ported
+## 6 · The engine loop, ported
 
 | Their loop behaviour | Where | Ours | Status |
 | --- | --- | --- | --- |
@@ -108,6 +108,37 @@ keep their split: hard claims for what the source proves, notes for guidance.
 | The person's summary line on the ready state (mod.rs:897-899) | the check's `summary` field, their exact format | parity |
 | A build that claims work but wrote nothing: "app/ has no files yet, so the builder hasn't written the project" (#736, website.rs:730) | empty `files` refused at build() with the same citation; both checks' no-program notes carry the same prefix | parity |
 | `refine()` sends the builder back with exact values + "reply with 1-2 plain sentences on what you changed" (website.rs:195) | `refine_brief` + `statements[]` per round | parity |
+
+## 7 · Divergence by design — the band reaches the craft loop
+
+Their witness band (dyn_witness.py) already runs sampled re-execution with a
+seeded forge attack (`forge_pass`) — over their *engine* demo jobs. Our craft
+loop's settle had been passing `reexec_matches=True` as a constant: the band
+existed, the craft loop didn't call it. Closed:
+
+- `craft_evidence_digest` — the documented projection a settlement stands on
+  (check id, verdict, per-mille likeness, every claim's title/passed/detail,
+  the person's summary line); round numbers, timestamps and runtime are
+  deliberately out, so an honest re-execution on a later day reproduces it.
+- `craft_reexecute` — the VRF-stand-in leader plus witnesses each copy the
+  job into a fresh sandbox, reinstate the status and re-run the SAME check
+  harness; determinism makes agreement the only honest outcome.
+- `craft_verify(delivered_digest=…)` — the submitter's own digest (from
+  memory, what it asks to settle on) against the disk truth. Found by the
+  live session harness and fixed: a digest compared disk-against-disk let an
+  in-memory forgery pay; comparing the submitter's claim to fresh execution
+  catches forgeries on either side.
+- On mismatch: verify_fail → DISPUTED → resolve_budget (the burden is on the
+  worker) → escrow refunded in full, the job back to checked_fail, a
+  `dispute` entry on the chain ledger. Measured in the session transcript §7:
+  honest → paid (leader witness-5); forged → disputed, payout 0, two
+  different digests printed on the record.
+
+Also this pass: the measurer itself is tested — a seeded mutation battery
+proves the likeness function bounded, sensitive to one changed word and
+ordered by severity; manifest writes are fsync'd write-then-rename (a torn
+write leaves the old record intact); ledger entries carry Merkle inclusion
+proofs with sides preserved, verifiable against the root without the ledger.
 
 ## 8 · The honest residue
 

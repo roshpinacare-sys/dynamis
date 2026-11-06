@@ -750,5 +750,183 @@ class TestCraftRuns(CraftMixin, unittest.TestCase):
         self.assertIn("has no files yet", result["note"])
 
 
+class TestVerificationGame(CraftMixin, unittest.TestCase):
+    """The witness band over the craft loop: a settle that lies gets
+    overruled by fresh re-execution; nothing pays without it."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.d = Path(self._td.name)
+        self.ledger = WorkLedger()
+        self.target = self._dataset(self.d)
+        self._n = 0
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _passing(self):
+        self._n += 1
+        job = self._open_file_job(self.d / f"g{self._n}", self.target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        facts = json.loads((self.d / f"g{self._n}" / "capture" / "facts.json").read_text())
+        job.build(worker="agent-worker", files=report_program(facts),
+                  ledger=self.ledger, day=1)
+        job.check(ledger=self.ledger, day=1)
+        return job
+
+    def test_an_honest_settle_is_verified_and_pays(self):
+        job = self._passing()
+        out = job.settle(ledger=self.ledger, day=1)
+        self.assertEqual(out["verdict"], "paid")
+        self.assertGreater(out["payout_muc"], 0)
+        self.assertTrue(job.manifest["verification"]["verified"])
+        self.assertIn("verified by fresh re-execution", job.manifest["note"])
+
+    def test_a_forged_check_cannot_get_paid(self):
+        job = self._open_file_job(self.d / "gf1", self.target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        job.build(worker="agent-worker", files={"main.py": "print('not json')"},
+                  ledger=self.ledger, day=1)
+        self.assertFalse(job.check(ledger=self.ledger, day=1)["passed"])  # honest FAIL
+        m = job.manifest
+        m["checks"][-1].update({"passed": True, "similarity_milli": 1000,
+                                "summary": "about 100% like the original"})
+        for c in m["checks"][-1]["claims"]:
+            c["passed"] = True
+        m["checks"][-1]["unknowns"] = []
+        m["status"] = "checked_pass"
+        job._save()
+        out = job.settle(ledger=self.ledger, day=1)
+        self.assertEqual(out["verdict"], "disputed")
+        self.assertEqual(out["payout_muc"], 0)
+        self.assertEqual(job.manifest["status"], "checked_fail")
+        self.assertIn("overruled", job.manifest["note"])
+        self.assertFalse(job.manifest["verification"]["verified"])
+        self.assertIn("dispute", [e["kind"] for e in self.ledger.entries])
+
+    def test_even_a_cosmetic_tamper_is_caught(self):
+        job = self._passing()
+        job.manifest["checks"][-1]["similarity_milli"] = 999
+        job._save()
+        out = job.settle(ledger=self.ledger, day=1)
+        self.assertEqual(out["verdict"], "disputed")
+
+    def test_the_game_is_deterministic_and_round_blind(self):
+        job = self._passing()
+        from dyn_witness import craft_evidence_digest, craft_reexecute
+        g1 = craft_reexecute(job.root, day=1)
+        g2 = craft_reexecute(job.root, day=1)
+        self.assertEqual(g1["digests"], g2["digests"])
+        self.assertEqual(g1["leader"], g2["leader"])
+        r = job.manifest["checks"][-1]
+        r2 = dict(r); r2["round"] = r["round"] + 5; r2["at_ms"] = 1
+        self.assertEqual(craft_evidence_digest(r), craft_evidence_digest(r2))
+
+
+class TestMeasurerCalibration(unittest.TestCase):
+    """The checker gets checked: seeded mutations prove the likeness
+    function is bounded, sensitive and ordered by severity."""
+
+    PAGE = ('<!doctype html><html><head><title>Orchard Ledger</title></head><body>'
+            '<h1>Orchard Ledger</h1><nav><a href="/pick">Pick</a><a href="/store">Store</a></nav>'
+            '<main><h2>This week</h2><p>Apples are in season and the cider press runs at noon.</p>'
+            '<p>Bring crates before Thursday; the cold store fills fast.</p></main>'
+            '<footer><p>Open daily until the light goes.</p></footer></body></html>')
+
+    def _likeness(self, text):
+        from dyn_craft import alike, words
+        return alike(words(self.PAGE), words(text))
+
+    def test_mutations_are_bounded(self):
+        import random
+        rng = random.Random(11)
+        tokens = self.PAGE.split()
+        for _ in range(50):
+            m = list(tokens)
+            for i in rng.sample(range(len(m)), rng.randint(1, len(m) - 1)):
+                m[i] = "zz"
+            s = self._likeness(" ".join(m))
+            self.assertGreaterEqual(s, 0.0)
+            self.assertLessEqual(s, 100.0)
+
+    def test_severity_orders_the_score(self):
+        import random
+        rng = random.Random(3)
+        tokens = self.PAGE.split()
+        def mutate(frac):
+            m = list(tokens)
+            for i in rng.sample(range(len(m)), max(1, int(len(m) * frac))):
+                m[i] = "zz"
+            return " ".join(m)
+        light, heavy, unrelated = (self._likeness(mutate(f)) for f in (0.1, 0.4, 1.0))
+        self.assertGreater(light, heavy)
+        self.assertGreater(heavy, unrelated)
+
+    def test_one_changed_word_is_detected(self):
+        tokens = self.PAGE.split()
+        m = list(tokens)
+        m[20] = "zz"
+        self.assertLess(self._likeness(" ".join(m)), 100.0)
+
+    def test_skeleton_score_reacts_to_structure(self):
+        from dyn_craft import skeleton_score
+        full = self._skeleton(self.PAGE)
+        gutted = self._skeleton(
+            self.PAGE.replace("<h2>This week</h2>", "").replace("</main>", "<h2></h2></main>")
+            .replace("<footer><p>Open daily until the light goes.</p></footer>", ""))
+        s_full, _ = skeleton_score(full, full)
+        s_less, _ = skeleton_score(full, gutted)
+        self.assertLess(s_less, s_full)
+
+    @staticmethod
+    def _skeleton(page):
+        from dyn_craft import _Page
+        p = _Page()
+        p.feed(page)
+        return p.skeleton
+
+
+class TestDurabilityAndProofs(unittest.TestCase):
+    """The record survives a torn write; a ledger entry carries an
+    inclusion proof anyone can verify against the root."""
+
+    def test_a_torn_write_cannot_corrupt_the_manifest(self):
+        import tempfile, unittest.mock
+        from dyn_craft import CraftJob
+        from dyn_ledger import WorkLedger
+        with tempfile.TemporaryDirectory() as td:
+            job = CraftJob(Path(td) / "j1")
+            job.open(job_id="craft-1", buyer="b", request="r", target_kind="file",
+                     target_ref="/tmp/x", value_usds=10, ledger=WorkLedger(), day=1)
+            before = (job.root / "craft.json").read_text()
+            real = __import__("os").replace
+            with unittest.mock.patch("dyn_craft.os.replace",
+                                     side_effect=OSError("disk pulled")):
+                with self.assertRaises(OSError):
+                    job._save()
+            self.assertEqual((job.root / "craft.json").read_text(), before)
+            self.assertEqual(len(list(job.root.glob("craft.json.tmp*"))), 1)
+            job._save()   # the retry lands
+            self.assertEqual(len(list(job.root.glob("craft.json.tmp*"))), 0)
+            json.loads((job.root / "craft.json").read_text())
+
+    def test_ledger_entries_carry_verifiable_inclusion_proofs(self):
+        from dyn_ledger import WorkLedger
+        led = WorkLedger()
+        for i in range(7):
+            led.append(day=1, kind="work", job_id=f"craft-{i}", agent="w",
+                       note=f"entry {i}")
+        root = led.merkle_root([e["hash"] for e in led.entries])
+        for e in led.entries:
+            proof = led.inclusion_proof(e["seq"])
+            self.assertTrue(led.verify_inclusion(e["hash"], proof, root), e["seq"])
+            self.assertFalse(led.verify_inclusion(
+                e["hash"][:-1] + ("0" if e["hash"][-1] != "0" else "1"),
+                proof, root))
+
+
 if __name__ == "__main__":
     unittest.main()
