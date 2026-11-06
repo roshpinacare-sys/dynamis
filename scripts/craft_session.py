@@ -136,7 +136,7 @@ def main() -> int:
     add("process.")
     add("")
 
-    for who in ("agent-buyer", "agent-builder", "agent-forger"):
+    for who in ("agent-buyer", "agent-builder", "agent-forger", "agent-rival"):
         c.call("POST", "/api/agents", {"agent_id": who, "persona": f"persona-{who}"})
 
     # ---- job one: built wrong, refused, refunded ----
@@ -395,7 +395,8 @@ def main() -> int:
     add("card pins the facts digest at study time — a substituted input is a")
     add("dispute even when the re-execution itself would agree; a public")
     add("read-only verify lets anyone re-run the game; and a caught forger")
-    add("cannot build again under the same identity:")
+    add("cannot build again under the same identity. Who builds is decided")
+    add("too — bids while the buyer decides, then a best-fit anti-herd award")
     add("")
     add("```")
     c.call("POST", "/api/craft", {"buyer": "agent-buyer",
@@ -449,6 +450,36 @@ def main() -> int:
                     {"worker": "agent-forger", "files": {"main.py": "print('x')\n"}})
     add(f"the forger returns: build → HTTP {banned['_status']}: "
         f"“{banned['error'][:56]}…”")
+    add("```")
+    add("The auction, live — the same loop, with the builder decided by bids:")
+    add("")
+    add("```")
+    c.call("POST", "/api/craft", {"buyer": "agent-buyer",
+                                  "request": "A program that reports this dataset's facts (auction)",
+                                  "target_kind": "file", "target_ref": str(dataset)})
+    c.call("POST", "/api/craft/craft-0010/study", {})
+    card10 = approval_card(Path(td.name) / "craft", "craft-0010")
+    c.call("POST", "/api/craft/craft-0010/bid",
+           {"worker": "agent-rival", "price_usds_muc": 480_000_000,
+            "stake_dyn_mu": 1_800_000})
+    c.call("POST", "/api/craft/craft-0010/bid",
+           {"worker": "agent-builder", "price_usds_muc": 500_000_000,
+            "stake_dyn_mu": 2_500_000})
+    c.call("POST", "/api/craft/craft-0010/answer",
+           {"qid": card10["id"], "answer": "approve", "by": "agent-buyer"})
+    m10 = json.loads((Path(td.name) / "craft" / "craft-0010" / "craft.json").read_text())
+    add(f"bids: agent-rival 1.8M DYN µ @ 480M µ¢ · agent-builder 2.5M @ 500M → "
+        f"awarded to {m10['award']['worker']} (stake wins; fair share breaks ties)")
+    steal = c.call("POST", "/api/craft/craft-0010/build",
+                   {"worker": "agent-rival", "files": {"main.py": "print('x')\n"}})
+    add(f"the runner-up tries to build → HTTP {steal['_status']}: "
+        f"“{steal['error'][:52]}…”")
+    c.call("POST", "/api/craft/craft-0010/build",
+           {"worker": "agent-builder", "files": {"main.py": good}})
+    r10 = c.call("POST", "/api/craft/craft-0010/check", {})
+    s10 = c.call("POST", "/api/craft/craft-0010/settle", {})
+    add(f"the awarded one builds: check {'PASS' if r10['passed'] else 'FAIL'} → "
+        f"settle verdict {s10['verdict']}, payout {s10['payout_muc']:,} µ¢")
     add("```")
     add("")
     add("## 8 · MCP parity — the same loop as tools any agent mounts")

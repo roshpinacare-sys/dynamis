@@ -668,6 +668,70 @@ class CraftJob:
                 carries_target_content=True))
         return facts, evs
 
+    # ---------- the auction: bids while the buyer decides, award on approve ----------
+    def bid(self, *, worker: str, price_usds_muc: int, stake_dyn_mu: int,
+            ledger: WorkLedger, day: int = 1) -> dict:
+        """A worker applies to build: terms on the record, one bid each.
+        Bids are taken while the buyer holds the approval card — the facts
+        are on the record, that is what is being priced."""
+        self._require(statuses=("studied",))
+        if self.manifest.get("award"):
+            raise CraftError("the award is on the record — this job has its builder")
+        if self._open_approval() is None:
+            raise CraftError("no open approval card — bids are taken while the buyer decides")
+        if not worker:
+            raise CraftError("a bid names its worker")
+        if price_usds_muc > self.manifest["escrow_usds_muc"]:
+            raise CraftError(
+                f"bid {price_usds_muc:,} µ¢ is above the funded escrow "
+                f"({self.manifest['escrow_usds_muc']:,} µ¢) — the escrow pays, not a promise")
+        if stake_dyn_mu <= 0:
+            raise CraftError("a bid without stake is a wish — stake_dyn_mu must be positive")
+        banned = dispute_on_record(ledger, worker)
+        if banned:
+            raise CraftError(
+                f"{worker} has a dispute on the chain's ledger (job {banned}) — "
+                "a caught forger does not bid either")
+        if any(b["worker"] == worker for b in self.manifest.get("bids", [])):
+            raise CraftError(f"{worker} already bid on this job — a bid is on the record once")
+        b = {"worker": worker, "price_usds_muc": int(price_usds_muc),
+             "stake_dyn_mu": int(stake_dyn_mu), "day": day,
+             "sha": object_hash({"worker": worker, "price_usds_muc": int(price_usds_muc),
+                                 "stake_dyn_mu": int(stake_dyn_mu)})}
+        self.manifest.setdefault("bids", []).append(b)
+        self._save()
+        ledger.append(day=day, kind="bid", job_id=self.manifest["job_id"],
+                      agent=worker, price_usds_muc=int(price_usds_muc),
+                      stake_dyn_mu=int(stake_dyn_mu))
+        return b
+
+    def _award(self, ledger: WorkLedger, day: int) -> dict | None:
+        """Best-fit anti-herd, the compute scheduler's key ported to craft:
+        strongest stake first, then fair share — fewest settled builds on
+        this chain — then canonical id. The ranking inputs are all on the
+        record, so the award itself is auditable."""
+        bids = self.manifest.get("bids", [])
+        if not bids:
+            return None
+
+        def fair(worker: str) -> int:
+            return sum(1 for e in ledger.entries
+                       if e["kind"] == "settle" and e["agent"] == worker)
+
+        key = {b["worker"]: (-b["stake_dyn_mu"], fair(b["worker"]), b["worker"])
+               for b in bids}
+        won = min(bids, key=lambda b: key[b["worker"]])
+        award = {"worker": won["worker"], "price_usds_muc": won["price_usds_muc"],
+                 "stake_dyn_mu": won["stake_dyn_mu"], "day": day,
+                 "ranked": [{"worker": b["worker"], "key": list(key[b["worker"]])}
+                            for b in bids]}
+        self.manifest["award"] = award
+        self._save()
+        ledger.append(day=day, kind="award", job_id=self.manifest["job_id"],
+                      agent=won["worker"], stake_dyn_mu=won["stake_dyn_mu"],
+                      price_usds_muc=won["price_usds_muc"], bids=len(bids))
+        return award
+
     # ---------- build ----------
     def build(self, *, worker: str, files: dict[str, str],
               ledger: WorkLedger, day: int,
@@ -680,6 +744,11 @@ class CraftJob:
                 f"{worker} has a dispute on the chain's ledger (job {banned}) — "
                 "a worker caught forging does not build again under this "
                 "identity (passports are the sybil boundary)")
+        award = self.manifest.get("award")
+        if award and worker != award["worker"]:
+            raise CraftError(
+                f"{worker} is not the awarded worker — {award['worker']} won the "
+                f"bid (stake {award['stake_dyn_mu']:,} DYN µ); bids bind")
         if not files:
             raise CraftError("an empty build claims nothing — write the project "
                              "(the reference engine's #736: a builder can't hide "
@@ -1249,8 +1318,15 @@ class CraftJob:
                 self._step("check", "stopped", self.manifest["note"])
                 self._save()
             else:
-                self._step("build", "new",
-                           f"the buyer approved ({qid}) — the build may start")
+                award = (self._award(ledger, day)
+                         if ledger is not None and not self.manifest.get("award")
+                         else self.manifest.get("award"))
+                note = f"the buyer approved ({qid}) — the build may start"
+                if award:
+                    note += (f"; awarded to {award['worker']} "
+                             f"(best-fit anti-herd over {len(award['ranked'])} bid(s), "
+                             f"stake {award['stake_dyn_mu']:,} DYN µ)")
+                self._step("build", "new", note)
         item["status"] = "answered"
         item["answer"] = answer
         item["answered_by"] = by or "unknown"

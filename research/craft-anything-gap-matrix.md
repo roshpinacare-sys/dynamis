@@ -151,6 +151,18 @@ rail are per-kit ephemeral, so the teeth are access control, not stake; and
 the ban binds the passport, so sybil resistance is the identity rail's job,
 not the craft loop's.
 
+The auction closed the last structural gap in the loop's head: who builds
+was whoever called build. Now workers bid while the buyer holds the
+approval card — price and stake on the record, one bid each, bids above the
+funded escrow refused (the escrow pays, not a promise), and a caught forger
+cannot even bid. On approve, the award picks best-fit anti-herd with the
+compute scheduler's key ported to craft: strongest stake, then fair share
+(fewest settled builds on this chain), then canonical id — never the
+cheapest, never the loudest, and every ranking input is on the record so
+the award is auditable. The build gate binds the winner: only the awarded
+worker builds, across refine rounds too; a job with no bids stays open,
+exactly as before.
+
 ## 8 · The honest residue
 
 What stays open after this pass, and why: pixel screenshots and layout metrics

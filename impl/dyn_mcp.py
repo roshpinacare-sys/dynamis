@@ -133,6 +133,13 @@ def h_craft_build(a: dict) -> dict:
         ledger=_craft_ledger(), day=int(a.get("day", 1)))
 
 
+def h_craft_bid(a: dict) -> dict:
+    return CraftJob(a["root"]).bid(
+        worker=a["worker"], price_usds_muc=int(a["price_usds_muc"]),
+        stake_dyn_mu=int(a["stake_dyn_mu"]),
+        ledger=_craft_ledger(), day=int(a.get("day", 1)))
+
+
 def h_craft_check(a: dict) -> dict:
     return CraftJob(a["root"]).check(ledger=_craft_ledger(), day=int(a.get("day", 1)))
 
@@ -222,6 +229,12 @@ _TOOLS_SPEC: list[dict] = [
      _schema({"root": _ROOT["root"], "worker": {"type": "string"},
               "files": {"type": "object", "additionalProperties": {"type": "string"}},
               "day": {"type": "integer"}}, ["root", "worker", "files"]), h_craft_build),
+    ("craft_bid", "Bid to build on an open job: price and stake on the record while the buyer decides; the best-fit anti-herd award binds and only the awarded worker builds.",
+     _schema({"root": _ROOT["root"], "worker": {"type": "string"},
+              "price_usds_muc": {"type": "integer"},
+              "stake_dyn_mu": {"type": "integer"},
+              "day": {"type": "integer"}}, ["root", "worker", "price_usds_muc", "stake_dyn_mu"]),
+     h_craft_bid),
     ("craft_check", "Measure how alike the build is: Dice likeness, claims judged one by one, per-page likeness for web routes; unknowns block.",
      _schema({"root": _ROOT["root"], "day": {"type": "integer"}}, ["root"]), h_craft_check),
     ("craft_settle", "Settle the escrow on a passing check with every claim holding and no unknowns. Fail-closed.",

@@ -70,7 +70,8 @@ class TestMcpServer(unittest.TestCase):
         # tools/list presents both loops in execution order, not alphabetically
         self.assertEqual(names, ["dyn_job_new", "dyn_work", "dyn_check",
                                  "dyn_settle", "dyn_refund", "dyn_post", "dyn_status",
-                                 "craft_open", "craft_study", "craft_build", "craft_check",
+                                 "craft_open", "craft_study", "craft_build",
+                                 "craft_bid", "craft_check",
                                  "craft_settle", "craft_verify", "craft_refund", "craft_post",
                                  "craft_answer", "craft_view"])
         self.assertEqual(set(names), set(TOOLS))
@@ -191,7 +192,7 @@ class TestMcpServer(unittest.TestCase):
         replies = [json.loads(l) for l in proc.stdout.strip().splitlines()]
         self.assertEqual(len(replies), 2)           # notification stayed silent
         self.assertEqual(replies[0]["result"]["serverInfo"]["name"], "dynamis")
-        self.assertEqual(len(replies[1]["result"]["tools"]), 17)
+        self.assertEqual(len(replies[1]["result"]["tools"]), 18)
 
 
 if __name__ == "__main__":

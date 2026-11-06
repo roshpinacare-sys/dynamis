@@ -928,6 +928,157 @@ class TestDurabilityAndProofs(unittest.TestCase):
                 proof, root))
 
 
+class TestTheWorkerAuction(CraftMixin, unittest.TestCase):
+    """Who builds is decided, not claimed: bids while the buyer decides, a
+    best-fit anti-herd award, and a build gate that binds the winner."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.d = Path(self._td.name)
+        self.ledger = WorkLedger()
+        self.target = self._dataset(self.d)
+        self._n = 0
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _job_on(self, chain, name, study=True):
+        """A fresh job on a GIVEN chain (the helper resets self.ledger — the
+        auction spans jobs, so the chain is the point)."""
+        self._n += 1
+        job = CraftJob(self.d / name)
+        job.open(job_id=f"craft-{name}", buyer="agent-buyer",
+                 request="A program that reports this dataset's facts",
+                 target_kind="file", target_ref=str(self.target),
+                 value_usds=500, max_rounds=6, good_enough=90.0,
+                 ledger=chain, day=1)
+        if study:
+            job.study(ledger=chain, day=1)
+        return job
+
+    def _bid(self, job, worker, stake, price=500_000_000):
+        return job.bid(worker=worker, price_usds_muc=price,
+                       stake_dyn_mu=stake, ledger=self.ledger, day=1)
+
+    def test_bids_bind(self):
+        job = self._job_on(self.ledger, "auc1")
+        self._bid(job, "agent-a", stake=3_000_000)
+        self._bid(job, "agent-b", stake=1_800_000, price=480_000_000)
+        self.assertEqual([b["worker"] for b in job.manifest["bids"]],
+                         ["agent-a", "agent-b"])
+        with self.assertRaisesRegex(CraftError, "on the record once"):
+            self._bid(job, "agent-a", stake=3_000_000)
+        with self.assertRaisesRegex(CraftError, "above the funded escrow"):
+            self._bid(job, "agent-c", stake=1_000_000, price=500_000_001)
+        with self.assertRaisesRegex(CraftError, "without stake is a wish"):
+            self._bid(job, "agent-c", stake=0)
+        chain = self.ledger
+        chain.append(day=1, kind="dispute", job_id="craft-auc1",
+                     agent="agent-banned")
+        with self.assertRaisesRegex(CraftError, "does not bid either"):
+            self._bid(job, "agent-banned", stake=1_000_000)
+
+    def test_the_award_is_best_fit_anti_herd(self):
+        job = self._job_on(self.ledger, "auc2")
+        self._bid(job, "agent-strong", stake=3_000_000)
+        self._bid(job, "agent-weak", stake=1_800_000)
+        self._approve(job)   # _approve uses self.ledger = the same chain
+        self.assertEqual(job.manifest["award"]["worker"], "agent-strong")
+        # the strong one settles honestly; fair share now flips a stake tie
+        job.build(worker="agent-strong",
+                  files=report_program(json.loads(
+                      (job.root / "capture" / "facts.json").read_text())),
+                  ledger=self.ledger, day=1)
+        job.check(ledger=self.ledger, day=1)
+        self.assertEqual(job.settle(ledger=self.ledger, day=1)["verdict"], "paid")
+        job2 = self._job_on(self.ledger, "auc3")
+        self._bid(job2, "agent-strong", stake=3_000_000)
+        self._bid(job2, "agent-fresh", stake=3_000_000)
+        self._approve(job2)
+        self.assertEqual(job2.manifest["award"]["worker"], "agent-fresh",
+                         "equal stake → fair share (fewest settled builds) wins")
+        job3 = self._job_on(self.ledger, "auc4")
+        self._bid(job3, "agent-strong", stake=3_500_000)
+        self._bid(job3, "agent-fresh", stake=3_000_000)
+        self._approve(job3)
+        self.assertEqual(job3.manifest["award"]["worker"], "agent-strong",
+                         "stake dominates fair share")
+
+    def test_only_the_awarded_worker_builds(self):
+        job = self._job_on(self.ledger, "auc5")
+        self._bid(job, "agent-winner", stake=3_000_000)
+        self._bid(job, "agent-runner", stake=1_800_000)
+        self._approve(job)
+        with self.assertRaisesRegex(CraftError, "not the awarded worker"):
+            job.build(worker="agent-runner",
+                      files=report_program(json.loads(
+                          (job.root / "capture" / "facts.json").read_text())),
+                      ledger=self.ledger, day=1)
+        with self.assertRaisesRegex(CraftError, "the award is on the record"):
+            self._bid(job, "agent-late", stake=2_000_000)
+        job.build(worker="agent-winner",
+                  files=report_program(json.loads(
+                      (job.root / "capture" / "facts.json").read_text())),
+                  ledger=self.ledger, day=1)
+        job.check(ledger=self.ledger, day=1)
+        out = job.settle(ledger=self.ledger, day=1)
+        self.assertEqual(out["verdict"], "paid")
+        self.assertEqual(job.manifest["worker"], "agent-winner")
+
+    def test_no_bids_keeps_the_loop_open(self):
+        job = self._job_on(self.ledger, "auc6")
+        self._approve(job)
+        self.assertNotIn("award", job.manifest)
+        job.build(worker="agent-anyone",
+                  files=report_program(json.loads(
+                      (job.root / "capture" / "facts.json").read_text())),
+                  ledger=self.ledger, day=1)
+        self.assertEqual(job.manifest["worker"], "agent-anyone")
+
+    def test_the_api_takes_bids_and_enforces_passports(self):
+        import tempfile as _tf
+        from dyn_app import Dynamis, AppError
+        with _tf.TemporaryDirectory() as sd:
+            net = Dynamis(state_root=Path(sd))
+            for who in ("agent-buyer", "agent-winner", "agent-runner"):
+                net.join(who, f"persona-{who}")
+            net.open_craft(buyer="agent-buyer", request="auction me",
+                           target_kind="file", target_ref=str(self.target))
+            net.craft_study("craft-0001")
+            with self.assertRaisesRegex(AppError, "no passport"):
+                net.craft_bid_route("craft-0001", {"worker": "agent-ghost",
+                                                   "price_usds_muc": 400_000_000,
+                                                   "stake_dyn_mu": 1_000_000})
+            net.craft_bid_route("craft-0001", {"worker": "agent-runner",
+                                               "price_usds_muc": 480_000_000,
+                                               "stake_dyn_mu": 1_800_000})
+            net.craft_bid_route("craft-0001", {"worker": "agent-winner",
+                                               "price_usds_muc": 500_000_000,
+                                               "stake_dyn_mu": 2_500_000})
+            card = next(p for p in (Path(sd) / "craft" / "craft-0001" / "inbox").glob("*.json")
+                        if json.loads(p.read_text())["kind"] == "approval")
+            net.craft_answer("craft-0001", card.stem, "approve", "agent-buyer")
+            m = net.craft_view("craft-0001")
+            self.assertEqual(m["award"]["worker"], "agent-winner")
+            with self.assertRaisesRegex(CraftError, "not the awarded worker"):
+                net.craft_build("craft-0001", "agent-runner", {"main.py": "x=1\n"})
+            net.craft_build("craft-0001", "agent-winner",
+                            report_program(json.loads(
+                                (Path(sd) / "craft" / "craft-0001" / "capture" / "facts.json").read_text())))
+
+    def test_the_mcp_bid_tool_round_trips(self):
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from dyn_mcp import h_craft_bid
+        job = self._job_on(self.ledger, "auc7")
+        out = h_craft_bid({"root": str(job.root), "worker": "agent-a",
+                           "price_usds_muc": 450_000_000,
+                           "stake_dyn_mu": 2_000_000, "day": 1})
+        self.assertEqual(out["worker"], "agent-a")
+        self.assertIn("sha", out)
+
+
 class TestRootsTeethEyes(CraftMixin, unittest.TestCase):
     """The game gets roots (inputs bound to the buyer's pin), eyes (anyone
     can re-run it, read-only) and teeth (a caught forger cannot build)."""

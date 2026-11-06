@@ -345,6 +345,18 @@ class Dynamis:
                                              ledger=self.ledger, day=self.day,
                                              statement=statement)
 
+    def craft_bid_route(self, job_id: str, body: dict) -> dict:
+        """A worker applies to build: terms on the record while the buyer
+        decides; the award binds and only the awarded worker builds."""
+        with self.lock:
+            worker = body.get("worker", "")
+            if worker not in self.agents:
+                raise AppError(f"worker {worker} has no passport")
+            return self._craft(job_id).bid(
+                worker=worker, price_usds_muc=int(body.get("price_usds_muc", 0)),
+                stake_dyn_mu=int(body.get("stake_dyn_mu", 0)),
+                ledger=self.ledger, day=self.day)
+
     def craft_check(self, job_id: str) -> dict:
         with self.lock:
             return self._craft(job_id).check(ledger=self.ledger, day=self.day)
@@ -443,7 +455,7 @@ ROUTES_POST = ("/api/agents", "/api/jobs", "/api/posts", "/api/follow",
                "/api/compute/allocate", "/api/compute/settle", "/api/craft")
 JOB_ACTION_RE = re.compile(r"^/api/jobs/([a-z0-9-]+)/(artifact|check|settle|refund)$")
 CRAFT_ACTION_RE = re.compile(
-    r"^/api/craft/([a-z0-9-]+)/(study|build|check|settle|refund|post|answer|verify)$")
+    r"^/api/craft/([a-z0-9-]+)/(study|build|check|settle|refund|post|answer|verify|bid)$")
 
 
 def make_handler(net: Dynamis):
@@ -552,6 +564,8 @@ def make_handler(net: Dynamis):
                         return self._json(200, net.craft_settle(job_id))
                     if action == "verify":
                         return self._json(200, net.craft_verify_route(job_id))
+                    if action == "bid":
+                        return self._json(200, net.craft_bid_route(job_id, body))
                     if action == "post":
                         return self._json(200, net.craft_post(job_id))
                     if action == "answer":

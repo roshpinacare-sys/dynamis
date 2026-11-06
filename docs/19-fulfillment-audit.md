@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **400 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **406 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -390,3 +390,31 @@ forger could simply try again.
 Measured live in transcript §7: honest verify true/facts_ok true, forged
 verify false, and the forger's next build refused at HTTP 400. Suite:
 **400 tests green** (5 new).
+
+### Addendum 11 — the worker auction (2026-11-06, fifth depth pass)
+
+Addendum 10 caught forgers; this one decides who builds at all. The
+structural gap: build() took any worker string — nothing bound the builder
+to the job.
+
+1. **Bids.** `craft_bid` records a worker's terms (price, stake) while the
+   buyer holds the approval card — one bid each, on the ledger as kind
+   `bid`; bids above the funded escrow are refused (the escrow pays, not a
+   promise); zero stake is refused ("a bid without stake is a wish"); and
+   the dispute ban reaches bids — a caught forger does not bid either.
+2. **The award.** On approve, `_award` picks best-fit anti-herd, the
+   compute scheduler's key ported to craft: strongest stake, then fair
+   share (fewest settled builds on this chain — the anti-herd term that
+   stops the same strong worker taking everything), then canonical id. The
+   award, with the full ranking key per bid, lands in the manifest and as
+   kind `award` on the ledger — auditable, deterministic.
+3. **The gate.** build() refuses anyone but the awarded worker ("bids
+   bind"), across refine rounds; a job with no bids keeps the old open
+   behavior. The API route enforces passports on bidders; the MCP tool
+   `craft_bid` brings the auction to agents (18 tools).
+
+Measured live in transcript §7: two bids (1.8M vs 2.5M DYN µ stake), the
+award to the stronger stake, the runner-up's build refused at HTTP 400, the
+awarded worker builds, checks PASS and settles paid. Suite: **406 tests
+green** (6 new) — including the fair-share flip: an equal-stake tie goes to
+the worker with fewer settled builds on the chain.
