@@ -3,8 +3,10 @@ name: daily-proof
 # The calendar halves of gates 1.1 and 2.2 are kept, not claimed: every day at
 # 00:05 UTC this workflow runs the real loops (heartbeat, 14-day market
 # simulation, Law-19 dashboard recomputation, the six metrics) and commits a
-# dated, hash-stamped record under records/<date>/. A missing day is a visible
-# hole in the public record — that is the point.
+# dated, hash-stamped record under records/<date>/. The record also carries the
+# measured last-24h heartbeat beats off the Actions API (actions: read), so the
+# 1.1 window accrues inside the record itself. A missing day is a visible hole
+# in the public record — that is the point.
 on:
   schedule:
     - cron: "5 0 * * *"
@@ -12,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   record:
@@ -23,6 +26,8 @@ jobs:
         with:
           python-version: "3.11"
       - name: Generate the daily measured record
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           python3 scripts/daily_record.py --date "$(date -u +%F)" --out records
       - name: Commit the record

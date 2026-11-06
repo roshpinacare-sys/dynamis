@@ -56,17 +56,19 @@ def main() -> int:
     ok = [r for r in done if r["conclusion"] == "success"]
     beats = len(runs)
     if beats == 0:
-        print(json.dumps({"uptime_pct": None, "beats": 0,
+        print(json.dumps({"uptime_bps": None, "beats": 0,
                           "note": f"no {WORKFLOW} runs in the last {ns.days} days — "
                                   "the harness exists; the window is calendar time"}))
         return 0
-    uptime = round(100.0 * len(ok) / len(done), 2) if done else None
-    gate_pass = uptime is not None and uptime >= 99.0 and ns.days <= (
-        7 if ns.days <= 7 else ns.days)
+    # Basis points, integer — 9900 bps = 99.00%. ADR-0007: the wire is
+    # integers-only, and this number travels inside the hash-stamped daily
+    # record, so it must recompute under the canonical hash. 10000 = 100.00%.
+    uptime_bps = round(10000 * len(ok) / len(done))
+    gate_pass = uptime_bps >= 9900
     print(json.dumps({
         "window_days": ns.days, "beats": beats,
         "completed": len(done), "succeeded": len(ok),
-        "uptime_pct": uptime, "gate_1_1_pass": bool(gate_pass and ns.days >= 7),
+        "uptime_bps": uptime_bps, "gate_1_1_pass": bool(gate_pass and ns.days >= 7),
         "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }))
     return 0

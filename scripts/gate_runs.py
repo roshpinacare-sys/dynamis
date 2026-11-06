@@ -214,8 +214,10 @@ def main() -> int:
         "```",
         run_tool("dyn_fleet.py", "view", "ent-001", "ent-002", "ent-003"),
         "```",
-        "- the live consolidated regulator console (giant@:3000) needs the "
-        "persistent host — named, not claimed",
+        "- the console exists and serves the same rollup (dyn.console.v1 — "
+        "GET-only by construction, digests re-asserted every request); its "
+        "live half (giant@:3000 behind the persistent host) remains — "
+        "named, not claimed",
         "",
     ]
 

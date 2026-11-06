@@ -18,7 +18,7 @@ class TestDailyRecord(unittest.TestCase):
         cls._td = tempfile.TemporaryDirectory()
         cls.out = Path(cls._td.name)
         cls.rec = build_record("2026-11-06", out_dir=cls.out, seed=20261106,
-                               sim_days=2)
+                               sim_days=2, uptime_fn=lambda: None)
 
     @classmethod
     def tearDownClass(cls):
@@ -29,6 +29,20 @@ class TestDailyRecord(unittest.TestCase):
         for name in ("dashboard.html", "metrics.txt", "summary.json"):
             self.assertTrue((d / name).exists(), name)
             self.assertGreater((d / name).stat().st_size, 100, name)
+
+    def test_uptime_gap_is_named_not_zeroed(self):
+        """No measurement here — the gap stays null, never a fabricated zero."""
+        self.assertIsNone(self.rec["uptime_24h"])
+
+    def test_uptime_embedded_when_measured(self):
+        stub = {"beats": 24, "completed": 24, "succeeded": 24,
+                "uptime_bps": 10000}
+        with tempfile.TemporaryDirectory() as td:
+            rec = build_record("2026-11-06", out_dir=Path(td), seed=20261106,
+                               sim_days=2, uptime_fn=lambda: stub)
+        self.assertEqual(rec["uptime_24h"], stub)
+        # the measured uptime is a stamped fact: its presence changes the digest
+        self.assertNotEqual(rec["record_digest"], self.rec["record_digest"])
 
     def test_record_is_truthful(self):
         self.assertEqual(self.rec["record"], RECORD)
@@ -47,7 +61,7 @@ class TestDailyRecord(unittest.TestCase):
         """Same seed, same date → same measured numbers, digest identical
         modulo the generation timestamp."""
         rec2 = build_record("2026-11-06", out_dir=self.out / "again",
-                            seed=20261106, sim_days=2)
+                            seed=20261106, sim_days=2, uptime_fn=lambda: None)
         strip = lambda r: {k: v for k, v in r.items()   # noqa: E731
                            if k not in ("record_digest", "generated_at")}
         self.assertEqual(strip(self.rec), strip(rec2))

@@ -67,7 +67,7 @@ GitHub Actions; each run is one beat of the 7-day record, and
 
 ```bash
 python3 scripts/heartbeat.py          # {"ok": true, checks: …}
-GITHUB_TOKEN=… python3 scripts/uptime_report.py   # beats, uptime_pct, gate verdict
+GITHUB_TOKEN=… python3 scripts/uptime_report.py   # beats, uptime_bps (integer, 10000 = 100.00%), gate verdict
 ```
 
 The harness ships now; the ≥ 99% number accrues over seven days of real beats —

@@ -11,6 +11,10 @@ record under `records/<date>/`:
     records/2026-11-06/dashboard.html   the honest dashboard as of that day
     records/2026-11-06/metrics.txt      the six numbers, as measured
     records/2026-11-06/summary.json     hash-stamped facts, gaps unhidden
+                                        (uptime_24h carries the measured
+                                        heartbeat beats when GITHUB_TOKEN is
+                                        available; it stays null — a named
+                                        gap, never a zero — when it is not)
 
 A missing day is a visible hole in the record — which is exactly the point.
 The `daily-proof` workflow runs this at 00:05 UTC and commits the record, so
@@ -44,8 +48,29 @@ DEFAULT_SEED = 20261106               # fixed seed: day-over-day numbers compara
 SIM_DAYS = 14
 
 
+def measure_uptime() -> dict | None:
+    """The last-24h heartbeat, measured off the Actions API.
+
+    Returns None when there is no token, no runs, or no network — a named gap
+    the record carries honestly, never a fabricated zero. Tests inject their
+    own uptime_fn and never touch the network.
+    """
+    try:
+        from uptime_report import fetch_runs
+        runs = fetch_runs(1)
+    except Exception:
+        return None
+    if not runs:
+        return None
+    done = [r for r in runs if r["status"] == "completed"]
+    ok = [r for r in done if r["conclusion"] == "success"]
+    return {"beats": len(runs), "completed": len(done), "succeeded": len(ok),
+            "uptime_bps": round(10000 * len(ok) / len(done))}
+
+
 def build_record(date: str, *, out_dir: Path, seed: int = DEFAULT_SEED,
-                 sim_days: int = SIM_DAYS) -> dict:
+                 sim_days: int = SIM_DAYS,
+                 uptime_fn=measure_uptime) -> dict:
     day_dir = out_dir / date
     day_dir.mkdir(parents=True, exist_ok=True)
 
@@ -66,6 +91,7 @@ def build_record(date: str, *, out_dir: Path, seed: int = DEFAULT_SEED,
     rec = {
         "record": RECORD, "date": date, "seed": seed, "sim_days": sim_days,
         "heartbeat_ok": hb["ok"],
+        "uptime_24h": uptime_fn() if uptime_fn else None,
         "jobs_opened": metrics["jobs_opened"], "jobs_settled": law["jobs_settled"],
         "jobs_refunded": law["jobs_refunded"],
         "settled_revenue_muc": law["settled_revenue_muc"],

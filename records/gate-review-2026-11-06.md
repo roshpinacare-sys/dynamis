@@ -1,0 +1,90 @@
+# Gate review — generated from specs/gates.yaml
+
+Status semantics: **owner A** = executable half in code, live acceptance still needs its measurement; **owner O** = the remaining act is the owner's (docs/18). Evidence counts join specs/acceptance/EVIDENCE.md.
+
+## Phase 0 — Ignition (weeks 1–2)
+
+| Gate | Owner | Title | Acceptance | Evidence |
+|---|---|---|---|---|
+| 0.1 | O | name clearance (trademark + domains) | clearance recorded in specs/acceptance/0.1-clearance.md; no unresolved conflicts | 1 |
+| 0.2 | O+A | two-soul custody for all new keys before code | census run exits 0; zero plaintext keys found on device scan | 1 |
+| 0.3 | O+A | re-key or retire dead army (46 ROT2 WIFs, LOST-WITH-SANDBOX accounts); custom.db decision | CUSTODY.md updated; census roster matches; owner decision recorded | 1 |
+| 0.4 | O | ratify genesis params + ADRs 0001-0004 | params/genesis.yaml committed; adr/0001..0004 status=accepted | 2 |
+| 0.5 | O | entity #1 charter (Law 20 object) | params/entities/ent-001.yaml passes schema; regulator named | 1 |
+| 0.6 | A | resolve :3040 port collision | both services return /health 200 on distinct ports; params port table updated | 1 |
+
+- gate 0.1: 2026-11-05 | 0.1 — name clearance scan | specs/acceptance/0.1-clearance.md | scan complete with sources: one live same-field conflict (dynamisnetwork.com, agentic-AI infrastructure), secondary users (Dynamis LLP crypto practice, UK company, fitness brand), zero token collisions on CoinGecko; unresolved conflicts exist — the gate stays OPEN per its own acceptance criterion; owner decision with counsel pending | DYNAMIS Founding Agent
+- gate 0.2: 2026-11-05 | 0.2 — public device scan | python3 scripts/census.py | 151 tracked files scanned: 0 PEM/WIF/AWS/key-file findings; sealed Actions secret verified by name (API, names only); 6 detector+repo tests; the two-soul estate half stays estate-side (docs/10) | DYNAMIS Founding Agent
+- gate 0.3: 2026-11-05 | 0.3 — custody decision recorded (agent half) | specs/acceptance/0.3-custody-decision.md; python3 scripts/census.py | the dead army formally retired — 46 dead ROT2 WIFs (no re-key: two-soul custody forbids exporting dead key material) and LOST-WITH-SANDBOX accounts (re-key impossible); custom.db (248 AES-GCM entries) stays sealed estate-side, zero code paths touch it; census roster measured clean: 158 files, 0 findings; estate-side CUSTODY.md mirror and any on-chain disposal remain owner acts — named, not claimed | DYNAMIS Founding Agent
+- gate 0.4: 2026-11-05 | 0.4 params mirror live | python3 scripts/params_check.py --status | 0 divergences; every code-mirrored leaf now in params/genesis.yaml (emission rate, bench tiers+seeds, T2 threshold); CI enforces the mirror; ratification state reported honestly (2 ADRs accepted, 8 proposed — owner signs) | DYNAMIS Founding Agent
+- gate 0.4: 2026-11-05 | 0.4 — ratification under owner directive | python3 scripts/params_check.py --status | meta.status=ratified (owner directive 2026-11-05, verbatim: "I approve the plan. Execute everything."); ADRs 0001-0004 flipped to accepted; 0 divergences; signature path remains open | DYNAMIS Founding Agent
+- gate 0.5: 2026-11-05 | 0.5 — entity charter schema half | python3 -c jsonschema.validate(ent-001) | params/entities/ent-001.yaml validates against schemas/entity.schema.json; regulator named (owner-via-scribe); ratification noted under the owner directive | DYNAMIS Founding Agent
+- gate 0.6: 2026-11-05 | 0.6 — port collision resolved (params half) | grep -rn 3040 across params/README/docs/AGENTS | saos-engine moved :3040 → :3045 everywhere; the live /health half needs the estate running the services (docs/18 Day 2) | DYNAMIS Founding Agent
+
+## Phase 1 — Spark (weeks 3–6)
+
+| Gate | Owner | Title | Acceptance | Evidence |
+|---|---|---|---|---|
+| 1.1 | O+A | persistent host for 24/7 services | engine+hsm+economy uptime >= 99% measured over 7 consecutive days | 3 |
+| 1.2 | A | benchmark suite + challenge client on runner kit | 3-5 devices enrolled; throughput tiering published from measured receipts | 1 |
+| 1.3 | A | finance spine v1 (chart of accounts, entity book, invoicing, anchoring) | one invoice issued and settled end-to-end; digest anchored via batch notary | 1 |
+| 1.4 | A | worker registry + payroll streams | one agent salary paid as USDS stream and booked in entity ledger | 1 |
+| 1.5 | A | escrowed job market alpha (internal demand) | first internal job settles via escrow with netrun receipt | 1 |
+| 1.6 | O | counsel engaged re entity wrapper | engagement letter; memo filed to specs/acceptance/ | 1 |
+
+- gate 1.1: 2026-11-05 | 1.1 uptime mechanism | python3 scripts/heartbeat.py + .github/workflows/uptime.yml (15-min cron) | exit 0; money/escrow/checkpoint checks all true; uptime_report.py reads beats off the Actions API | DYNAMIS Founding Agent
+- gate 1.1: 2026-11-05 | 1.1 first beat dispatched | POST /actions/workflows/uptime.yml/dispatches ref=main | HTTP 204; cron */15 registered active; uptime_report.py reads the measured % once beats accrue | DYNAMIS Founding Agent
+- gate 1.1: 2026-11-06 | 1.1 — the daily record now carries the measured heartbeat; uptime switched to integer basis points | scripts/daily_record.py measure_uptime(); daily-proof.yml actions:read | the daily-proof workflow fetches the last-24h uptime beats off the Actions API and stamps them into records/<date>/summary.json (uptime_24h: beats/completed/succeeded/uptime_bps); with no token the field stays null — a named gap, never a fabricated zero; the float uptime_pct that ADR-0007's canonical hash refuses became uptime_bps (10000 = 100.00%, 9900 = the 99% bar) — caught by the new digest test, fixed at the source (uptime_report.py); measured live at 11:20 UTC: 30/30 beats, uptime_bps 10000, gate_1_1 honestly false until 7 days accrue | DYNAMIS Founding Agent
+- gate 1.2: 2026-11-05 | 1.2 benchmark receipts + challenges | python3 impl/dyn_bench.py run dev-001 | exit 0; measured 2,307,692 µ-steps/s → tier T4; tampered receipt refused in tests; challenge digests issued | DYNAMIS Founding Agent
+- gate 1.3: 2026-11-05 | 1.3 — finance spine end-to-end measured | python3 scripts/gate_runs.py | invoice inv-gate-130-001 issued→paid, digest anchored into the work ledger (chain ok, depth 1); trial balance balanced; transcript in records/gate-runs-2026-11-05.md | DYNAMIS Founding Agent
+- gate 1.4: 2026-11-05 | 1.4 — worker registry + payroll streams measured | python3 scripts/gate_runs.py | 4 workers accrued and paid at close with the band fee; payouts booked in the entity ledger; balance-sheet identity holds; transcript in records/gate-runs-2026-11-05.md | DYNAMIS Founding Agent
+- gate 1.5: 2026-11-05 | 1.5 — escrowed job market alpha measured | python3 scripts/gate_runs.py | 14 jobs opened, 9 settled, 5 refunded — every job terminal; seeded fraudster paid 0 µ¢; Law 19 held; transcript in records/gate-runs-2026-11-05.md | DYNAMIS Founding Agent
+- gate 1.6: 2026-11-05 | 1.6 — counsel packet assembled and verified (agent half) | specs/acceptance/1.6-counsel-packet.md | the packet verified file by file against the tree at 824fdd9: CANON (Laws 1–21), docs/02/04/06/07/15, research survey, entity charter + schema, the 0.1 clearance memo; the verbatim ask (entity formation order + token-sale posture memo) recorded; the engagement letter remains a human act — named, not claimed | DYNAMIS Founding Agent
+
+## Phase 2 — Grid (weeks 7–16)
+
+| Gate | Owner | Title | Acceptance | Evidence |
+|---|---|---|---|---|
+| 2.1 | A | chain core (identity, work ledger, checkpoints, witness band v1) | 3 external honest devices verify; 1 seeded collusion caught | 1 |
+| 2.2 | A | flow-gated emission (Law 19) | dashboard shows emitted == revenue-verified over >= 14 days | 2 |
+| 2.3 | A | Power Pool channels + attestation ladder A-E | class-C sampled re-execution catches a seeded fraud; pricing reflects class | 1 |
+| 2.4 | A | x402 endpoint + A2A cards + MCP job tools | external machine client completes a paid job via x402 | 1 |
+| 2.5 | O+A | entity #2 from template | day-one checklist measured < 1 day; separate book and keys live | 2 |
+| 2.6 | A | treasury policy engine (DoA classes, fail-closed) | T2 spend blocked without regulator approval — measured test | 2 |
+
+- gate 2.1: 2026-11-05 | 2.1 — collusion drill measured (executable half) | python3 scripts/gate_runs.py | 3 colluding verification records returned one forged digest; independent re-execution disagreed → verdict fail; escrow refunded in full, payout 0 µ¢; the honest-verification half (3 external devices) named, not claimed | DYNAMIS Founding Agent
+- gate 2.2: 2026-11-05 | 2.2 emission dashboard | python3 impl/dyn_market.py run --days 14 --out market.jsonl && python3 impl/dyn_dashboard.py from-stream | exit 0; invariant holds: 2,436,000,000,000 µDYN emitted on 6,090,000,000 µ¢ verified revenue; broken invariant refuses to render (test) | DYNAMIS Founding Agent
+- gate 2.2: 2026-11-05 | 2.2 — Law-19 dashboard executable half measured | python3 scripts/gate_runs.py (dyn_dashboard.compute over the market stream) | emitted == revenue-verified: true; refunds emit nothing: true; no settlement without work: true; dashboard ok=true; the >= 14 consecutive live days is calendar time on the host — named, not claimed | DYNAMIS Founding Agent
+- gate 2.3: 2026-11-05 | 2.3 — witness band fraud drill measured | python3 scripts/gate_runs.py | forged evidence caught via sampled re-execution (digests differ); refund in full (500,000,000 µ¢), fee 0, emission 0 | DYNAMIS Founding Agent
+- gate 2.4: 2026-11-05 | 2.4 — x402 paid-job rail executable half measured | python3 impl/dyn_x402.py demo | an external machine client discovered the agent card, received 402 payment terms, paid into escrow, and completed a verified paid job over real localhost HTTP: opened → check → settled with payout/fee/emitted µDYN and chain ok=true; live endpoint needs the persistent host | DYNAMIS Founding Agent
+- gate 2.5: 2026-11-05 | 2.5 entity #2 from template | python3 impl/dyn_entities.py day-one ent-002 | exit 0; 10 steps ok, elapsed_ms measured, journal digest anchored into work ledger | DYNAMIS Founding Agent
+- gate 2.5: 2026-11-05 | 2.5 — entity #2 from template, day-one checklist measured | python3 impl/dyn_entities.py day-one ent-002 | the ten-step checklist ran end-to-end with its own elapsed time measured and sealed into the work ledger; ent-002 got its own book and treasury (entity #1 untouched); in-repo drill runs in milliseconds, live budget < 1 day | DYNAMIS Founding Agent
+- gate 2.6: 2026-11-05 | 2.6 treasury fail-closed | python3 impl/dyn_treasury.py demo | exit 0; T2 blocked without approval (requires=human_approval), allowed with it; journal {'ok': True} | DYNAMIS Founding Agent
+- gate 2.6: 2026-11-05 | 2.6 — treasury T2 fail-closed measured | python3 scripts/gate_runs.py (dyn_treasury demo) | T2 spend blocked without regulator approval — denial recorded (allowed=false, class T2, requires human_approval); allowed with approval: 2,500,000,000 µ¢ spent, envelope tracked — fail-closed, measured | DYNAMIS Founding Agent
+
+## Phase 3 — Commonwealth (weeks 17–24)
+
+| Gate | Owner | Title | Acceptance | Evidence |
+|---|---|---|---|---|
+| 3.1 | A | external witness operators (VRF + bonds) | >= 3 external witnesses active for >= 14 days | 2 |
+| 3.2 | A | evaluation market with Brier-scored bonds | calibration report published (no-embarrassment clause honored) | 2 |
+| 3.3 | O+A | entity fleet >= 3 + capital committee cadence | consolidated read-only regulator view live in giant@:3000 | 3 |
+| 3.4 | O | governance amendment loop | one charter amendment executed end-to-end via veto + ADR | 1 |
+| 3.5 | A | ERC-8004 export bridge | agents discoverable externally; root has zero runtime dependency on bridge | 4 |
+
+- gate 3.1: 2026-11-05 | 3.1 — witness onboarding kit verified published (prep half) | docs/20-witness-runbook.md | the operator runbook is the kit candidate #1 receives: duties/bonds/slash (docs/11), one-command dry-run reproducible with four attacks rejected fail-closed (records/witness-dryrun-2026-11-05.md), offline chain-verification path any third party can run; three external witness signatures + 14 active days remain the calendar window (docs/18 Day 5) — named, not claimed | DYNAMIS Founding Agent
+- gate 3.1: 2026-11-06 | 3.1 — witness dry-run re-measured at HEAD 1540bec (Day-3 agent beat pulled forward) | python3 scripts/witness_dryrun.py --out records/witness-dryrun-2026-11-06.md | 40-entry scratch ledger sealed end-to-end, every hash recomputed and linked; checkpoints @12/24/36 each 5-of-7 signatures → OK; four attacks each rejected fail-closed — substituted entry (state_root mismatch), forged signature (hex zeros), thin quorum (4 of 7 — BFT needs 5), edited payout body (chain-integrity catch, first_bad named); Law 19 on the scratch ledger: settled 295,000,000 µ¢ → emitted 118,000,000,000 DYN-µ at rate 400, equal, refunds emit nothing; verdict DRY-RUN GREEN; the three external witness signatures remain the calendar window — named, not claimed | DYNAMIS Founding Agent
+- gate 3.2: 2026-11-05 | 3.2 evaluation market | python3 impl/dyn_eval.py demo | exit 0; 3 bond-scored seats scored, ECE 3613 bps, worst bucket named, report digest published | DYNAMIS Founding Agent
+- gate 3.2: 2026-11-05 | 3.2 — evaluation market calibration report measured | python3 scripts/gate_runs.py (dyn_eval demo) | three seats closed and scored (calibrated / overconfident-wrong / honest); ECE and worst bucket published with the report digest — gaps included, no-embarrassment clause honored | DYNAMIS Founding Agent
+- gate 3.3: 2026-11-05 | 3.3 entity fleet rollup | python3 impl/dyn_fleet.py view ent-001 ent-002 ent-003 | exit 0; 3 balanced books, revenue 720,000,000 µ¢ measured; read-only proven (digests unchanged); <3 entities refused | DYNAMIS Founding Agent
+- gate 3.3: 2026-11-05 | 3.3 — entity fleet + consolidated view measured (executable half) | python3 impl/dyn_fleet.py view ent-001 ent-002 ent-003 | three entities instantiated from the template with booked revenue flows and a consolidated read-only view; the live regulator console (giant@:3000) needs the persistent host — named | DYNAMIS Founding Agent
+- gate 3.3: 2026-11-06 | 3.3 — the read-only regulator console built and served live (executable half) | python3 impl/dyn_console.py serve --port 3311 --demo; 6 new tests | dyn.console.v1 serves dyn.fleet.v1's consolidated view over HTTP: /health, /view.json, / — GET-only by construction (no write route exists to reach; every other method answers 405), and the book digests captured at startup are re-asserted on every request (a serving layer that mutated a source book answers 500 and names itself — the fleet's read-only proof held continuously); live smoke: health ok with read_only true, the served rollup matches the fleet's measured 720,000,000 µ¢ revenue across 3 balanced entities, POST refused 405; the live half (giant@:3000 behind the persistent host) remains — named, not claimed | DYNAMIS Founding Agent
+- gate 3.4: 2026-11-05 | 3.4 amendment loop | python3 impl/dyn_governance.py demo | exit 0; am-001 draft→sim→veto→executed; log {'ok': True, 'rows': 4}; refusal paths tested | DYNAMIS Founding Agent
+- gate 3.5: 2026-11-05 | 3.5 ERC-8004 bridge | python3 impl/dyn_bridge.py export - + test_import_isolation | exit 0; cards + offline-verifiable manifest root; zero runtime importers | DYNAMIS Founding Agent
+- gate 3.5: 2026-11-05 | 3.5 — ERC-8004 export bridge executable half measured | python3 impl/dyn_bridge.py export - | the export artifact parses standalone and carries the agent cards; discovery works from the export alone; the root keeps zero runtime dependency on the bridge | DYNAMIS Founding Agent
+- gate 3.5: 2026-11-06 | 3.5 — export-set offline validation measured at HEAD 1540bec (Day-6 agent beat pulled forward) | python3 scripts/check_cards.py | bridge sample set: 2 cards; manifest root and every card digest recompute offline with no runtime — 0 findings; external discovery handshake and publication remain the Day-6 beat — named, not claimed | DYNAMIS Founding Agent
+- gate 3.5: 2026-11-06 | 3.5 — external discovery handshake measured: DISCOVERY GREEN (Day-6 core beat) | stdlib-only driver at /tmp/ext-instance, zero repo state → https://roshpinacare-sys.github.io/dynamis/discovery/ | the second agent instance discovered DYN from the published surfaces alone: manifest + 7 artifacts fetched live, every digest and the bundle root b86f43ef14657384bababc490bcc9afe recomputed by the driver's OWN implementation of the published canonical rule (sha256 over canonical JSON, sorted keys, no whitespace, UTF-8, 32-hex); the inner ERC-8004 root and both card digests recompute; skill holders cross-check against real cards (buy_job → agent-beta, settle_by_evidence → both, publish_receipt → agent-alpha); a job envelope for agent-beta (card 44137715b6de9d7af5a7f9a2570b4961) validated against the published job schema — ready to POST /jobs when the persistent host serves the rail; transcript records/discovery-2026-11-06.md | DYNAMIS Founding Agent
+
+## Summary — 23 packages, 10 with an owner act pending
+
+Owner acts: `0.1`, `0.2`, `0.3`, `0.4`, `0.5`, `1.1`, `1.6`, `2.5`, `3.3`, `3.4`. Everything else is code-complete pending its live measurement; the calendar windows accrue via the scheduled workflows (docs/18-launch-week.md).
