@@ -52,20 +52,22 @@ def measure_uptime() -> dict | None:
     """The last-24h heartbeat, measured off the Actions API.
 
     Returns None when there is no token, no runs, or no network — a named gap
-    the record carries honestly, never a fabricated zero. Tests inject their
-    own uptime_fn and never touch the network.
+    the record carries honestly, never a fabricated zero. SystemExit is caught
+    explicitly: fetch_runs raises it for a missing token, and BaseException is
+    not covered by `except Exception` — a local run must still produce its
+    record. Tests inject their own uptime_fn and never touch the network.
     """
     try:
-        from uptime_report import fetch_runs
+        from uptime_report import bps_from_runs, fetch_runs
         runs = fetch_runs(1)
-    except Exception:
+    except (Exception, SystemExit):
         return None
     if not runs:
         return None
-    done = [r for r in runs if r["status"] == "completed"]
-    ok = [r for r in done if r["conclusion"] == "success"]
-    return {"beats": len(runs), "completed": len(done), "succeeded": len(ok),
-            "uptime_bps": round(10000 * len(ok) / len(done))}
+    return {"beats": len(runs),
+            "completed": sum(1 for r in runs if r["status"] == "completed"),
+            "succeeded": sum(1 for r in runs if r["conclusion"] == "success"),
+            "uptime_bps": bps_from_runs(runs)}
 
 
 def build_record(date: str, *, out_dir: Path, seed: int = DEFAULT_SEED,

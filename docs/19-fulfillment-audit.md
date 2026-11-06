@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **314 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **322 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -119,7 +119,7 @@ from git, and execute what the plan needs now. Applied the same day, with eviden
   owner's filing decision with counsel — its acceptance criterion requires "no
   unresolved conflicts", and conflicts exist.
 
-Suite: **314 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
+Suite: **322 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
 
 ### Addendum 2 — the drill suite, completed (2026-11-05, continuation)
 

@@ -47,27 +47,36 @@ def fetch_runs(days: int) -> list[dict]:
     return runs
 
 
+def bps_from_runs(runs: list[dict]) -> int | None:
+    """The success rate in integer basis points — 10000 = 100.00%, the gate-1.1
+    bar is 9900. ADR-0007: the wire is integers-only, and this number travels
+    inside the hash-stamped daily record, so it must recompute under the
+    canonical hash. In-flight beats don't count (no completed verdict yet).
+    """
+    done = [r for r in runs if r["status"] == "completed"]
+    if not done:
+        return None
+    ok = sum(1 for r in done if r["conclusion"] == "success")
+    return round(10000 * ok / len(done))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="gate 1.1 uptime, measured")
     ap.add_argument("--days", type=int, default=7)
     ns = ap.parse_args()
     runs = fetch_runs(ns.days)
-    done = [r for r in runs if r["status"] == "completed"]
-    ok = [r for r in done if r["conclusion"] == "success"]
     beats = len(runs)
     if beats == 0:
         print(json.dumps({"uptime_bps": None, "beats": 0,
                           "note": f"no {WORKFLOW} runs in the last {ns.days} days — "
                                   "the harness exists; the window is calendar time"}))
         return 0
-    # Basis points, integer — 9900 bps = 99.00%. ADR-0007: the wire is
-    # integers-only, and this number travels inside the hash-stamped daily
-    # record, so it must recompute under the canonical hash. 10000 = 100.00%.
-    uptime_bps = round(10000 * len(ok) / len(done))
-    gate_pass = uptime_bps >= 9900
+    uptime_bps = bps_from_runs(runs)
+    gate_pass = uptime_bps is not None and uptime_bps >= 9900
     print(json.dumps({
         "window_days": ns.days, "beats": beats,
-        "completed": len(done), "succeeded": len(ok),
+        "completed": sum(1 for r in runs if r["status"] == "completed"),
+        "succeeded": sum(1 for r in runs if r["conclusion"] == "success"),
         "uptime_bps": uptime_bps, "gate_1_1_pass": bool(gate_pass and ns.days >= 7),
         "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }))

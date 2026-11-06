@@ -4,6 +4,12 @@
   "seed": 20261106,
   "sim_days": 14,
   "heartbeat_ok": true,
+  "uptime_24h": {
+    "beats": 33,
+    "completed": 33,
+    "succeeded": 33,
+    "uptime_bps": 10000
+  },
   "jobs_opened": 27,
   "jobs_settled": 19,
   "jobs_refunded": 8,
@@ -17,6 +23,6 @@
     "law19_refund_emits_nothing": true,
     "no_payout_without_pass": true
   },
-  "generated_at": "2026-11-06T06:26:31Z",
-  "record_digest": "3e8d67ebcc9d3a6fd5f91032295d301d"
+  "generated_at": "2026-11-06T12:40:39Z",
+  "record_digest": "efc36e873780882e23a8adbd26890303"
 }
