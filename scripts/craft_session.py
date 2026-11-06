@@ -503,6 +503,16 @@ def main() -> int:
     add(f"the awarded one settles paid {s11['payout_muc']:,} µ¢ — its stake and "
         f"the runner-up's return; a lost dispute would have burned them")
     add("```")
+    add("And the past is anchored — the chain seals itself every full window:")
+    add("")
+    add("```")
+    audit = c.call("GET", "/api/audit")
+    add(f"audit: ok={str(audit['ok']).lower()} · {audit['entries']} entries · "
+        f"{audit['seals']} seal(s) at every 12th entry · problems: "
+        f"{audit['problems'] or 'none'}")
+    add("a rewritten past re-mines its hashes; the seals the observer already")
+    add("holds disagree — the audit fails closed on the state_root mismatch")
+    add("```")
     add("")
     add("## 8 · MCP parity — the same loop as tools any agent mounts")
     add("")

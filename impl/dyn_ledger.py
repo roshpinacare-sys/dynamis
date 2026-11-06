@@ -55,8 +55,12 @@ KINDS = ("open", "work", "check", "refine", "settle", "refund", "post",
 class WorkLedger:
     """One append-only hash chain over the economy's work events."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, seal_hook=None) -> None:
+        """seal_hook(checkpoint) fires whenever a full SEAL_EVERY window
+        completes — the app uses it to keep the chain's seals on record as
+        the events happen, so a later rewrite faces an anchor it held."""
         self.entries: list[dict] = []
+        self.seal_hook = seal_hook
 
     def append(self, *, day: int, kind: str, job_id: str, agent: str,
                **body) -> dict:
@@ -68,6 +72,8 @@ class WorkLedger:
         entry["hash"] = object_hash({"prev": prev, "seq": entry["seq"],
                                      "kind": kind, "day": day, "body": body})
         self.entries.append(entry)
+        if self.seal_hook is not None and len(self.entries) % SEAL_EVERY == 0:
+            self.seal_hook(self.checkpoint(day=day))
         return entry
 
     # ---------- integrity ----------

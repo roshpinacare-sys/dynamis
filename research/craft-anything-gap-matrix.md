@@ -179,6 +179,20 @@ boundary is still named honestly: a fresh keypair with freshly earned
 balance is a new worker, and the MCP surface stays custody-free (the app
 is the custody layer; the loop is the protocol).
 
+And the past is anchored. The checkpoint machinery existed from the start
+— windows of twelve entries sealed with a BFT witness threshold — but
+nothing sealed the craft chain and nothing verified the seals: an anchor
+nobody takes or checks is decoration. Now the ledger seals itself through
+a hook the moment a full window completes, the app keeps every seal, and
+`GET /api/audit` re-verifies chain, emission invariant, seal coverage and
+every seal — fail closed. The teeth are measurable: a rewritten past that
+re-mines all its hashes passes `verify_chain` alone, and still fails the
+audit, because the seals the observer already holds disagree on the state
+root. The named boundary stands: the witness signatures are deterministic
+domain hashes (the HSM stand-in), so a re-miner with the code can re-sign;
+real ed25519-in-HSM keys are the gate-2.1 hardening — until then the seal
+binds the state an observer held, not a key an attacker lacks.
+
 ## 8 · The honest residue
 
 What stays open after this pass, and why: pixel screenshots and layout metrics

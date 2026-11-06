@@ -44,7 +44,7 @@ from dyn_compute import Pool, ComputeError  # noqa: E402
 from dyn_craft import CraftJob, CraftError, dispute_on_record  # noqa: E402
 from dyn_bench import run_benchmark  # noqa: E402
 from dyn_engine import ARTIFACT_INVOICE_PARSER, EngineError, WorkLoop  # noqa: E402
-from dyn_ledger import WorkLedger  # noqa: E402
+from dyn_ledger import WorkLedger, verify_checkpoint  # noqa: E402
 from dyn_post import PostValueError, from_wire, parse_post, render_post, \
     to_wire, validate_limits  # noqa: E402
 from dyn_social import Rail, SocialError, signature_stand_in  # noqa: E402
@@ -79,7 +79,10 @@ class Dynamis:
         self.day = 1
         self.rail = Rail()
         self.pool = Pool()
-        self.ledger = WorkLedger()
+        # the chain's seals, kept as the events happen — the anchor an
+        # observer holds so a rewritten past has something to contradict
+        self.checkpoints: list[dict] = []
+        self.ledger = WorkLedger(seal_hook=self._store_seal)
         self.lock = threading.RLock()
         self.agents: dict[str, dict] = {}
         self.jobs: dict[str, dict] = {}
@@ -473,6 +476,40 @@ class Dynamis:
         with self.lock:
             return {"jobs": [dict(self.craft[j]["job"].manifest) for j in self.craft]}
 
+    def _store_seal(self, cp: dict) -> None:
+        if cp:
+            self.checkpoints.append(cp)
+
+    def craft_audit(self) -> dict:
+        """The observer's route: chain, invariant, and every seal — fail
+        closed. A past that was sealed cannot be re-mined without the seals
+        the observer already holds disagreeing; a missing or stale seal is
+        a finding, not a pass."""
+        with self.lock:
+            problems: list[str] = []
+            chain = self.ledger.verify_chain()
+            if not chain["ok"]:
+                problems.append(f"chain broken at seq {chain['first_bad']}")
+            expected = self.ledger.all_checkpoints(day=self.day)
+            stored = {cp["height"]: cp for cp in self.checkpoints}
+            for cp in expected:
+                h = cp["height"]
+                if h not in stored:
+                    problems.append(f"missing seal for height {h}")
+                    continue
+                v = verify_checkpoint(stored[h], self.ledger)
+                if not v["ok"]:
+                    problems.append(f"seal {h}: {v['why']}")
+            extra = sorted(set(stored) - {cp["height"] for cp in expected})
+            if extra:
+                problems.append(f"stale seals beyond full windows: {extra}")
+            inv = self.ledger.invariant()
+            if not inv["emitted_eq_revenue"] or not inv["refund_emits_nothing"]:
+                problems.append("emission invariant broken")
+            return {"ok": not problems, "problems": problems, "chain": chain,
+                    "invariant": inv, "seals": len(self.checkpoints),
+                    "entries": len(self.ledger.entries)}
+
     # ---------- the chain (the record of all of it) ----------
     def chain(self) -> dict:
         with self.lock:
@@ -505,7 +542,8 @@ class Dynamis:
 # the HTTP surface
 # --------------------------------------------------------------------------
 ROUTES_GET = ("/", "/health", "/api/state", "/api/agents", "/api/jobs",
-              "/api/feed", "/api/chain", "/api/compute", "/api/craft")
+              "/api/feed", "/api/chain", "/api/compute", "/api/craft",
+              "/api/audit")
 ROUTES_POST = ("/api/agents", "/api/jobs", "/api/posts", "/api/follow",
                "/api/dm", "/api/inbox", "/api/compute/devices",
                "/api/compute/price", "/api/compute/jobs",
@@ -568,6 +606,8 @@ def make_handler(net: Dynamis):
                     return self._json(200, net.feed(reader))
                 if path == "/api/chain":
                     return self._json(200, net.chain())
+                if path == "/api/audit":
+                    return self._json(200, net.craft_audit())
                 if path == "/api/compute":
                     return self._json(200, net.compute_state())
                 if path == "/api/craft":

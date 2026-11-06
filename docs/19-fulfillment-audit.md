@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **411 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **416 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -446,3 +446,30 @@ the auction holds 1.8M and 2.5M from real balances; a fresh sybil's 999M
 bid dies at HTTP 400 ("holds 0 µ¢, the stake asks 999,000,000 µ¢ at the
 peg"); the award, the runner-up's refused build, and the paid settle that
 returns both stakes. Suite: **411 tests green** (5 new).
+
+### Addendum 13 — the seals go live (2026-11-06, seventh depth pass)
+
+Addendum 12 gave the auction economics; this one gives the chain an anchor.
+The gap was never the checkpoint machinery — windows of twelve, BFT
+witness sigs, fail-closed verify, all tested since the first pass. The gap
+was that nothing sealed the app's live craft chain and nothing ever
+verified a seal against it: an anchor nobody takes is decoration.
+
+1. **The chain seals itself.** `WorkLedger` takes a `seal_hook`; the app
+   passes one that keeps every checkpoint as the events happen. Engine
+   loops that construct their own ledgers are unchanged.
+2. **The audit is one route, fail closed.** `GET /api/audit` re-verifies
+   the hash chain, the emission invariant, seal coverage (every full
+   window sealed, no stale seals) and every stored seal against the live
+   ledger. A missing seal is a finding, not a pass.
+3. **The teeth, measured.** The new test re-mines history from entry 3 —
+   rewrites the body, recomputes every hash and prev-link — and
+   `verify_chain` alone passes. The audit fails: the held seals' state
+   roots disagree. Anchoring is what turns "append-only in memory" into
+   "the past an observer held".
+
+Measured live in transcript §7: `audit: ok=true · 75 entries · 6 seals ·
+problems: none`. The boundary named in the matrix stands — the signatures
+are the HSM stand-in (deterministic domain hashes), so the seal binds the
+state an observer held, not a key an attacker lacks; real ed25519-in-HSM
+is gate 2.1. Suite: **416 tests green** (5 new).

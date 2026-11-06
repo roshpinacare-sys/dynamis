@@ -10,7 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dyn_craft import (CraftJob, CraftError, Evidence, alike, parse_page,  # noqa: E402
                        words)
-from dyn_ledger import WorkLedger  # noqa: E402
+from dyn_ledger import WorkLedger, GENESIS, verify_checkpoint  # noqa: E402
+from dynamis_core.canonical import object_hash  # noqa: E402
 
 PAGE = """<!doctype html><html><head><title>DYNAMIS Docs</title></head>
 <body><h1>The work loop</h1><h2>Settlement</h2><p>Every payout moves on evidence
@@ -926,6 +927,101 @@ class TestDurabilityAndProofs(unittest.TestCase):
             self.assertFalse(led.verify_inclusion(
                 e["hash"][:-1] + ("0" if e["hash"][-1] != "0" else "1"),
                 proof, root))
+
+
+class TestTheSealsGoLive(unittest.TestCase):
+    """The checkpoint machinery existed; now the app's live chain actually
+    seals itself every full window, and the audit holds it against a
+    re-mined past."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.sd = Path(self._td.name)
+        from dyn_app import Dynamis
+        self.net = Dynamis(state_root=self.sd)
+        for who in ("agent-buyer", "agent-builder"):
+            self.net.join(who, f"persona-{who}")
+        self.target = self.sd / "dataset.json"
+        self.target.write_text(json.dumps({"rows": [{"n": i} for i in range(40)]}) + "\n")
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _run_job(self, request):
+        self.net.open_craft(buyer="agent-buyer", request=request,
+                            target_kind="file", target_ref=str(self.target))
+        jid = f"craft-{self.net._craft_seq:04d}"
+        self.net.craft_study(jid)
+        card = next(p for p in (self.sd / "craft" / jid / "inbox").glob("*.json")
+                    if json.loads(p.read_text())["kind"] == "approval")
+        self.net.craft_answer(jid, card.stem, "approve", "agent-buyer")
+        facts = json.loads((self.sd / "craft" / jid / "capture" / "facts.json").read_text())
+        self.net.craft_build(jid, "agent-builder", report_program(facts))
+        self.net.craft_check(jid)
+        return jid, self.net.craft_settle(jid)
+
+    def test_the_chain_seals_itself_on_the_cadence(self):
+        for i in range(2):
+            jid, out = self._run_job(f"seal me {i}")
+            self.assertEqual(out["verdict"], "paid")
+        heights = [cp["height"] for cp in self.net.checkpoints]
+        entries = len(self.net.ledger.entries)
+        self.assertTrue(heights and entries >= 12, f"{heights} vs {entries} entries")
+        self.assertEqual(heights,
+                         [h for h in (12, 24, 36) if h <= entries],
+                         "one seal per full window, nothing else")
+        for cp in self.net.checkpoints:
+            self.assertTrue(verify_checkpoint(cp, self.net.ledger)["ok"])
+        audit = self.net.craft_audit()
+        self.assertTrue(audit["ok"], audit["problems"])
+        self.assertEqual(audit["seals"], len(heights))
+
+    def test_a_remined_past_fails_against_the_held_seals(self):
+        for i in range(2):
+            self._run_job(f"anchor me {i}")
+        self.assertTrue(self.net.craft_audit()["ok"])
+        # the full re-mine: rewrite history from entry 3 and recompute every
+        # hash and link — this is the attack verify_chain alone cannot see
+        prev = self.net.ledger.entries[2]["hash"]
+        for e in self.net.ledger.entries[3:]:
+            e["body"]["payout_muc"] = 1            # the lie
+            e["prev"] = prev
+            e["hash"] = object_hash({"prev": e["prev"], "seq": e["seq"],
+                                     "kind": e["kind"], "day": e["day"],
+                                     "body": e["body"]})
+            prev = e["hash"]
+        self.assertTrue(self.net.ledger.verify_chain()["ok"],
+                        "the re-mine beats the chain check alone")
+        audit = self.net.craft_audit()
+        self.assertFalse(audit["ok"])
+        self.assertTrue(any("state_root mismatch" in p for p in audit["problems"]),
+                        audit["problems"])
+
+    def test_partial_windows_stay_unsealed(self):
+        for i in range(5):
+            self.net.ledger.append(day=1, kind="open", job_id="craft-x",
+                                   agent="agent-buyer", escrow_usds_muc=i)
+        self.assertEqual(self.net.checkpoints, [])
+        self.assertTrue(self.net.craft_audit()["ok"])
+
+    def test_a_missing_seal_is_a_finding(self):
+        for i in range(2):
+            self._run_job(f"count me {i}")
+        self.assertTrue(self.net.checkpoints)
+        self.net.checkpoints.pop()
+        audit = self.net.craft_audit()
+        self.assertFalse(audit["ok"])
+        self.assertTrue(any("missing seal" in p for p in audit["problems"]),
+                        audit["problems"])
+
+    def test_the_audit_is_an_observers_route(self):
+        from dyn_app import ROUTES_GET
+        self.assertIn("/api/audit", ROUTES_GET)
+        self._run_job("route me")
+        out = self.net.craft_audit()
+        self.assertTrue(out["ok"])
+        self.assertTrue(out["invariant"]["emitted_eq_revenue"])
 
 
 class TestStakeBecomesCustody(unittest.TestCase):
