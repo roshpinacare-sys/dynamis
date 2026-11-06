@@ -24,11 +24,13 @@ jobs:
         run: |
           git config user.name "dynamis-deploy"
           git config user.email "actions@users.noreply.github.com"
+          rm -rf /tmp/publish && mkdir -p /tmp/publish
+          cp -r site/. /tmp/publish/
           git fetch origin gh-pages || true
           git checkout -B gh-pages origin/gh-pages 2>/dev/null \
             || git checkout --orphan gh-pages
           git rm -rf . >/dev/null 2>&1 || true
-          cp -r site/. .
+          cp -r /tmp/publish/. .
           git add -A
           git commit -m "publish site/ from ${GITHUB_SHA:0:7} [skip ci]" \
             || echo "site unchanged — nothing to publish"
