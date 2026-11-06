@@ -6,10 +6,11 @@ behind every answer, build a version, check how alike it is, refine — and make
 it pay. This session is the proof it runs on the network, including the
 refinements the loop grew after the first study: the buyer's approval cards,
 multi-page web likeness, the fixes brief that drives a refine round with
-exact values, and MCP parity (the same actions as tools). Job one is built
-wrong and the machine refuses to pay it; the corrected rebuild, a multi-page
-rebuild, a fixes-driven refine and the MCP flow settle. Every number is read
-off the running process.
+exact values, the runs check (a console program judged by its recorded runs),
+and MCP parity (the same actions as tools). Job one is built wrong and the
+machine refuses to pay it; the corrected rebuild, a multi-page rebuild, a
+fixes-driven refine, a runs-judged rebuild and the MCP flow settle. Every
+number is read off the running process.
 
   python3 scripts/craft_session.py --out records/craft-session-<date>.md
 
@@ -41,6 +42,13 @@ match yet; missing evidence never counts as alike.</p>
 <a href="/loop">the loop</a> <a href="/pay">the payout</a></body></html>"""
 
 BROKEN_BUILD = TARGET_PAGE.replace("DYNAMIS Field Notes", "Something Else")
+
+COUNTER_ORIG = """import sys
+data = sys.stdin.read()
+print(f"counter counted {len(data.split())} words")
+print("counter used dyn-craft v1")
+sys.exit(0)
+"""
 
 STYLED_PAGE = """<!doctype html><html lang=\"en\"><head><title>Field Notes — Styled</title>
 <style>
@@ -300,7 +308,63 @@ def main() -> int:
         f"{settles['emitted_dyn_mu']:,} DYN µ")
     add("```")
     add("")
-    add("## 5 · One failing claim blocks readiness however alike the rest looks")
+    add("## 5 · The runs check — a console program judged by its recorded runs")
+    add("")
+    add("The reference engine's RunsCheck: study runs the original with sample")
+    add("inputs and records what it printed and how it exited; the rebuild must")
+    add("print the same for each input and exit the same way. A counter program,")
+    add("a rebuild that prints other words, then the honest one:")
+    add("")
+    add("```")
+    prog = Path(td.name) / "counter.py"
+    prog.write_text(COUNTER_ORIG)
+    c.call("POST", "/api/craft", {"buyer": "agent-buyer",
+                                  "request": "Rebuild this counter program",
+                                  "target_kind": "file", "target_ref": str(prog)})
+    c.call("POST", "/api/craft/craft-0005/study", {})
+    rfacts = json.loads((Path(td.name) / "craft" / "craft-0005" / "capture"
+                         / "facts.json").read_text())
+    add("study: " + "; ".join(
+        f"{r['name']} → {r['stdout'].splitlines()[0]!r}, exit {r['returncode']}"
+        for r in rfacts["runs"]))
+    card5 = approval_card(Path(td.name) / "craft", "craft-0005")
+    c.call("POST", "/api/craft/craft-0005/answer",
+           {"qid": card5["id"], "answer": "approve", "by": "agent-buyer"})
+    wrong = (
+        "import sys\n"
+        "data = sys.stdin.read()\n"
+        "print(f\"main counted OTHER words entirely\")\n"
+        "sys.exit(0)\n")
+    c.call("POST", "/api/craft/craft-0005/build",
+           {"worker": "agent-builder", "files": {"main.py": wrong}})
+    rr = c.call("POST", "/api/craft/craft-0005/check", {})
+    add(f"round 1: FAIL · {rr['summary']} · "
+        + "; ".join(x["title"] + (" — " + x["detail"] if x["detail"] else "")
+                    for x in rr["claims"] if not x["passed"]))
+    add("fixes: " + " · ".join(f["message"] for f in rr["fixes"][:2]) + " …")
+    honest = (
+        "import hashlib, json, sys\n"
+        "if len(sys.argv) > 1:\n"
+        "    raw = open(sys.argv[1], 'rb').read()\n"
+        "    lines = raw.count(b'\\n') + (0 if raw.endswith(b'\\n') or not raw else 1)\n"
+        "    print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),"
+        " 'bytes': len(raw), 'lines': lines, 'type': 'text'}))\n"
+        "else:\n"
+        "    data = sys.stdin.read()\n"
+        "    print(f\"main counted {len(data.split())} words\")\n"
+        "    print('main used dyn-craft v1')\n"
+        "    sys.exit(0)\n")
+    c.call("POST", "/api/craft/craft-0005/build",
+           {"worker": "agent-builder", "files": {"main.py": honest},
+            "statement": "matched the original's runs output word for word"})
+    rr2 = c.call("POST", "/api/craft/craft-0005/check", {})
+    add(f"round {rr2['round']}: {'PASS' if rr2['passed'] else 'FAIL'} · {rr2['summary']}")
+    settles5 = c.call("POST", "/api/craft/craft-0005/settle", {})
+    add(f"settle: payout {settles5['payout_muc']:,} µ¢ · emitted "
+        f"{settles5['emitted_dyn_mu']:,} DYN µ")
+    add("```")
+    add("")
+    add("## 6 · One failing claim blocks readiness however alike the rest looks")
     add("")
     add("The web build with the wrong title — identical text, so likeness stays 100%,")
     add("and the check still refuses (and a missing route page would refuse too):")
@@ -309,18 +373,18 @@ def main() -> int:
     c.call("POST", "/api/craft", {"buyer": "agent-buyer",
                                   "request": "Recreate this site's pages",
                                   "target_kind": "web", "target_ref": page_url})
-    c.call("POST", "/api/craft/craft-0005/study", {})
-    card4 = approval_card(Path(td.name) / "craft", "craft-0005")
-    c.call("POST", "/api/craft/craft-0005/answer",
+    c.call("POST", "/api/craft/craft-0006/study", {})
+    card4 = approval_card(Path(td.name) / "craft", "craft-0006")
+    c.call("POST", "/api/craft/craft-0006/answer",
            {"qid": card4["id"], "answer": "approve", "by": "agent-buyer"})
-    c.call("POST", "/api/craft/craft-0005/build",
+    c.call("POST", "/api/craft/craft-0006/build",
            {"worker": "agent-builder", "files": {"index.html": BROKEN_BUILD}})
-    rb = c.call("POST", "/api/craft/craft-0005/check", {})
+    rb = c.call("POST", "/api/craft/craft-0006/check", {})
     add(f"round {rb['round']}: similarity {rb['similarity_milli'] / 10:.0f}% — "
         f"{'PASS' if rb['passed'] else 'FAIL'} ({rb['note'][:76]}…)")
     add("```")
     add("")
-    add("## 6 · MCP parity — the same loop as tools any agent mounts")
+    add("## 7 · MCP parity — the same loop as tools any agent mounts")
     add("")
     add("The dyn.mcp.v1 stdio server now carries the craft loop as nine tools beside")
     add("the engine's seven — one engine, three surfaces, as the reference engine")
@@ -374,7 +438,7 @@ def main() -> int:
     chain = c.call("GET", "/api/chain")
     state = c.call("GET", "/api/state")
     inv = chain["invariant"]
-    add("## 7 · The chain of record — the craft loop writes the same ledger")
+    add("## 8 · The chain of record — the craft loop writes the same ledger")
     add("")
     add("```")
     add(f"work ledger: {chain['verify']['ok']} · {chain['entries']} entries · "
@@ -395,6 +459,9 @@ def main() -> int:
     add("- Structure, design tokens and the a11y claims read the HTML source and")
     add("  its CSS text; the reference engine measures computed styles and pixel")
     add("  screenshots per width — that depth needs a browser and stays named-open.")
+    add("- The runs check records two sample inputs (no input, one line) — a")
+    add("  sample, not a behaviour spec; the reference engine records whatever")
+    add("  runs the person's session captured.")
     add("- Signatures are HSM stand-ins; the price/reference-band note from the")
     add("  product session carries over to everything compute-priced.")
     add("")

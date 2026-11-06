@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **378 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **385 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -119,7 +119,7 @@ from git, and execute what the plan needs now. Applied the same day, with eviden
   owner's filing decision with counsel — its acceptance criterion requires "no
   unresolved conflicts", and conflicts exist.
 
-Suite: **378 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
+Suite: **385 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
 
 ### Addendum 2 — the drill suite, completed (2026-11-05, continuation)
 
@@ -293,3 +293,37 @@ their split:
 The suite is 378 tests green (11 new). The residue is named in the matrix's
 §6: screenshots, computed styles, console health, states, per-width metrics,
 game/firmware kinds, parallel candidates.
+
+### Addendum 8 — the engine loop and the runs check (2026-11-06, second depth pass)
+
+The user's push: continue deeper and more professional. The second pass read
+the rest of their engine — kinds/app.rs and game.rs, the round loop in
+mod.rs, self_check.rs and notes.rs — and corrected one error in the matrix on
+the record: their `parallel: 2` is the RunSet limit of concurrent *projects*
+(tools.rs:19), not candidate builds of one target; the matrix now says so.
+
+Ported, claim-for-claim where the source allows:
+
+1. **The RunsCheck** (kinds/runs.rs:150-230) — the file kind now records
+   sample runs at study (a Python original is run with two inputs; stdout,
+   stderr and exit recorded as a `craft_run_capture` evidence record), and
+   the check judges the rebuild input by input with their exact claim
+   wording ("with no input, it exits with code 0 like the original", "it
+   prints what the original prints"), their `OUTPUT_ALIKE 80`, and their
+   name→"program" normalisation so a usage line naming the rebuild's file
+   still matches. Measured live in the session transcript §5: the wrong
+   build fails at 46% of the words per input, the honest rebuild passes
+   "9 of 9 claims hold" and settles.
+2. **The self-check summary** (self_check.rs:64-73) — every check result now
+   carries `summary`: "about 93% like the original, 9 of 9 claims hold",
+   their exact format.
+3. **#736** — an empty build is refused ("a builder can't hide that nothing
+   was written"), and a check against an unwritten app/ says so in their
+   words.
+4. **Exhaustion with remediation** (mod.rs:868-900) — out of rounds, the
+   refusal reads "The build isn't working yet — the loop is out of rounds….
+   The buyer may refund; the escrow never pays a failing build."
+
+The suite is 385 tests green (7 new). The matrix carries a new §7, "The
+engine loop, ported", and its residue (§8) names the runs layer's own
+limitation: two sample inputs are a sample, not a behaviour spec.

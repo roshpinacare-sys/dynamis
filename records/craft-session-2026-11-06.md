@@ -1,4 +1,4 @@
-# The craft session — 2026-11-06 16:04 UTC
+# The craft session — 2026-11-06 17:45 UTC
 
 `dyn.craft.v1` on the live network (pattern credit: storytold/craft-anything):
 study a target with evidence behind every answer, build a version, check how
@@ -10,7 +10,7 @@ number is read off the running process.
 ## 1 · The first craft job — a dataset, studied, built wrong, refused
 
 ```
-study: 1 evidence record(s) (ev_b02ab71afc7681024…), 1 open question(s)
+study: 1 evidence record(s) (ev_060fc0283576ea847…), 1 open question(s)
 captured: 7241 bytes, 605 lines, type json, sha256 53e9a631874b06bf…
 the loop pauses on the buyer's card: q-002 — “Approve the study and release the build? Escrow 500 USDS; …”
 ```
@@ -64,7 +64,22 @@ round 2: PASS · similarity 100% · claims 9/9
 settle: payout 475,000,000 µ¢ · emitted 200,000,000,000 DYN µ
 ```
 
-## 5 · One failing claim blocks readiness however alike the rest looks
+## 5 · The runs check — a console program judged by its recorded runs
+
+The reference engine's RunsCheck: study runs the original with sample
+inputs and records what it printed and how it exited; the rebuild must
+print the same for each input and exit the same way. A counter program,
+a rebuild that prints other words, then the honest one:
+
+```
+study: no input → 'counter counted 0 words', exit 0; one line of input → 'counter counted 1 words', exit 0
+round 1: FAIL · about 31% like the original, 3 of 9 claims hold · it reports the same byte size — byte size differs; it reports the same line count — line count differs; it identifies the same type — type differs; it reports the same content hash — content hash differs; with no input, it prints what the original prints — 46% of the words match; with one line of input, it prints what the original prints — 46% of the words match
+fixes: report the same byte size (the original's is 134) · report the same line count (the original's is 5) …
+round 2: PASS · about 100% like the original, 9 of 9 claims hold
+settle: payout 475,000,000 µ¢ · emitted 200,000,000,000 DYN µ
+```
+
+## 6 · One failing claim blocks readiness however alike the rest looks
 
 The web build with the wrong title — identical text, so likeness stays 100%,
 and the check still refuses (and a missing route page would refuse too):
@@ -73,7 +88,7 @@ and the check still refuses (and a missing route page would refuse too):
 round 1: similarity 100% — FAIL (100% alike — claims fail: its title matches the original, every studied page…)
 ```
 
-## 6 · MCP parity — the same loop as tools any agent mounts
+## 7 · MCP parity — the same loop as tools any agent mounts
 
 The dyn.mcp.v1 stdio server now carries the craft loop as nine tools beside
 the engine's seven — one engine, three surfaces, as the reference engine
@@ -85,11 +100,11 @@ craft flow via MCP: check PASS, similarity 100%
 craft_settle via MCP: payout 475,000,000 µ¢, emitted 200,000,000,000 DYN µ
 ```
 
-## 7 · The chain of record — the craft loop writes the same ledger
+## 8 · The chain of record — the craft loop writes the same ledger
 
 ```
-work ledger: True · 32 entries · Law-19 invariant: settled 1,500,000,000 µ¢ → emitted 600,000,000,000 DYN µ · holds: True
-session: 5 craft jobs · craft payouts 1,425,000,000 µ¢ · 1 refund, fees 0, emission 0
+work ledger: True · 41 entries · Law-19 invariant: settled 2,000,000,000 µ¢ → emitted 800,000,000,000 DYN µ · holds: True
+session: 6 craft jobs · craft payouts 1,900,000,000 µ¢ · 1 refund, fees 0, emission 0
 ```
 
 ## Named limitations — on the record
@@ -103,6 +118,9 @@ session: 5 craft jobs · craft payouts 1,425,000,000 µ¢ · 1 refund, fees 0, e
 - Structure, design tokens and the a11y claims read the HTML source and
   its CSS text; the reference engine measures computed styles and pixel
   screenshots per width — that depth needs a browser and stays named-open.
+- The runs check records two sample inputs (no input, one line) — a
+  sample, not a behaviour spec; the reference engine records whatever
+  runs the person's session captured.
 - Signatures are HSM stand-ins; the price/reference-band note from the
   product session carries over to everything compute-priced.
 

@@ -36,15 +36,18 @@ Kinds in v1 (each with its honest limitations on the record):
     visible text); check compares the rebuilt `app/index.html` structurally.
     No browser runs: no screenshots, no JavaScript — a client-rendered page
     studies as its HTML source says.
-  - `file` — study inspects a file (hash, size, type sniff, structure); the
-    build is a program that reports the same facts; check runs it and compares
-    claim by claim.
+  - `file` — study inspects a file (hash, size, type sniff, structure) and,
+    when it parses as a Python program, records sample runs (input, output,
+    exit) exactly as the reference engine's RunsCheck does; the build is a
+    program that reports the same facts and prints the same output for the
+    same inputs; check runs it and compares claim by claim.
 
 Stdlib only (ADR-0007).
 """
 from __future__ import annotations
 
 import argparse
+import ast
 import difflib
 import hashlib
 import html as html_mod
@@ -74,6 +77,8 @@ DEFAULT_GOOD_ENOUGH = 90.0
 MAX_RUNTIME_S = 10
 MAX_ROUTES = 4             # same-site pages study crawls, as the reference engine's max_pages
 STRUCT_ALIKE = 80.0        # a structure claim holds at this skeleton score
+OUTPUT_ALIKE = 80.0        # a run's output matches at this Dice score (the reference
+                           # engine's OUTPUT_ALIKE for recorded console runs)
 # the page's parts, in document order — the reference engine's PARTS (its
 # skeleton comes from the measured DOM; ours from the HTML source, which is
 # the honest depth a stdlib study reaches)
@@ -119,6 +124,25 @@ def missing_words(original: dict[str, int], built: dict[str, int],
     missing = [(w, n) for w, n in original.items() if w not in built]
     missing.sort(key=lambda x: (-x[1], x[0]))
     return [w for w, _ in missing[:cap]]
+
+
+def run_how(run: dict) -> str:
+    """The way a run ended, in the reference engine's words."""
+    if run.get("timeout"):
+        return "is still running (timed out)"
+    rc = run.get("returncode")
+    return f"exits with code {rc}" if rc is not None else "didn't run"
+
+
+def output_words(text: str, names: list[str]) -> dict[str, int]:
+    """The words of a run's output, with both programs' own names made the
+    same ("program"), so a usage line naming the rebuild's file still
+    matches — the reference engine's output_words rule."""
+    text = text.lower()
+    for n in names:
+        if n:
+            text = text.replace(n.lower(), "program")
+    return words(text)
 
 
 def skeleton_score(a: list[str], b: list[str]) -> tuple[float, list[tuple[str, int]]]:
@@ -576,9 +600,31 @@ class CraftJob:
                     structure["items"] = len(data)
             except json.JSONDecodeError as exc:
                 structure = {"parse_error": str(exc)[:120]}
+        # sample runs, as the reference engine records console runs: what the
+        # program printed and how it exited, for each input it was run with
+        runs: list[dict] = []
+        if path.suffix == ".py":
+            try:
+                ast.parse(raw.decode("utf-8", errors="replace"))
+                for name, payload in (("no input", b""),
+                                      ("one line of input", b"hello\n")):
+                    rec: dict = {"name": name, "input": payload.decode()}
+                    try:
+                        pr = subprocess.run([sys.executable, str(path)],
+                                            input=payload.decode(),
+                                            capture_output=True,
+                                            text=True, timeout=MAX_RUNTIME_S)
+                        rec.update({"returncode": pr.returncode,
+                                    "stdout": pr.stdout[:4_000],
+                                    "stderr": pr.stderr[-400:]})
+                    except subprocess.TimeoutExpired:
+                        rec.update({"timeout": True, "stdout": "", "stderr": ""})
+                    runs.append(rec)
+            except SyntaxError:
+                pass
         facts = {"kind": "file", "path": str(path), "sha256": hashlib.sha256(raw).hexdigest(),
                  "bytes": len(raw), "lines": lines, "type": kind,
-                 "structure": structure,
+                 "structure": structure, "runs": runs,
                  "unknowns": ["a sniffed type is a guess, not a guarantee"]}
         ev = Evidence(operation="craft_file_inspect",
                       subject={"kind": "file", "name": path.name},
@@ -593,7 +639,24 @@ class CraftJob:
                                     "message": "the type comes from magic bytes and content shape"}],
                       coverage={"basis": "complete", "bytes": len(raw)},
                       carries_target_content=True)
-        return facts, [ev]
+        evs = [ev]
+        if runs:
+            ways = "; ".join(f"{r['name']} → {run_how(r)}" for r in runs)
+            evs.append(Evidence(
+                operation="craft_run_capture",
+                subject={"kind": "file", "name": path.name},
+                params={"inputs": [r["name"] for r in runs],
+                        "timeout_s": MAX_RUNTIME_S},
+                result={"runs": runs},
+                summary=f"Ran the original with {len(runs)} sample input(s): {ways}.",
+                confidence={"level": "high",
+                            "reason": "recorded from actually running the program"},
+                authority={"basis": "measured"},
+                limitations=[{"code": "sample-inputs",
+                              "message": "two recorded runs are a sample, not a behaviour spec"}],
+                coverage={"basis": "sampled runs", "count": len(runs)},
+                carries_target_content=True))
+        return facts, evs
 
     # ---------- build ----------
     def build(self, *, worker: str, files: dict[str, str],
@@ -601,13 +664,18 @@ class CraftJob:
               statement: str | None = None) -> dict:
         self._require(statuses=("studied", "checked_fail"))
         self._no_open_approval("the build")
+        if not files:
+            raise CraftError("an empty build claims nothing — write the project "
+                             "(the reference engine's #736: a builder can't hide "
+                             "that nothing was written)")
         if self.manifest["status"] == "checked_fail":
             if self.manifest["rounds"]["done"] >= self.manifest["rounds"]["max"]:
-                raise CraftError("refinement rounds exhausted — the loop refuses a further build")
+                raise CraftError(
+                    "The build isn't working yet — the loop is out of rounds "
+                    f"({self.manifest['rounds']['max']}). The buyer may refund; "
+                    "the escrow never pays a failing build.")
             ledger.append(day=day, kind="refine", job_id=self.manifest["job_id"],
                           agent=worker, round=self.manifest["rounds"]["done"])
-        if not files:
-            raise CraftError("a build without files is not a build")
         app = self.root / "app"
         app.mkdir(parents=True, exist_ok=True)
         recorded = {}
@@ -648,7 +716,12 @@ class CraftJob:
         result["at_ms"] = int(time.time() * 1000)
         result.setdefault("compared", True)
         # canonical wire is integers-only (ADR-0007): likeness rides as per-mille
-        result["similarity_milli"] = int(round((result.pop("similarity", 0) or 0) * 10))
+        held = sum(1 for c in result["claims"] if c["passed"])
+        similarity = result.pop("similarity", 0) or 0
+        result["similarity_milli"] = int(round(similarity * 10))
+        claims_part = (f", {held} of {len(result['claims'])} claims hold"
+                       if result["claims"] else "")
+        result["summary"] = f"about {similarity:.0f}% like the original{claims_part}"
         if not result["passed"] and result.get("fixes"):
             result["refine_brief"] = (
                 f"Check {round_n}: your build looks {result['similarity_milli'] / 10:.0f}% "
@@ -686,8 +759,12 @@ class CraftJob:
         notes: list[str] = []
         fixes: list[dict] = []
         if not page_path.is_file():
+            app = self.root / "app"
+            empty = not app.is_dir() or not any(app.iterdir())
+            note = ("app/ has no files yet, so the builder hasn't written the "
+                    "project. " if empty else "") + "no app/index.html to compare"
             return {"check": "web-structure", "round": round_n, "passed": False,
-                    "compared": False, "note": "no app/index.html to compare",
+                    "compared": False, "note": note,
                     "claims": [], "unknowns": [], "notes": [], "fixes": [],
                     "artifacts": []}
         built = parse_page(page_path.read_text(encoding="utf-8", errors="replace"))
@@ -864,9 +941,14 @@ class CraftJob:
         program = self.root / "app" / "main.py"
         unknowns: list[str] = []
         fixes: list[dict] = []
+        notes: list[str] = []
         if not program.is_file():
+            app = self.root / "app"
+            empty = not app.is_dir() or not any(app.iterdir())
+            note = ("app/ has no files yet, so the builder hasn't written the "
+                    "project. " if empty else "") + "no app/main.py to run"
             return {"check": "app-runs", "round": round_n, "passed": False,
-                    "compared": False, "note": "no app/main.py to run",
+                    "compared": False, "note": note,
                     "claims": [], "unknowns": [], "notes": [], "fixes": [],
                     "artifacts": []}
         t0 = time.monotonic()
@@ -913,7 +995,44 @@ class CraftJob:
         score = alike(words(json.dumps(
             {k: facts[k] for k in ("sha256", "bytes", "lines", "type")},
             sort_keys=True)), words(proc.stdout)) if got else 0.0
-        similarity = round(score, 1)
+        run_scores: list[float] = []
+        # the recorded runs, input by input — the reference engine's RunsCheck,
+        # with its exact claim wording and its name→"program" normalisation
+        names = [Path(facts["path"]).stem, "main"]
+        for run in facts.get("runs", []):
+            try:
+                pr = subprocess.run([sys.executable, str(program)],
+                                    input=run["input"], capture_output=True,
+                                    text=True, timeout=MAX_RUNTIME_S)
+                built_run = {"timeout": False, "returncode": pr.returncode,
+                             "stdout": pr.stdout}
+            except subprocess.TimeoutExpired:
+                built_run = {"timeout": True, "returncode": None, "stdout": ""}
+            how_o, how_b = run_how(run), run_how(built_run)
+            exit_ok = how_o == how_b
+            oscore = alike(output_words(run.get("stdout", ""), names),
+                           output_words(built_run["stdout"], names))
+            print_ok = oscore >= OUTPUT_ALIKE
+            claims.append({"title": f"with {run['name']}, it {how_o} like the original",
+                           "passed": exit_ok,
+                           "detail": "" if exit_ok else f"it {how_b}"})
+            claims.append({"title": f"with {run['name']}, it prints what the original prints",
+                           "passed": print_ok,
+                           "detail": "" if print_ok else f"{oscore:.0f}% of the words match"})
+            if not exit_ok:
+                fixes.append({"code": "run_exit",
+                              "message": f"with {run['input']!r} as input, exit the way "
+                                         f"the original does ({how_o}; now {how_b})"})
+            if not print_ok:
+                fixes.append({"code": "run_output",
+                              "message": f"with {run['input']!r} as input, print what the "
+                                         f"original prints ({oscore:.0f}% of the words now)"})
+            run_scores.append(oscore)
+        if facts.get("runs"):
+            notes.append(f"{len(facts['runs'])} recorded run(s) judged, "
+                         f"outputs {sum(run_scores) / len(run_scores):.0f}% alike on average")
+        scores = [score] + run_scores
+        similarity = round(sum(scores) / len(scores), 1)
         hard_ok = all(c["passed"] for c in claims)
         bar = self.manifest["good_enough"]
         passed = hard_ok and similarity >= bar and not unknowns
@@ -922,7 +1041,7 @@ class CraftJob:
                 else " — claims fail"))
         return {"check": "app-runs", "round": round_n, "passed": passed,
                 "similarity": similarity, "note": note, "claims": claims,
-                "unknowns": unknowns, "notes": [], "fixes": fixes,
+                "unknowns": unknowns, "notes": notes, "fixes": fixes,
                 "artifacts": ["app/main.py"]}
 
     # ---------- ready: the money, fail-closed on the evidence ----------

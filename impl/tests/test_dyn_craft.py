@@ -614,5 +614,141 @@ class TestWebDepth(CraftMixin, unittest.TestCase):
                            "restored the footer, the Check heading and the original colour"}])
 
 
+COUNTER_ORIG = """#!/usr/bin/env python3
+import sys
+data = sys.stdin.read()
+print(f"counter counted {len(data.split())} words")
+print("counter used dyn-craft v1")
+sys.exit(0)
+"""
+
+
+def counter_program(report_facts, exit_code=0, garbage=False):
+    """The rebuild: reports the studied facts when given a path, and mimics
+    the original's runs when run with stdin."""
+    tail = "" if garbage else "    print('main used dyn-craft v1')\n"
+    body = ("main counted OTHER words entirely" if garbage
+            else f"main counted {{len(data.split())}} words")
+    return {"main.py": (
+        "import hashlib, json, sys\n"
+        "if len(sys.argv) > 1:\n"
+        "    raw = open(sys.argv[1], 'rb').read()\n"
+        "    lines = raw.count(b'\\n') + (0 if raw.endswith(b'\\n') or not raw else 1)\n"
+        "    print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),"
+        " 'bytes': len(raw), 'lines': lines, 'type': 'text'}))\n"
+        "else:\n"
+        f"    data = sys.stdin.read()\n"
+        f'    print(f"{body}")\n'
+        f"{tail}"
+        f"    sys.exit({exit_code})\n"
+    )}
+
+
+class TestCraftRuns(CraftMixin, unittest.TestCase):
+    """The runs check — the reference engine's RunsCheck ported to the file
+    kind: recorded sample runs, judged input by input."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.d = Path(self._td.name)
+        self.ledger = WorkLedger()
+        self.target = self.d / "counter.py"
+        self.target.write_text(COUNTER_ORIG)
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _job(self, max_rounds=6):
+        job = self._open_file_job(self.d / f"j{self._n if '_n' in dir(self) else 1}",
+                                  self.target, max_rounds=max_rounds)
+        return job
+
+    def _opened(self, max_rounds=6):
+        self._n = getattr(self, "_n", 0) + 1
+        job = self._open_file_job(self.d / f"j{self._n}", self.target,
+                                  max_rounds=max_rounds)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        return job
+
+    def _run(self, job, files):
+        job.build(worker="agent-worker", files=files, ledger=self.ledger, day=1)
+        return job.check(ledger=self.ledger, day=1)
+
+    def test_study_records_sample_runs(self):
+        job = self._opened()
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        self.assertEqual(len(facts["runs"]), 2)
+        self.assertEqual(facts["runs"][0]["name"], "no input")
+        self.assertEqual(facts["runs"][0]["returncode"], 0)
+        self.assertIn("counter counted 0 words", facts["runs"][0]["stdout"])
+        self.assertEqual(len(list((self.d / "j1" / "evidence").glob("*.json"))), 2)
+
+    def test_an_honest_rebuild_prints_what_the_original_prints(self):
+        job = self._opened()
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        result = self._run(job, counter_program(facts))
+        self.assertTrue(result["passed"], result["note"])
+        exits = next(c for c in result["claims"]
+                     if c["title"].startswith("with no input, it exits"))
+        prints = next(c for c in result["claims"]
+                      if "prints what the original prints" in c["title"])
+        self.assertTrue(exits["passed"])
+        self.assertTrue(prints["passed"])
+        self.assertEqual(result["summary"],
+                         "about 100% like the original, 9 of 9 claims hold")
+
+    def test_a_wrong_output_is_named_by_the_runs_claim(self):
+        job = self._opened()
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        result = self._run(job, counter_program(facts, garbage=True))
+        prints = [c for c in result["claims"]
+                  if "prints what the original prints" in c["title"]]
+        self.assertTrue(any(not c["passed"] for c in prints))
+        self.assertTrue(any("% of the words match" in c["detail"]
+                            for c in prints if not c["passed"]))
+        self.assertIn("print what the original prints",
+                      " ".join(f["message"] for f in result["fixes"]))
+
+    def test_a_different_exit_is_named_by_the_runs_claim(self):
+        job = self._opened()
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        result = self._run(job, counter_program(facts, exit_code=1))
+        exits = [c for c in result["claims"]
+                 if c["title"].startswith("with no input, it exits")]
+        self.assertFalse(exits[0]["passed"])
+        self.assertIn("exits with code 1", exits[0]["detail"])
+        self.assertIn("exit the way the original does",
+                      " ".join(f["message"] for f in result["fixes"]))
+
+    def test_an_empty_build_is_refused(self):
+        job = self._opened()
+        with self.assertRaises(CraftError) as ctx:
+            job.build(worker="agent-worker", files={}, ledger=self.ledger, day=1)
+        self.assertIn("#736", str(ctx.exception))
+
+    def test_exhausted_rounds_refuse_with_remediation(self):
+        job = self._opened(max_rounds=1)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        self.assertFalse(self._run(job, counter_program(facts, garbage=True))["passed"])
+        with self.assertRaises(CraftError) as ctx:
+            job.build(worker="agent-worker",
+                      files=counter_program(facts), ledger=self.ledger, day=1)
+        self.assertIn("isn't working yet", str(ctx.exception))
+        self.assertIn("refund", str(ctx.exception))
+
+    def test_an_unwritten_project_says_so(self):
+        job = self._opened()
+        job.build(worker="agent-worker",
+                  files=counter_program(json.loads(
+                      (self.d / "j1" / "capture" / "facts.json").read_text())),
+                  ledger=self.ledger, day=1)
+        import shutil
+        shutil.rmtree(self.d / "j1" / "app")
+        result = job.check(ledger=self.ledger, day=1)
+        self.assertIn("has no files yet", result["note"])
+
+
 if __name__ == "__main__":
     unittest.main()

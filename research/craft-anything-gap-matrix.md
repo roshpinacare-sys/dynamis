@@ -35,6 +35,7 @@ function names; their side: `file:line` in the upstream repo.
 | Design values from computed styles: backgrounds, text colors, fonts, font sizes, spacing (design_values, website.rs:510) | design tokens from CSS text: colours by role, font stacks, px sizes (`design_tokens`) | **adapted** — CSS-text depth, named in the evidence record |
 | Console health + a11y: errors, failed requests, landmarks, unnamed controls, alt text, `lang` (health_notes, website.rs:385-414) | what the source shows: `images_without_alt`, `lang` (`_Page`) | **adapted** — the rest needs a browser |
 | States: menus/pop-ups pictured and paired (`pair_states`, website.rs:660+) | none | **open** |
+| Console runs recorded: per input, what it printed and how it exited (`RUNS_BRIEF`, app.rs:11; capture in runs.rs) | sample runs for Python originals: `craft_run_capture`, two inputs (no input, one line), stdout + exit recorded in `capture/facts.json` | **adapted** — two sample inputs, not a behaviour spec |
 
 ## 3 · The check, claim by claim and note by note
 
@@ -61,6 +62,9 @@ keep their split: hard claims for what the source proves, notes for guidance.
 | Page language | health note (health_notes:409) | hard claim when the original sets one | adapted |
 | Per-page likeness | PageLikeness per route + mean of screenshots (WebVisualCheck:775-790) | `pages[]` per route + mean of text likeness | adapted |
 | States claims | per-control claims (states_note:679) | **open** | open |
+| Recorded runs: same input → same output | RunsCheck, Dice ≥ `OUTPUT_ALIKE 80` over output words with both program names → "program" (runs.rs:150-190) | identical formula and normalisation (`output_words`), 2 sample inputs | **parity** |
+| Exit parity | "With {name}, it {exits with code N} like the original" (runs.rs:176) | same wording (`run_how`), timeout = still running | **parity** |
+| Round summary for people | self_check::summary: "about 93% like the original, 5 of 5 claims hold" (self_check.rs:64-73) | `result["summary"]`, same format | **parity** |
 
 ## 4 · The refine conversation
 
@@ -76,25 +80,43 @@ keep their split: hard claims for what the source proves, notes for guidance.
   runs one engine behind three surfaces: `dyn_craft` CLI, `dyn_app` HTTP/console
   (including the buyer's approve/deny), and 9 `craft_*` tools in `dyn.mcp.v1`
   beside the engine's 7. Parity.
-- **Kinds**: they ship website / app / game (kinds/{website,app,game}.rs). DYNAMIS
-  ships web / file — the file kind is the app kind honest to a stdlib check (it
-  runs the program and compares its report claim by claim). Game and firmware:
-  open, roadmap.
-- **Parallel candidate builds** (`parallel: 2`, settings.rs:158): they try two
-  builds and keep the more alike. Open: our escrow pays one worker per claim;
-  candidates become meaningful with multi-builder auctions — roadmap, named.
+- **Kinds**: they ship website / app / game (kinds/{website,app,game}.rs). The
+  app kind's four checks (app.rs:55-58) map as: BuildCheck → our report claims;
+  **RunsCheck → our runs layer, ported claim-for-claim**; ScreenshotCheck →
+  open (pixels); MechanicsCheck (Deep-mode decompile) → open, roadmap. The
+  game kind's checks (game.rs:152-159: BuildCheck, ScreenshotCheck,
+  SelfTestCheck, MechanicsCheck, CreditsCheck) are not ported. DYNAMIS ships
+  web / file.
+- **Parallel builds** (`parallel: 2`, settings.rs:158): read properly, this is
+  the RunSet limit — how many *different projects* build at once
+  (tools.rs:19: "Up to `build.parallel` projects build at once (2 by default);
+  more are queued"), not candidate builds of one target. DYNAMIS's engine
+  serves one network at a time; multi-project concurrency is an operator
+  concern, not a protocol one. (An earlier draft of this matrix misread this
+  as candidate builds — corrected after reading tools.rs and runs.rs.)
 - **What DYNAMIS adds that they do not have**: the loop is an economy — escrow
   named at open, fail-closed settlement through the protocol machine, Law-19
   refunds (zero fees, zero emission), buyer approval enforced by the money, a
   WorkLedger chain, and the settled proof published as a dyn.post.v1 post whose
   embeds carry the shipped bytes.
 
-## 6 · The honest residue
+## 7 · The engine loop, ported
+
+| Their loop behaviour | Where | Ours | Status |
+| --- | --- | --- | --- |
+| Rounds break at `max_rounds`, then the run fails with "The build isn't working yet. {why}" and a remediation (mod.rs:868-900) | same refusal, same shape: the enriched error names the round cap and points the buyer at the refund | parity |
+| The person's summary line on the ready state (mod.rs:897-899) | the check's `summary` field, their exact format | parity |
+| A build that claims work but wrote nothing: "app/ has no files yet, so the builder hasn't written the project" (#736, website.rs:730) | empty `files` refused at build() with the same citation; both checks' no-program notes carry the same prefix | parity |
+| `refine()` sends the builder back with exact values + "reply with 1-2 plain sentences on what you changed" (website.rs:195) | `refine_brief` + `statements[]` per round | parity |
+
+## 8 · The honest residue
 
 What stays open after this pass, and why: pixel screenshots and layout metrics
 (a browser cannot live in a stdlib-only server), computed-style design values,
 console/network health, interactive states, per-width anything, game and
-firmware kinds, parallel candidate builds. Each is named in the code's
+firmware kinds, Deep-mode mechanics sheets — and the runs layer's own
+limitation: two sample inputs are a sample, not a behaviour spec, which the
+runs evidence record states on its face. Each is named in the code's
 limitations fields and in the session transcript — missing evidence never
 counts as alike, and an unmeasured depth is a delta on the record, not a
 silence.
