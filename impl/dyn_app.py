@@ -336,12 +336,14 @@ class Dynamis:
         with self.lock:
             return self._craft(job_id).study(ledger=self.ledger, day=self.day)
 
-    def craft_build(self, job_id: str, worker: str, files: dict[str, str]) -> dict:
+    def craft_build(self, job_id: str, worker: str, files: dict[str, str],
+                    statement: str | None = None) -> dict:
         with self.lock:
             if worker not in self.agents:
                 raise AppError(f"worker {worker} has no passport")
             return self._craft(job_id).build(worker=worker, files=files,
-                                             ledger=self.ledger, day=self.day)
+                                             ledger=self.ledger, day=self.day,
+                                             statement=statement)
 
     def craft_check(self, job_id: str) -> dict:
         with self.lock:

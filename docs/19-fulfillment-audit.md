@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **367 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **378 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -119,7 +119,7 @@ from git, and execute what the plan needs now. Applied the same day, with eviden
   owner's filing decision with counsel — its acceptance criterion requires "no
   unresolved conflicts", and conflicts exist.
 
-Suite: **367 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
+Suite: **378 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
 
 ### Addendum 2 — the drill suite, completed (2026-11-05, continuation)
 
@@ -258,3 +258,38 @@ The suite is 367 tests green (6 new: approval gates, deny→refund, late card,
 route slugs, missing-route block, the MCP craft flow). Remaining deltas are
 named, not hidden: likeness is structural (no browser → no pixel-level
 comparison), two target kinds against their breadth.
+
+### Addendum 7 — the serious comparison: a claim-by-claim gap matrix (2026-11-06)
+
+The user's push: compare against the most serious comparison there is — read
+their check pipeline in full, not the surface. `research/craft-anything-gap-matrix.md`
+is that document: their `WebVisualCheck` read line by line
+(kinds/website.rs, 877 lines) against ours, mechanism by mechanism, with
+parity / adapted / open status and citations on both sides. Its headline
+finding: their design principle is "claims decide, notes guide" — only four
+claims exist in their web check; text, structure and design are notes. The
+depth pass ported their note layers into DYNAMIS at source-HTML depth and kept
+their split:
+
+1. **Structure** — the same 20-part PARTS table and the same
+   `200·common/(a+b)` skeleton score (website.rs:348), read from HTML source;
+   the claim fails when a whole part kind is gone or the skeleton falls below
+   the bar, partial losses stay notes.
+2. **Design tokens** — colours by role with their `same_colour` ±3-per-channel
+   tolerance (website.rs:495), main font with next/font unwrapping
+   (website.rs:502), font sizes as a note; from CSS text, named as such.
+3. **Missing words** — their ≤12 most-frequent-unused list (TextLikeness),
+   plus the 2-character word rule now matched exactly.
+4. **A11y from the source** — pictures without alt text and page language, in
+   their "worse than the original fails" direction, as hard claims.
+5. **The fixes brief** — `fixes: [{code, message}]` with exact values and the
+   `refine_brief` narrative, measured live: a builder reading only the brief
+   restored a footer, a heading and a colour to a passing round 2
+   (`records/craft-session-2026-11-06.md` §4).
+6. **Process depth** — the steps timeline in their Status vocabulary, the
+   builder's 1-2-sentence statement recorded per round, and atomic writes
+   everywhere (their `write_atomic`).
+
+The suite is 378 tests green (11 new). The residue is named in the matrix's
+§6: screenshots, computed styles, console health, states, per-width metrics,
+game/firmware kinds, parallel candidates.

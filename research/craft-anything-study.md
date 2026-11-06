@@ -149,7 +149,10 @@ the day after the study: study now crawls the start page's same-site routes
 mean, the buyer's approval cards pause the loop (build and settlement refuse
 while a card is open; only the buyer answers; deny ends for a refund), and
 the nine craft actions mount as MCP tools beside the engine's seven. The
-measured proof this mapping works is `records/craft-session-2026-11-06.md` —
+serious comparison — their check pipeline read line by line and matched
+mechanism by mechanism, parity / adapted / open with citations on both sides —
+is `research/craft-anything-gap-matrix.md`. The measured proof this mapping
+works is `records/craft-session-2026-11-06.md` —
 including its most craft-anything moment: a rebuild at **100% likeness that
 still fails its check** because one claim (the title) does not hold.
 

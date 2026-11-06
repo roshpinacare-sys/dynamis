@@ -45,9 +45,11 @@ Stdlib only (ADR-0007).
 from __future__ import annotations
 
 import argparse
+import difflib
 import hashlib
 import html as html_mod
 import json
+import os
 import re
 import subprocess
 import sys
@@ -71,6 +73,19 @@ DEFAULT_MAX_ROUNDS = 6
 DEFAULT_GOOD_ENOUGH = 90.0
 MAX_RUNTIME_S = 10
 MAX_ROUTES = 4             # same-site pages study crawls, as the reference engine's max_pages
+STRUCT_ALIKE = 80.0        # a structure claim holds at this skeleton score
+# the page's parts, in document order — the reference engine's PARTS (its
+# skeleton comes from the measured DOM; ours from the HTML source, which is
+# the honest depth a stdlib study reaches)
+PARTS: tuple[tuple[str, str], ...] = (
+    ("header", "header"), ("nav", "navigation bar"), ("main", "main area"),
+    ("footer", "footer"), ("section", "section"), ("article", "article"),
+    ("aside", "sidebar"), ("form", "form"), ("h1", "top heading"),
+    ("h2", "subheading"), ("h3", "subheading"), ("h4", "subheading"),
+    ("ul", "list"), ("ol", "list"), ("img", "image"), ("video", "video"),
+    ("button", "button"), ("input", "form field"), ("select", "form field"),
+    ("textarea", "form field"))
+PART_NAME = dict(PARTS)
 
 
 class CraftError(ValueError):
@@ -83,7 +98,8 @@ class CraftError(ValueError):
 def words(text: str) -> dict[str, int]:
     counts: dict[str, int] = {}
     for w in re.findall(r"[a-z0-9]+", text.lower()):
-        counts[w] = counts.get(w, 0) + 1
+        if len(w) >= 2:                      # the reference engine counts words of 2+ chars
+            counts[w] = counts.get(w, 0) + 1
     return counts
 
 
@@ -94,6 +110,109 @@ def alike(a: dict[str, int], b: dict[str, int]) -> float:
         return 100.0
     shared = sum(min(n, b.get(w, 0)) for w, n in a.items())
     return 200.0 * shared / total
+
+
+def missing_words(original: dict[str, int], built: dict[str, int],
+                  cap: int = 12) -> list[str]:
+    """The original's most frequent words the build never uses — the
+    reference engine's exact refinement data (at most 12, ties by word)."""
+    missing = [(w, n) for w, n in original.items() if w not in built]
+    missing.sort(key=lambda x: (-x[1], x[0]))
+    return [w for w, _ in missing[:cap]]
+
+
+def skeleton_score(a: list[str], b: list[str]) -> tuple[float, list[tuple[str, int]]]:
+    """Structure likeness, the reference engine's formula: 200 × common /
+    (a + b) over the parts in document order, plus the parts the build
+    lacks as (name, count), most-missing first, at most 6."""
+    if not a:
+        return 100.0, []
+    common = sum(m.size for m in
+                 difflib.SequenceMatcher(None, a, b,
+                                         autojunk=False).get_matching_blocks())
+    score = 200.0 * common / (len(a) + len(b))
+    missing: list[tuple[str, int]] = []
+    for name in dict.fromkeys(n for _, n in PARTS):
+        more = a.count(name) - b.count(name)
+        if more > 0:
+            missing.append((name, more))
+    missing.sort(key=lambda m: (-m[1], m[0]))
+    return score, missing[:6]
+
+
+def _hex6(c: str) -> str | None:
+    h = c.strip().lstrip("#")
+    if re.fullmatch(r"[0-9a-fA-F]{3}", h):
+        h = "".join(x * 2 for x in h)
+    return h.lower() if re.fullmatch(r"[0-9a-fA-F]{6}", h) else None
+
+
+def _rgba(c: str) -> tuple[int, int, int, float] | None:
+    """A #rrggbb(/aa) or rgb(a) colour as channels, for ±3-per-channel compares."""
+    c = c.strip().lower()
+    if c.startswith("#"):
+        h = c[1:]
+        if len(h) == 3:
+            h = "".join(x * 2 for x in h)
+        if len(h) == 6 and re.fullmatch(r"[0-9a-f]{6}", h):
+            return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 1.0)
+        if len(h) == 8 and re.fullmatch(r"[0-9a-f]{8}", h):
+            return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16),
+                    int(h[6:8], 16) / 255)
+        return None
+    m = re.fullmatch(r"rgba?\(([^)]+)\)", c)
+    if not m:
+        return None
+    parts = [p.strip() for p in m.group(1).replace("/", ",").split(",")]
+    try:
+        r, g, b = (int(float(p)) for p in parts[:3])
+        a = float(parts[3]) if len(parts) > 3 and parts[3] not in ("",) else 1.0
+        return (r, g, b, a)
+    except ValueError:
+        return None
+
+
+def same_colour(a: str, b: str) -> bool:
+    """The same colour to the eye: each channel within 3 — the reference
+    engine's tolerance for rounding in the browser."""
+    ca, cb = _rgba(a), _rgba(b)
+    if ca is None or cb is None:
+        return a.strip().lower() == b.strip().lower()
+    return all(abs(x - y) <= 3 for x, y in zip(ca[:3], cb[:3])) \
+        and abs(ca[3] - cb[3]) <= 0.02
+
+
+def family(stack: str) -> str:
+    """The first family of a CSS font stack, as a person names it."""
+    first = stack.split(",")[0].strip().strip("\"'")
+    m = re.match(r"__([A-Za-z0-9]+)_[0-9a-f]+", first)   # next/font's renamed stack
+    return m.group(1) if m else first
+
+
+def design_tokens(css: str) -> dict:
+    """Colours by role, font families and text sizes, from the page's CSS
+    text — the honest depth a no-browser study reaches (the reference
+    engine's design values come from computed styles)."""
+    colours: dict[str, set[str]] = {"backgrounds": set(), "text_colors": set()}
+    sizes: set[int] = set()
+    fonts: list[str] = []
+    for prop, value in re.findall(r"([a-z-]+)\s*:\s*([^;{}]+)", css):
+        prop, value = prop.strip().lower(), value.strip()
+        if prop == "color":
+            colours["text_colors"].update(v.strip() for v in value.split(",") if _rgba(v.strip()))
+        elif prop.startswith("background"):
+            colours["backgrounds"].update(v.strip() for v in value.split(",") if _rgba(v.strip()))
+        elif prop == "font-family" and value:
+            f = family(value)
+            if f and f not in fonts:
+                fonts.append(f)
+        elif prop == "font-size":
+            m = re.search(r"(\d+(?:\.\d+)?)px", value)
+            if m:
+                sizes.add(int(float(m.group(1))))
+    return {"backgrounds": sorted(colours["backgrounds"])[:16],
+            "text_colors": sorted(colours["text_colors"])[:16],
+            "fonts": fonts[:8], "font_sizes": sorted(sizes)[:16]}
 
 
 # --------------------------------------------------------------------------
@@ -145,9 +264,11 @@ class Evidence:
 
 
 def _ev_store(root: Path, ev: Evidence) -> str:
-    (root / "evidence").mkdir(parents=True, exist_ok=True)
-    (root / "evidence" / f"{ev.id[:20]}.json").write_text(
-        json.dumps(ev.to_dict(), indent=1, sort_keys=True) + "\n")
+    target = root / "evidence" / f"{ev.id[:20]}.json"
+    tmp = target.with_name(target.name + f".tmp{os.getpid()}")
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_text(json.dumps(ev.to_dict(), indent=1, sort_keys=True) + "\n")
+    os.replace(tmp, target)
     return ev.id
 
 
@@ -163,13 +284,28 @@ class _Page(HTMLParser):
         self.headings: list[str] = []
         self.links: list[str] = []
         self.text: list[str] = []
-        self._in_title = self._skip = 0
+        self.styles: list[str] = []
+        self.skeleton: list[str] = []
+        self.images_without_alt = 0
+        self.lang = ""
+        self._in_title = self._in_style = self._skip = 0
 
     def handle_starttag(self, tag: str, attrs) -> None:
         if tag in self._SKIP:
             self._skip += 1
+        if tag == "style":
+            self._in_style += 1
         if tag == "title":
             self._in_title += 1
+        if tag == "html":
+            self.lang = next((v for k, v in attrs if k == "lang"), "") or ""
+        if tag == "img" and not next((v for k, v in attrs if k == "alt"), ""):
+            self.images_without_alt += 1
+        for k, v in attrs:
+            if k == "style" and v:
+                self.styles.append(v)
+        if tag in PART_NAME:
+            self.skeleton.append(PART_NAME[tag])
         if re.fullmatch(r"h[1-6]", tag):
             self.headings.append("")
         if tag == "a":
@@ -180,11 +316,15 @@ class _Page(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag in self._SKIP and self._skip:
             self._skip -= 1
+        if tag == "style" and self._in_style:
+            self._in_style -= 1
         if tag == "title" and self._in_title:
             self._in_title -= 1
 
     def handle_data(self, data: str) -> None:
-        if self._in_title:
+        if self._in_style:
+            self.styles.append(data)
+        elif self._in_title:
             self.title += data
         elif not self._skip:
             if self.headings and self.headings[-1] == "":
@@ -197,10 +337,16 @@ def parse_page(html_text: str) -> dict:
     p = _Page()
     p.feed(html_text)
     text = " ".join(t for t in (s.strip() for s in p.text) if t)
+    css = " ".join(p.styles)
     return {"title": html_mod.unescape(p.title.strip()),
             "headings": [html_mod.unescape(h) for h in p.headings if h],
             "links": p.links, "text": text,
-            "word_count": len(words(text))}
+            "word_count": len(words(text)),
+            "css": css[:100_000],
+            "design": design_tokens(css),
+            "skeleton": p.skeleton,
+            "images_without_alt": p.images_without_alt,
+            "lang": p.lang}
 
 
 # --------------------------------------------------------------------------
@@ -241,7 +387,9 @@ class CraftJob:
                          "created_ms": now, "updated_ms": now,
                          "rounds": {"done": 0, "max": max_rounds},
                          "good_enough": good_enough,
-                         "checks": [], "post": None}
+                         "checks": [], "steps": [], "statements": [],
+                         "post": None}
+        self._step("study", "new", "opened; study next")
         self._save()
         ledger.append(day=day, kind="open", job_id=job_id, agent=buyer,
                       escrow_usds_muc=self.manifest["escrow_usds_muc"],
@@ -258,8 +406,8 @@ class CraftJob:
             facts, evs = self._study_web(target["ref"])
         else:
             facts, evs = self._study_file(Path(target["ref"]))
-        (capture / "facts.json").write_text(
-            json.dumps(facts, indent=1, sort_keys=True) + "\n")
+        self._atomic(capture / "facts.json",
+                     json.dumps(facts, indent=1, sort_keys=True) + "\n")
         notes = ["# What study captured", "",
                  f"Target: {target['kind']} `{target['ref']}`.",
                  f"Request: {self.manifest['request']}", "",
@@ -267,7 +415,7 @@ class CraftJob:
                  "answer carry their confidence, coverage and limitations.", ""]
         for ev in evs:
             notes.append(f"- {ev.summary} (`{ev.id[:20]}…`)")
-        (capture / "README.md").write_text("\n".join(notes) + "\n")
+        self._atomic(capture / "README.md", "\n".join(notes) + "\n")
         for ev in evs:
             _ev_store(self.root, ev)
         unknowns = [u for u in facts.get("unknowns", [])]
@@ -284,6 +432,10 @@ class CraftJob:
                        f"{len(evs)} evidence record(s), {len(unknowns)} open "
                        f"question(s). approve / deny.", kind="approval")
         self.manifest["note"] += f"; approval card open ({qid}) — the buyer decides before the build"
+        self._step("study", "inspecting", f"captured {len(evs)} evidence record(s)")
+        self._step("build", "needs_you",
+                   f"approval card {qid} open — the buyer decides")
+        self._save()
         self._save()
         ledger.append(day=day, kind="check", job_id=self.manifest["job_id"],
                       agent=self.manifest["buyer"], overall="STUDIED",
@@ -306,6 +458,9 @@ class CraftJob:
                  "link_count": len(page["links"]),
                  "same_site_links": same_site,
                  "text_words": page["word_count"], "text": page["text"][:20_000],
+                 "design": page["design"], "skeleton": page["skeleton"],
+                 "images_without_alt": page["images_without_alt"],
+                 "lang": page["lang"],
                  "routes": [], "unknowns": ["no browser ran: client-rendered content reads as its HTML source"]}
         ev = Evidence(operation="craft_web_capture", subject={"kind": "website", "name": url},
                       params={"url": url, "max_bytes": 2_000_000},
@@ -313,17 +468,24 @@ class CraftJob:
                               "title": page["title"], "headings": page["headings"],
                               "link_count": len(page["links"]),
                               "same_site_links": same_site,
-                              "word_count": page["word_count"]},
+                              "word_count": page["word_count"],
+                              "design": page["design"], "skeleton": page["skeleton"],
+                              "images_without_alt": page["images_without_alt"],
+                              "lang": page["lang"]},
                       summary=f"Fetched {url}: HTTP {status}, title “{page['title']}”, "
                               f"{len(page['headings'])} headings, {len(page['links'])} links, "
-                              f"{page['word_count']} words.",
+                              f"{page['word_count']} words, skeleton {len(page['skeleton'])} part(s), "
+                              f"{len(page['design']['backgrounds']) + len(page['design']['text_colors'])} colour(s), "
+                              f"{len(page['design']['fonts'])} font(s).",
                       confidence={"level": "high",
                                   "reason": "measured from the bytes the server returned"},
                       authority={"basis": "measured"},
                       limitations=[{"code": "no-browser",
                                     "message": "no JavaScript runs; a client-rendered page reads as its source"},
                                    {"code": "no-screenshots",
-                                    "message": "likeness is structural, not pixel-level"}],
+                                    "message": "likeness is structural, not pixel-level"},
+                                   {"code": "source-css",
+                                    "message": "design tokens come from the page's CSS text, not computed styles"}],
                       coverage={"basis": "single page", "bytes": len(body)},
                       carries_target_content=True)
         evs = [ev]
@@ -331,8 +493,8 @@ class CraftJob:
         if routes:
             (self.root / "capture" / "routes").mkdir(parents=True, exist_ok=True)
             for rt in routes:
-                (self.root / "capture" / "routes" / f"{rt['slug']}.json").write_text(
-                    json.dumps(rt, indent=1, sort_keys=True) + "\n")
+                self._atomic(self.root / "capture" / "routes" / f"{rt['slug']}.json",
+                             json.dumps(rt, indent=1, sort_keys=True) + "\n")
             facts["routes"] = [{"path": rt["path"], "slug": rt["slug"]}
                                for rt in routes]
             evs.append(Evidence(
@@ -435,7 +597,8 @@ class CraftJob:
 
     # ---------- build ----------
     def build(self, *, worker: str, files: dict[str, str],
-              ledger: WorkLedger, day: int) -> dict:
+              ledger: WorkLedger, day: int,
+              statement: str | None = None) -> dict:
         self._require(statuses=("studied", "checked_fail"))
         self._no_open_approval("the build")
         if self.manifest["status"] == "checked_fail":
@@ -461,6 +624,11 @@ class CraftJob:
         self.manifest["status"] = "built"
         self.manifest["step"] = "check"
         self.manifest["note"] = f"build recorded: {len(files)} file(s)"
+        if statement:
+            self.manifest.setdefault("statements", []).append(
+                {"round": self.manifest["rounds"]["done"] + 1,
+                 "statement": statement.strip()})
+        self._step("build", "building", self.manifest["note"])
         self._save()
         ledger.append(day=day, kind="work", job_id=self.manifest["job_id"],
                       agent=worker, files=len(files),
@@ -481,19 +649,29 @@ class CraftJob:
         result.setdefault("compared", True)
         # canonical wire is integers-only (ADR-0007): likeness rides as per-mille
         result["similarity_milli"] = int(round((result.pop("similarity", 0) or 0) * 10))
+        if not result["passed"] and result.get("fixes"):
+            result["refine_brief"] = (
+                f"Check {round_n}: your build looks {result['similarity_milli'] / 10:.0f}% "
+                f"alike ({result['note']}). Fix, biggest differences first: "
+                + "; ".join(f["message"] for f in result["fixes"])
+                + ". Build it again and reply with 1-2 plain sentences on what you changed.")
         out = self.root / "checks" / f"round-{round_n}"
         out.mkdir(parents=True, exist_ok=True)
-        (out / "result.json").write_text(
-            json.dumps(result, indent=1, sort_keys=True) + "\n")
+        self._atomic(out / "result.json",
+                     json.dumps(result, indent=1, sort_keys=True) + "\n")
         self.manifest["rounds"]["done"] = round_n
         self.manifest["checks"].append(result)
         if result["passed"]:
             self.manifest["status"] = "checked_pass"
             self.manifest["step"] = "ready"
             self.manifest["note"] = f"round {round_n}: {result['similarity_milli'] / 10:.0f}% alike, ready to settle"
+            self._step("done", "ready", self.manifest["note"])
         else:
             self.manifest["status"] = "checked_fail"
             self.manifest["note"] = f"round {round_n}: {result['note']}"
+            self._step("build", "needs_you",
+                       f"round {round_n} failed — the fixes brief names "
+                       f"{len(result.get('fixes', []))} exact fix(es)")
         self._save()
         ledger.append(day=day, kind="check", job_id=self.manifest["job_id"],
                       agent=self.manifest["worker"] or "unassigned",
@@ -505,16 +683,22 @@ class CraftJob:
     def _check_web(self, facts: dict, round_n: int) -> dict:
         page_path = self.root / "app" / "index.html"
         unknowns: list[str] = []
+        notes: list[str] = []
+        fixes: list[dict] = []
         if not page_path.is_file():
             return {"check": "web-structure", "round": round_n, "passed": False,
                     "compared": False, "note": "no app/index.html to compare",
-                    "claims": [], "unknowns": [], "artifacts": []}
+                    "claims": [], "unknowns": [], "notes": [], "fixes": [],
+                    "artifacts": []}
         built = parse_page(page_path.read_text(encoding="utf-8", errors="replace"))
-        score = alike(words(facts.get("text", "")), words(built["text"]))
+        cap_words, built_words = words(facts.get("text", "")), words(built["text"])
+        score = alike(cap_words, built_words)
         title_ok = facts.get("title", "").strip() == built["title"].strip()
-        head_ok = all(any(h.strip().lower() == bh.strip().lower()
-                          for bh in built["headings"])
-                      for h in facts.get("headings", []))
+        norm = lambda s: " ".join(s.split()).lower()  # noqa: E731
+        built_heads = {norm(h) for h in built["headings"]}
+        missing_headings = [h for h in facts.get("headings", [])
+                            if norm(h) and norm(h) not in built_heads][:8]
+        head_ok = not missing_headings
         cap_links, built_links = facts.get("link_count", 0), len(built["links"])
         link_ok = (cap_links == 0 and built_links == 0) or (
             cap_links > 0 and built_links > 0
@@ -528,13 +712,96 @@ class CraftJob:
              "detail": "" if score >= WORD_ALIKE else f"{score:.0f}%"},
             {"title": "every original heading appears in the build",
              "passed": head_ok,
-             "detail": "" if head_ok else "missing: " + ", ".join(
-                 h for h in facts.get("headings", [])
-                 if not any(h.strip().lower() == bh.strip().lower() for bh in built["headings"]))},
+             "detail": "" if head_ok else "missing: " + ", ".join(missing_headings)},
             {"title": "its link count is close to the original's",
              "passed": link_ok,
              "detail": "" if link_ok else f"original {cap_links} links, build {built_links}"},
         ]
+        if not title_ok:
+            fixes.append({"code": "title", "message":
+                          f"set the title to “{facts.get('title')}”"})
+        if score < WORD_ALIKE:
+            fixes.append({"code": "words", "message":
+                          f"match the original's visible words ({score:.0f}% now)"})
+        for h in missing_headings:
+            fixes.append({"code": "missing_heading",
+                          "message": f'add the heading "{h}"'})
+        if not link_ok:
+            fixes.append({"code": "links", "message":
+                          f"carry about the original's link count ({cap_links}; now {built_links})"})
+        m_words = missing_words(cap_words, built_words)
+        if m_words:
+            notes.append("missing frequent words: " + ", ".join(m_words))
+            fixes.append({"code": "missing_words", "message":
+                          "use the original's words: " + ", ".join(m_words[:8])})
+        # structure: the page's parts in document order, the reference engine's
+        # skeleton and its 200×common/(a+b) score — ours read from the source.
+        # Their philosophy, kept: the notes guide; the claim fails only when a
+        # whole part kind is gone or the skeleton is gutted below the bar.
+        s_score, s_missing = skeleton_score(facts.get("skeleton", []), built["skeleton"])
+        if facts.get("skeleton"):
+            s_txt = [f"{n} ×{c}" if c > 1 else f"a {n}" for n, c in s_missing]
+            kinds_gone = [n for n, _ in s_missing if built["skeleton"].count(n) == 0]
+            struct_ok = not kinds_gone and s_score >= STRUCT_ALIKE
+            claims.append({"title": "its structure (header/nav/main/footer/sections) matches",
+                           "passed": struct_ok,
+                           "detail": "" if struct_ok else
+                           f"skeleton {s_score:.0f}% alike" +
+                           ("; missing parts: " + ", ".join(s_txt) if s_txt else "")})
+            notes.append(f"structure {s_score:.0f}% alike" +
+                         (f"; missing parts: {', '.join(s_txt)}" if s_txt else ""))
+            for m in s_txt:
+                fixes.append({"code": "missing_part", "message": f"add {m} to the page"})
+        # design tokens from CSS text (their design values come from computed styles)
+        fd, bd = facts.get("design", {}), built["design"]
+        orig_cols = [("background", c) for c in fd.get("backgrounds", [])] + \
+                    [("text", c) for c in fd.get("text_colors", [])]
+        if orig_cols:
+            built_cols = bd.get("backgrounds", []) + bd.get("text_colors", [])
+            miss = [(r, c) for r, c in orig_cols
+                    if not any(same_colour(c, bc) for bc in built_cols)][:6]
+            pal_ok = not miss
+            claims.append({"title": "it uses the original's colours", "passed": pal_ok,
+                           "detail": "" if pal_ok else "missing: " + ", ".join(
+                               f"{c} ({r})" for r, c in miss)})
+            notes.append(f"design: {len(orig_cols)} colour(s), "
+                         f"{len(fd.get('fonts', []))} font(s) captured")
+            for r, c in miss:
+                fixes.append({"code": "palette",
+                              "message": f"use the original colour {c} ({r})"})
+        if fd.get("fonts") and bd.get("fonts"):
+            font_ok = fd["fonts"][0].lower() == bd["fonts"][0].lower()
+            claims.append({"title": "its main font is the original's", "passed": font_ok,
+                           "detail": "" if font_ok else
+                           f"original {fd['fonts'][0]}, build {bd['fonts'][0]}"})
+            if not font_ok:
+                fixes.append({"code": "font",
+                              "message": f"set the main font to {fd['fonts'][0]}"})
+        unused_sizes = [s for s in fd.get("font_sizes", [])[:8]
+                        if s not in bd.get("font_sizes", [])]
+        if unused_sizes:
+            notes.append("text sizes the original uses that the build doesn't: " +
+                         ", ".join(f"{s}px" for s in unused_sizes))
+        # the a11y the source shows, in the reference engine's direction:
+        # only what the build does worse than the original blocks
+        alt_ok = built["images_without_alt"] <= facts.get("images_without_alt", 0)
+        claims.append({"title": "no pictures without alt text that the original doesn't have",
+                       "passed": alt_ok,
+                       "detail": "" if alt_ok else
+                       f"{built['images_without_alt']} vs the original's "
+                       f"{facts.get('images_without_alt', 0)}"})
+        if not alt_ok:
+            fixes.append({"code": "alt", "message":
+                          f"give {built['images_without_alt'] - facts.get('images_without_alt', 0)} "
+                          f"picture(s) alt text"})
+        if facts.get("lang"):
+            lang_ok = bool(built["lang"])
+            claims.append({"title": "the page language is set", "passed": lang_ok,
+                           "detail": "" if lang_ok else
+                           f"the original's lang is {facts['lang']}"})
+            if not lang_ok:
+                fixes.append({"code": "lang",
+                              "message": f"set <html lang> to {facts['lang']}"})
         if not facts.get("text"):
             unknowns.append("the original's visible text was never captured — likeness cannot be judged")
         # the studied routes, page by page — a page the build lacks is not alike
@@ -553,6 +820,8 @@ class CraftJob:
             if not bp.is_file():
                 pages.append({"name": rt["path"], "compared": False, "similarity_milli": 0})
                 unknowns.append(f"{rt['path']} couldn't be compared — the build has no routes/{slug}.html")
+                fixes.append({"code": "route_missing",
+                              "message": f"add the studied page {rt['path']} as routes/{slug}.html"})
                 continue
             bpage = parse_page(bp.read_text(encoding="utf-8", errors="replace"))
             pscore = alike(words(full["text"]), words(bpage["text"]))
@@ -570,11 +839,14 @@ class CraftJob:
             route_claims.append(
                 {"title": f"every studied page is at least {WORD_ALIKE:.0f}% alike",
                  "passed": not low, "detail": "" if not low else "low: " + ", ".join(low)})
+            for pg in pages:
+                if pg["compared"] and pg["similarity_milli"] / 10 < WORD_ALIKE:
+                    fixes.append({"code": "route_low", "message":
+                                  f"match {pg['path']}'s words ({pg['similarity_milli'] / 10:.0f}% now)"})
         claims.extend(route_claims)
         scores = [score] + route_scores
         similarity = round(sum(scores) / len(scores), 1)
-        hard_ok = title_ok and head_ok and link_ok and score >= WORD_ALIKE \
-            and all(c["passed"] for c in route_claims)
+        hard_ok = all(c["passed"] for c in claims)
         bar = self.manifest["good_enough"]
         passed = hard_ok and similarity >= bar and not unknowns
         note = f"{similarity:.0f}% alike" + (
@@ -583,16 +855,20 @@ class CraftJob:
              else " — claims fail: " + ", ".join(c["title"] for c in claims if not c["passed"])))
         return {"check": "web-structure", "round": round_n, "passed": passed,
                 "similarity": similarity, "note": note, "claims": claims,
-                "unknowns": unknowns, "pages": pages,
+                "unknowns": unknowns, "notes": notes, "fixes": fixes,
+                "pages": pages, "missing_words": m_words,
+                "missing_headings": missing_headings,
                 "artifacts": ["app/index.html"]}
 
     def _check_file(self, facts: dict, round_n: int) -> dict:
         program = self.root / "app" / "main.py"
         unknowns: list[str] = []
+        fixes: list[dict] = []
         if not program.is_file():
             return {"check": "app-runs", "round": round_n, "passed": False,
                     "compared": False, "note": "no app/main.py to run",
-                    "claims": [], "unknowns": [], "artifacts": []}
+                    "claims": [], "unknowns": [], "notes": [], "fixes": [],
+                    "artifacts": []}
         t0 = time.monotonic()
         proc = subprocess.run([sys.executable, str(program), facts["path"]],
                               capture_output=True, text=True, timeout=MAX_RUNTIME_S)
@@ -620,6 +896,20 @@ class CraftJob:
             {"title": "it reports the same content hash", "passed": sha_ok,
              "detail": "" if sha_ok else "content hash differs"},
         ]
+        if not runs_ok:
+            fixes.append({"code": "runtime", "message":
+                          f"run cleanly under {MAX_RUNTIME_S}s (exit {proc.returncode})"})
+        if not bytes_ok:
+            fixes.append({"code": "bytes", "message":
+                          f"report the same byte size (the original's is {facts['bytes']})"})
+        if not lines_ok:
+            fixes.append({"code": "lines", "message":
+                          f"report the same line count (the original's is {facts['lines']})"})
+        if not type_ok:
+            fixes.append({"code": "type", "message":
+                          f"identify the same type (the original's is {facts['type']})"})
+        if not sha_ok:
+            fixes.append({"code": "sha", "message": "report the same content hash"})
         score = alike(words(json.dumps(
             {k: facts[k] for k in ("sha256", "bytes", "lines", "type")},
             sort_keys=True)), words(proc.stdout)) if got else 0.0
@@ -632,7 +922,8 @@ class CraftJob:
                 else " — claims fail"))
         return {"check": "app-runs", "round": round_n, "passed": passed,
                 "similarity": similarity, "note": note, "claims": claims,
-                "unknowns": unknowns, "artifacts": ["app/main.py"]}
+                "unknowns": unknowns, "notes": [], "fixes": fixes,
+                "artifacts": ["app/main.py"]}
 
     # ---------- ready: the money, fail-closed on the evidence ----------
     def settle(self, *, ledger: WorkLedger, day: int, persona: str = "craft.worker",
@@ -715,8 +1006,8 @@ class CraftJob:
                        author=self.manifest["worker"] or "unassigned", day=day)
         pdir = self.root / "post"
         pdir.mkdir(exist_ok=True)
-        (pdir / "post.wire.json").write_text(
-            json.dumps(wire, indent=1, sort_keys=True) + "\n")
+        self._atomic(pdir / "post.wire.json",
+                     json.dumps(wire, indent=1, sort_keys=True) + "\n")
         self.manifest["post"] = {"wire": "post/post.wire.json",
                                  "embeds": len(wire["embeds"])}
         self._save()
@@ -726,7 +1017,7 @@ class CraftJob:
     def _ask(self, qid: str, question: str, kind: str = "question") -> None:
         inbox = self.root / "inbox"
         inbox.mkdir(parents=True, exist_ok=True)
-        (inbox / f"{qid}.json").write_text(json.dumps(
+        self._atomic(inbox / f"{qid}.json", json.dumps(
             {"id": qid, "kind": kind, "question": question,
              "status": "open", "answer": "", "answered_by": ""},
             indent=1, sort_keys=True) + "\n")
@@ -770,20 +1061,48 @@ class CraftJob:
             answer = answer.strip().lower()
             if answer not in ("approve", "deny"):
                 raise CraftError("an approval card is answered approve or deny")
+        if item.get("kind") == "approval":
+            if not by:
+                raise CraftError("an approval card names its answerer — pass by=<buyer>")
+            if by != self.manifest["buyer"]:
+                raise CraftError(f"only the buyer ({self.manifest['buyer']}) may answer "
+                                 f"an approval card, not {by}")
+            answer = answer.strip().lower()
+            if answer not in ("approve", "deny"):
+                raise CraftError("an approval card is answered approve or deny")
             if answer == "deny":
                 self.manifest["status"] = "denied"
                 self.manifest["note"] = f"denied by the buyer ({qid}) — the loop ends, escrow returns via refund"
+                self._step("check", "stopped", self.manifest["note"])
                 self._save()
+            else:
+                self._step("build", "new",
+                           f"the buyer approved ({qid}) — the build may start")
         item["status"] = "answered"
         item["answer"] = answer
         item["answered_by"] = by or "unknown"
-        p.write_text(json.dumps(item, indent=1, sort_keys=True) + "\n")
+        self._atomic(p, json.dumps(item, indent=1, sort_keys=True) + "\n")
         if item.get("kind") == "approval" and ledger is not None:
             ledger.append(day=day, kind="approve", job_id=self.manifest["job_id"],
                           agent=by or "unknown", decision=answer, card=qid)
         return item
 
     # ---------- plumbing ----------
+    def _step(self, step: str, status: str, detail: str) -> None:
+        """The loop's timeline, in the reference engine's Status vocabulary
+        (new / inspecting / building / checking / needs_you / ready / stopped)."""
+        self.manifest.setdefault("steps", []).append(
+            {"step": step, "status": status, "detail": detail,
+             "at_ms": int(time.time() * 1000)})
+
+    def _atomic(self, path: Path, text: str) -> None:
+        """Write-then-rename, as the reference engine writes everything:
+        a reader never sees half a file."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + f".tmp{os.getpid()}")
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)
+
     def _require(self, statuses: tuple[str, ...]) -> None:
         if not self.manifest:
             raise CraftError(f"{self.root} is not a craft job — run open first")
@@ -794,8 +1113,8 @@ class CraftJob:
     def _save(self) -> None:
         self.root.mkdir(parents=True, exist_ok=True)
         self.manifest["updated_ms"] = int(time.time() * 1000)
-        self.manifest_path.write_text(
-            json.dumps(self.manifest, indent=1, sort_keys=True) + "\n")
+        self._atomic(self.manifest_path,
+                     json.dumps(self.manifest, indent=1, sort_keys=True) + "\n")
 
 
 # --------------------------------------------------------------------------
@@ -817,6 +1136,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("study"); p.add_argument("root"); p.add_argument("--day", type=int, default=1)
     p = sub.add_parser("build"); p.add_argument("root"); p.add_argument("--worker", required=True)
     p.add_argument("--files", required=True, help="JSON object: name -> content")
+    p.add_argument("--statement", help="1-2 plain sentences on what changed")
     p.add_argument("--day", type=int, default=1)
     p = sub.add_parser("check"); p.add_argument("root"); p.add_argument("--day", type=int, default=1)
     p = sub.add_parser("settle"); p.add_argument("root"); p.add_argument("--day", type=int, default=1)

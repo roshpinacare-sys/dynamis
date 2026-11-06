@@ -1,4 +1,4 @@
-# The craft session — 2026-11-06 14:29 UTC
+# The craft session — 2026-11-06 16:04 UTC
 
 `dyn.craft.v1` on the live network (pattern credit: storytold/craft-anything):
 study a target with evidence behind every answer, build a version, check how
@@ -10,7 +10,7 @@ number is read off the running process.
 ## 1 · The first craft job — a dataset, studied, built wrong, refused
 
 ```
-study: 1 evidence record(s) (ev_b6e9dcbadb5829f08…), 1 open question(s)
+study: 1 evidence record(s) (ev_b02ab71afc7681024…), 1 open question(s)
 captured: 7241 bytes, 605 lines, type json, sha256 53e9a631874b06bf…
 the loop pauses on the buyer's card: q-002 — “Approve the study and release the build? Escrow 500 USDS; …”
 ```
@@ -48,7 +48,23 @@ per page: start 100% · /loop 100%, /pay 100%
 settle: payout 475,000,000 µ¢ · emitted 200,000,000,000 DYN µ
 ```
 
-## 4 · One failing claim blocks readiness however alike the rest looks
+## 4 · The fixes brief — the refine conversation, with exact values
+
+A styled page — colours, a font, a skeleton, alt text, a lang. The first
+build drops the footer, the “Check” heading and the text colour. The
+check's fixes brief names each exact fix; the builder reads only the
+brief and restores them for a passing round 2:
+
+```
+study: HTTP 200, title “Field Notes — Styled”, 4 colour(s), 1 font(s), 11 part(s) in the skeleton
+round 1: FAIL · similarity 96% · claims fail: every original heading appears in the build, its structure (header/nav/main/footer/sections) matches, it uses the original's colours
+fixes (5): add the heading "Check" · use the original's words: dyn · add a footer to the page · add a subheading to the page · use the original colour #1a1a2e (text)
+refine brief: “Check 1: your build looks 96% alike (96% alike — claims fail: every original heading appea…”
+round 2: PASS · similarity 100% · claims 9/9
+settle: payout 475,000,000 µ¢ · emitted 200,000,000,000 DYN µ
+```
+
+## 5 · One failing claim blocks readiness however alike the rest looks
 
 The web build with the wrong title — identical text, so likeness stays 100%,
 and the check still refuses (and a missing route page would refuse too):
@@ -57,7 +73,7 @@ and the check still refuses (and a missing route page would refuse too):
 round 1: similarity 100% — FAIL (100% alike — claims fail: its title matches the original, every studied page…)
 ```
 
-## 5 · MCP parity — the same loop as tools any agent mounts
+## 6 · MCP parity — the same loop as tools any agent mounts
 
 The dyn.mcp.v1 stdio server now carries the craft loop as nine tools beside
 the engine's seven — one engine, three surfaces, as the reference engine
@@ -69,11 +85,11 @@ craft flow via MCP: check PASS, similarity 100%
 craft_settle via MCP: payout 475,000,000 µ¢, emitted 200,000,000,000 DYN µ
 ```
 
-## 6 · The chain of record — the craft loop writes the same ledger
+## 7 · The chain of record — the craft loop writes the same ledger
 
 ```
-work ledger: True · 23 entries · Law-19 invariant: settled 1,000,000,000 µ¢ → emitted 400,000,000,000 DYN µ · holds: True
-session: 4 craft jobs · craft payouts 950,000,000 µ¢ · 1 refund, fees 0, emission 0
+work ledger: True · 32 entries · Law-19 invariant: settled 1,500,000,000 µ¢ → emitted 600,000,000,000 DYN µ · holds: True
+session: 5 craft jobs · craft payouts 1,425,000,000 µ¢ · 1 refund, fees 0, emission 0
 ```
 
 ## Named limitations — on the record
@@ -84,6 +100,9 @@ session: 4 craft jobs · craft payouts 950,000,000 µ¢ · 1 refund, fees 0, emi
   as its HTML source; this is in every web evidence record's limitations.
 - Study crawls up to 4 same-site routes (the reference engine's default
   max_pages); deeper pages are not studied in v1.
+- Structure, design tokens and the a11y claims read the HTML source and
+  its CSS text; the reference engine measures computed styles and pixel
+  screenshots per width — that depth needs a browser and stays named-open.
 - Signatures are HSM stand-ins; the price/reference-band note from the
   product session carries over to everything compute-priced.
 

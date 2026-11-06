@@ -3,12 +3,13 @@
 
 The user's ask: adopt craft-anything's loop — study a target with evidence
 behind every answer, build a version, check how alike it is, refine — and make
-it pay. This session is the proof it runs on the network, including the three
+it pay. This session is the proof it runs on the network, including the
 refinements the loop grew after the first study: the buyer's approval cards,
-multi-page web likeness (same-site routes, per-page scores), and MCP parity
-(the same actions as tools). Job one is built wrong and the machine refuses to
-pay it; the corrected rebuild, a multi-page web rebuild and the MCP flow
-settle. Every number is read off the running process.
+multi-page web likeness, the fixes brief that drives a refine round with
+exact values, and MCP parity (the same actions as tools). Job one is built
+wrong and the machine refuses to pay it; the corrected rebuild, a multi-page
+rebuild, a fixes-driven refine and the MCP flow settle. Every number is read
+off the running process.
 
   python3 scripts/craft_session.py --out records/craft-session-<date>.md
 
@@ -18,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import tempfile
 import threading
@@ -39,6 +41,19 @@ match yet; missing evidence never counts as alike.</p>
 <a href="/loop">the loop</a> <a href="/pay">the payout</a></body></html>"""
 
 BROKEN_BUILD = TARGET_PAGE.replace("DYNAMIS Field Notes", "Something Else")
+
+STYLED_PAGE = """<!doctype html><html lang=\"en\"><head><title>Field Notes — Styled</title>
+<style>
+body { background: #ffffff; color: #1a1a2e; font-family: "Inter", sans-serif; }
+h1 { font-size: 32px; color: #16213e; } h2 { font-size: 20px; }
+footer { background: #f0f0f0; }
+</style></head><body>
+<header><nav><span>notes</span></nav></header>
+<main><h1>The loop pays</h1><h2>Study</h2><p>escrow witness escrow witness settle</p>
+<h2>Check</h2><p>claims hold one by one.</p>
+<section><h3>Plans</h3><p>pricing escrow.</p></section>
+<img src="logo.png" alt="logo"><img src="chart.png" alt="chart"></main>
+<footer><p>(c) dyn</p></footer></body></html>"""
 
 
 class Client:
@@ -88,7 +103,7 @@ def main() -> int:
             pass
 
         def do_GET(self):  # noqa: N802
-            body = TARGET_PAGE.encode()
+            body = (STYLED_PAGE if self.path == "/styled" else TARGET_PAGE).encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -229,7 +244,63 @@ def main() -> int:
         f"{settlew['emitted_dyn_mu']:,} DYN µ")
     add("```")
     add("")
-    add("## 4 · One failing claim blocks readiness however alike the rest looks")
+    add("## 4 · The fixes brief — the refine conversation, with exact values")
+    add("")
+    add("A styled page — colours, a font, a skeleton, alt text, a lang. The first")
+    add("build drops the footer, the “Check” heading and the text colour. The")
+    add("check's fixes brief names each exact fix; the builder reads only the")
+    add("brief and restores them for a passing round 2:")
+    add("")
+    add("```")
+    styled_url = page_url.replace("/field-notes", "/styled")
+    c.call("POST", "/api/craft", {"buyer": "agent-buyer",
+                                  "request": "Recreate this styled page",
+                                  "target_kind": "web", "target_ref": styled_url})
+    c.call("POST", "/api/craft/craft-0004/study", {})
+    sfacts = json.loads((Path(td.name) / "craft" / "craft-0004" / "capture"
+                         / "facts.json").read_text())
+    add(f"study: HTTP {sfacts['status']}, title “{sfacts['title']}”, "
+        f"{len(sfacts['design']['backgrounds']) + len(sfacts['design']['text_colors'])} colour(s), "
+        f"{len(sfacts['design']['fonts'])} font(s), {len(sfacts['skeleton'])} part(s) in the skeleton")
+    card5 = approval_card(Path(td.name) / "craft", "craft-0004")
+    c.call("POST", "/api/craft/craft-0004/answer",
+           {"qid": card5["id"], "answer": "approve", "by": "agent-buyer"})
+    broken = (STYLED_PAGE.replace("color: #1a1a2e", "color: #123456")
+              .replace("<h2>Check</h2>", "")
+              .replace("<footer><p>(c) dyn</p></footer>", ""))
+    c.call("POST", "/api/craft/craft-0004/build",
+           {"worker": "agent-builder", "files": {"index.html": broken}})
+    rb = c.call("POST", "/api/craft/craft-0004/check", {})
+    add(f"round 1: FAIL · similarity {rb['similarity_milli'] / 10:.0f}% · claims fail: "
+        f"{', '.join(x['title'] for x in rb['claims'] if not x['passed'])}")
+    add(f"fixes ({len(rb['fixes'])}): "
+        + " · ".join(f["message"] for f in rb["fixes"][:5]))
+    add(f"refine brief: “{rb['refine_brief'][:90]}…”")
+    html_text = broken
+    for f in rb["fixes"]:                    # the builder applies the brief, nothing else
+        if f["code"] == "palette":
+            hex6 = re.search(r"#([0-9a-f]{6})", f["message"]).group(1)
+            html_text = re.sub(r"color:\s*#[0-9a-fA-F]{6}", f"color: #{hex6}",
+                               html_text, count=1)
+        elif f["code"] == "missing_heading":
+            h = re.search(r'add the heading "(.+?)"', f["message"]).group(1)
+            html_text = html_text.replace("</main>", f"<h2>{h}</h2></main>")
+        elif f["code"] == "missing_part" and "footer" in f["message"]:
+            html_text = html_text.replace(
+                "</body>", "<footer><p>(c) dyn</p></footer></body>")
+    c.call("POST", "/api/craft/craft-0004/build",
+           {"worker": "agent-builder", "files": {"index.html": html_text},
+            "statement": "restored the footer, the Check heading and the original colour"})
+    rb2 = c.call("POST", "/api/craft/craft-0004/check", {})
+    add(f"round {rb2['round']}: {'PASS' if rb2['passed'] else 'FAIL'} · similarity "
+        f"{rb2['similarity_milli'] / 10:.0f}% · claims "
+        f"{sum(x['passed'] for x in rb2['claims'])}/{len(rb2['claims'])}")
+    settles = c.call("POST", "/api/craft/craft-0004/settle", {})
+    add(f"settle: payout {settles['payout_muc']:,} µ¢ · emitted "
+        f"{settles['emitted_dyn_mu']:,} DYN µ")
+    add("```")
+    add("")
+    add("## 5 · One failing claim blocks readiness however alike the rest looks")
     add("")
     add("The web build with the wrong title — identical text, so likeness stays 100%,")
     add("and the check still refuses (and a missing route page would refuse too):")
@@ -238,18 +309,18 @@ def main() -> int:
     c.call("POST", "/api/craft", {"buyer": "agent-buyer",
                                   "request": "Recreate this site's pages",
                                   "target_kind": "web", "target_ref": page_url})
-    c.call("POST", "/api/craft/craft-0004/study", {})
-    card4 = approval_card(Path(td.name) / "craft", "craft-0004")
-    c.call("POST", "/api/craft/craft-0004/answer",
+    c.call("POST", "/api/craft/craft-0005/study", {})
+    card4 = approval_card(Path(td.name) / "craft", "craft-0005")
+    c.call("POST", "/api/craft/craft-0005/answer",
            {"qid": card4["id"], "answer": "approve", "by": "agent-buyer"})
-    c.call("POST", "/api/craft/craft-0004/build",
+    c.call("POST", "/api/craft/craft-0005/build",
            {"worker": "agent-builder", "files": {"index.html": BROKEN_BUILD}})
-    rb = c.call("POST", "/api/craft/craft-0004/check", {})
+    rb = c.call("POST", "/api/craft/craft-0005/check", {})
     add(f"round {rb['round']}: similarity {rb['similarity_milli'] / 10:.0f}% — "
         f"{'PASS' if rb['passed'] else 'FAIL'} ({rb['note'][:76]}…)")
     add("```")
     add("")
-    add("## 5 · MCP parity — the same loop as tools any agent mounts")
+    add("## 6 · MCP parity — the same loop as tools any agent mounts")
     add("")
     add("The dyn.mcp.v1 stdio server now carries the craft loop as nine tools beside")
     add("the engine's seven — one engine, three surfaces, as the reference engine")
@@ -303,7 +374,7 @@ def main() -> int:
     chain = c.call("GET", "/api/chain")
     state = c.call("GET", "/api/state")
     inv = chain["invariant"]
-    add("## 6 · The chain of record — the craft loop writes the same ledger")
+    add("## 7 · The chain of record — the craft loop writes the same ledger")
     add("")
     add("```")
     add(f"work ledger: {chain['verify']['ok']} · {chain['entries']} entries · "
@@ -321,6 +392,9 @@ def main() -> int:
     add("  as its HTML source; this is in every web evidence record's limitations.")
     add("- Study crawls up to 4 same-site routes (the reference engine's default")
     add("  max_pages); deeper pages are not studied in v1.")
+    add("- Structure, design tokens and the a11y claims read the HTML source and")
+    add("  its CSS text; the reference engine measures computed styles and pixel")
+    add("  screenshots per width — that depth needs a browser and stays named-open.")
     add("- Signatures are HSM stand-ins; the price/reference-band note from the")
     add("  product session carries over to everything compute-priced.")
     add("")
