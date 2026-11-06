@@ -34,6 +34,13 @@ def report_program(facts):
 
 
 class CraftMixin:
+    def _approve(self, job, by="agent-buyer"):
+        """The buyer answers the approval card study opened."""
+        card = json.loads((job.root / "inbox" / "q-002.json").read_text())
+        assert card["kind"] == "approval" and card["status"] == "open"
+        return job.answer(card["id"], "approve", by=by,
+                          ledger=self.ledger, day=1)
+
     def _open_file_job(self, root, target, max_rounds=6, good_enough=90.0):
         self.ledger = WorkLedger()
         job = CraftJob(root)
@@ -153,6 +160,7 @@ class TestCraftLoop(CraftMixin, unittest.TestCase):
         target = self._dataset(self.d)
         job = self._open_file_job(self.d / "j1", target)
         job.study(ledger=self.ledger, day=1)
+        self._approve(job)
         facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
         job.build(worker="agent-worker", files=report_program(facts),
                   ledger=self.ledger, day=1)
@@ -173,6 +181,7 @@ class TestCraftLoop(CraftMixin, unittest.TestCase):
         target = self._dataset(self.d)
         job = self._open_file_job(self.d / "j1", target)
         job.study(ledger=self.ledger, day=1)
+        self._approve(job)
         facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
         bad = report_program(facts)
         bad["main.py"] = bad["main.py"].replace("len(raw)", "len(raw) + 1")
@@ -190,6 +199,7 @@ class TestCraftLoop(CraftMixin, unittest.TestCase):
         target = self._dataset(self.d)
         job = self._open_file_job(self.d / "j1", target)
         job.study(ledger=self.ledger, day=1)
+        self._approve(job)
         facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
         bad = report_program(facts)
         bad["main.py"] = bad["main.py"].replace("len(raw)", "len(raw) + 1")
@@ -206,6 +216,7 @@ class TestCraftLoop(CraftMixin, unittest.TestCase):
         target = self._dataset(self.d)
         job = self._open_file_job(self.d / "j1", target, max_rounds=1)
         job.study(ledger=self.ledger, day=1)
+        self._approve(job)
         facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
         bad = report_program(facts)
         bad["main.py"] = bad["main.py"].replace("len(raw)", "len(raw) + 1")
@@ -219,6 +230,50 @@ class TestCraftLoop(CraftMixin, unittest.TestCase):
         target = self._dataset(self.d)
         job = self._open_file_job(self.d / "j1", target)
         job.study(ledger=self.ledger, day=1)
+        with self.assertRaises(CraftError):
+            job.settle(ledger=self.ledger, day=1)
+
+
+    def test_the_buyer_approves_before_the_build(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        with self.assertRaises(CraftError):
+            job.build(worker="agent-worker", files=report_program(facts),
+                      ledger=self.ledger, day=1)
+        with self.assertRaises(CraftError):          # only the buyer decides
+            job.answer("q-002", "approve", by="agent-worker",
+                       ledger=self.ledger, day=1)
+        item = self._approve(job)
+        self.assertEqual(item["answered_by"], "agent-buyer")
+        job.build(worker="agent-worker", files=report_program(facts),
+                  ledger=self.ledger, day=1)
+        kinds = [e["kind"] for e in self.ledger.entries]
+        self.assertIn("approve", kinds)
+
+    def test_a_deny_ends_the_loop_for_a_refund(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        job.answer("q-002", "deny", by="agent-buyer", ledger=self.ledger, day=1)
+        self.assertEqual(job.manifest["status"], "denied")
+        with self.assertRaises(CraftError):          # answered once — decisions are final
+            job.answer("q-002", "approve", by="agent-buyer", ledger=self.ledger, day=1)
+        back = job.refund(ledger=self.ledger, day=1)
+        self.assertEqual(back["emitted_dyn_mu"], 0)
+        self.assertEqual(self.ledger.invariant()["settled_usds_muc"], 0)
+
+    def test_a_late_card_blocks_settlement(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        job.build(worker="agent-worker", files=report_program(facts),
+                  ledger=self.ledger, day=1)
+        job.check(ledger=self.ledger, day=1)
+        job.ask_approval("Scope changed: also render the dataset as CSV — approve?")
         with self.assertRaises(CraftError):
             job.settle(ledger=self.ledger, day=1)
 
@@ -258,6 +313,7 @@ class TestWebKind(CraftMixin, unittest.TestCase):
                       target_ref=self.url, value_usds=500,
                       ledger=self.ledger, day=1)
         self.job.study(ledger=self.ledger, day=1)
+        self._approve(self.job, by="agent-buyer")
 
     def tearDown(self):
         self._td.cleanup()
@@ -271,11 +327,33 @@ class TestWebKind(CraftMixin, unittest.TestCase):
         self.assertIn("no browser ran", facts["unknowns"][0])
 
     def test_an_honest_rebuild_passes_the_likeness_bar(self):
-        self.job.build(worker="agent-worker", files={"index.html": PAGE},
+        # the build ships the start page and every studied route page
+        files = {"index.html": PAGE}
+        for rt in json.loads((self.d / "j1" / "capture" / "facts.json").read_text())["routes"]:
+            files[f"routes/{rt['slug']}.html"] = PAGE
+        self.job.build(worker="agent-worker", files=files,
                        ledger=self.ledger, day=1)
         result = self.job.check(ledger=self.ledger, day=1)
         self.assertTrue(result["passed"])
         self.assertEqual(result["similarity_milli"], 1000)
+        self.assertEqual(len(result["pages"]), 3)
+        self.assertTrue(all(pg["compared"] and pg["similarity_milli"] == 1000
+                            for pg in result["pages"]))
+        self.assertIn("across 4 page(s)", result["note"])
+
+    def test_study_crawls_same_site_routes_by_the_reference_rules(self):
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        self.assertEqual([r["slug"] for r in facts["routes"]],
+                         ["loop", "money", "posts"])   # dash-slugs, start page excluded
+        self.assertTrue((self.d / "j1" / "capture" / "routes" / "loop.json").is_file())
+
+    def test_a_missing_route_page_is_not_alike(self):
+        self.job.build(worker="agent-worker", files={"index.html": PAGE},
+                       ledger=self.ledger, day=1)
+        result = self.job.check(ledger=self.ledger, day=1)
+        self.assertFalse(result["passed"])
+        self.assertTrue(any("/loop" in u for u in result["unknowns"]))
+        self.assertFalse(result["claims"][4]["passed"])   # every studied page exists
 
     def test_one_failing_claim_blocks_readiness_however_alike(self):
         altered = PAGE.replace("<title>DYNAMIS Docs</title>", "<title>Something Else</title>")

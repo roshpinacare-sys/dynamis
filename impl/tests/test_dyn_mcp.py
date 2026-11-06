@@ -64,13 +64,15 @@ class TestMcpServer(unittest.TestCase):
         res = self.req(2, "bogus/method")
         self.assertEqual(res["error"]["code"], -32601)
 
-    def test_tools_list_exposes_seven_schematized_tools(self):
+    def test_tools_list_exposes_the_loop_schematized(self):
         res = self.req(3, "tools/list")
         names = [t["name"] for t in res["result"]["tools"]]
-        # tools/list presents the loop in execution order, not alphabetically
+        # tools/list presents both loops in execution order, not alphabetically
         self.assertEqual(names, ["dyn_job_new", "dyn_work", "dyn_check",
-                                 "dyn_settle", "dyn_refund", "dyn_post",
-                                 "dyn_status"])
+                                 "dyn_settle", "dyn_refund", "dyn_post", "dyn_status",
+                                 "craft_open", "craft_study", "craft_build", "craft_check",
+                                 "craft_settle", "craft_refund", "craft_post",
+                                 "craft_answer", "craft_view"])
         self.assertEqual(set(names), set(TOOLS))
         for t in res["result"]["tools"]:
             self.assertEqual(t["inputSchema"]["type"], "object")
@@ -138,6 +140,43 @@ class TestMcpServer(unittest.TestCase):
         self.assertEqual(st["status"], "not_a_job_folder")
 
     # ---------- real stdio: one process, newline-delimited JSON ----------
+    def test_craft_loop_runs_through_mcp_tools(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root = str(Path(td) / "craft-0001")
+            target = Path(td) / "ds.json"
+            target.write_text(json.dumps({"k": [1, 2, 3]}, indent=1) + "\n")
+            self.req(10, "tools/call", {"name": "craft_open", "arguments": {
+                "root": root, "job_id": "craft-0001", "buyer": "agent-buyer",
+                "request": "Report the facts", "target_kind": "file",
+                "target_ref": str(target), "value_usds": 500}})
+            self.req(11, "tools/call", {"name": "craft_study", "arguments": {"root": root}})
+            view = json.loads(self.req(12, "tools/call", {
+                "name": "craft_view", "arguments": {"root": root}})["result"]["content"][0]["text"])
+            self.assertEqual(view["status"], "studied")   # the approval card is open
+            facts = json.loads((Path(root) / "capture" / "facts.json").read_text())
+            program = ("import hashlib, json, sys\n"
+                       "raw = open(sys.argv[1], 'rb').read()\n"
+                       "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
+                       f"lines = {facts['lines']}\n"
+                       "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),"
+                       " 'bytes': len(raw), 'lines': lines, 'type': kind}))\n")
+            build = self.req(13, "tools/call", {"name": "craft_build", "arguments": {
+                "root": root, "worker": "agent-worker", "files": {"main.py": program}}})
+            self.assertTrue(build["result"]["isError"])    # the card blocks the build
+            self.assertIn("open", build["result"]["content"][0]["text"])
+            self.req(14, "tools/call", {"name": "craft_answer", "arguments": {
+                "root": root, "qid": "q-002", "answer": "approve", "by": "agent-buyer"}})
+            self.req(15, "tools/call", {"name": "craft_build", "arguments": {
+                "root": root, "worker": "agent-worker", "files": {"main.py": program}}})
+            chk = json.loads(self.req(16, "tools/call", {
+                "name": "craft_check", "arguments": {"root": root}})["result"]["content"][0]["text"])
+            self.assertTrue(chk["passed"])
+            self.assertEqual(chk["similarity_milli"], 1000)
+            settle = json.loads(self.req(17, "tools/call", {
+                "name": "craft_settle", "arguments": {"root": root}})["result"]["content"][0]["text"])
+            self.assertGreater(settle["payout_muc"], 0)
+
     def test_stdio_roundtrip_initialize_and_list(self):
         lines = [
             json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
@@ -152,7 +191,7 @@ class TestMcpServer(unittest.TestCase):
         replies = [json.loads(l) for l in proc.stdout.strip().splitlines()]
         self.assertEqual(len(replies), 2)           # notification stayed silent
         self.assertEqual(replies[0]["result"]["serverInfo"]["name"], "dynamis")
-        self.assertEqual(len(replies[1]["result"]["tools"]), 7)
+        self.assertEqual(len(replies[1]["result"]["tools"]), 16)
 
 
 if __name__ == "__main__":

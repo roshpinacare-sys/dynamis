@@ -165,11 +165,15 @@ class TestCraftSurface(NetMixin, unittest.TestCase):
                             "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),\n"
                             "                  'bytes': len(raw), 'lines': lines, 'type': kind}))\n")}
 
-    def _open_and_study(self):
+    def _open_and_study(self, approve=True):
         target = self._dataset(Path(self._td.name))
         self.net.open_craft(buyer="agent-alice", request="Report the facts",
                             target_kind="file", target_ref=str(target))
         self.net.craft_study("craft-0001")
+        if approve:
+            card = json.loads((Path(self._td.name) / "craft" / "craft-0001"
+                               / "inbox" / "q-002.json").read_text())
+            self.net.craft_answer("craft-0001", card["id"], "approve", "agent-alice")
         facts = json.loads((Path(self._td.name) / "craft" / "craft-0001"
                             / "capture" / "facts.json").read_text())
         return target, facts
@@ -290,6 +294,9 @@ class TestHTTPSurface(NetMixin, unittest.TestCase):
         self.assertEqual(st, 200)
         self.assertEqual(json.loads(body)["job_id"], "craft-0001")
         st, _ = self.call("/api/craft/craft-0001/study", "POST", {})
+        self.assertEqual(st, 200)
+        st, _ = self.call("/api/craft/craft-0001/answer", "POST",
+                          {"qid": "q-002", "answer": "approve", "by": "agent-fay"})
         self.assertEqual(st, 200)
         st, _ = self.call("/api/craft/craft-0001/build", "POST", {
             "worker": "agent-fay", "files": {

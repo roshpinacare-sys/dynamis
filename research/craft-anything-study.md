@@ -135,18 +135,23 @@ format can evolve without breaking old projects.
 | Evidence `ev_` ids, `verify()`, limitations, carries_target_content | same construction, canonical-JSON hash | `Evidence` |
 | capture/ · app/ · checks/round-N/ · inbox/ · craft.json | same shape + `evidence/` + `post/` (the DYNAMIS additions) | `CraftJob` |
 | Nothing-fatal study; failures said, not hidden | same; open questions become inbox items | `study`, `_ask` |
-| Every tool a CLI subcommand and MCP tool | CLI now; MCP door is `dyn_mcp` (seven network tools) | `dyn_craft.main` |
+| Every tool a CLI subcommand and MCP tool | the nine craft actions mount as MCP tools beside the engine's seven — one engine, three surfaces | `dyn_mcp._TOOLS_SPEC` |
+| Ask(Request) pauses the run for the person | approval cards in `inbox/`: study opens one; the build and settlement refuse while it is open; only the buyer answers; deny ends the loop for a refund | `CraftJob.answer` |
 | — | **the loop pays**: escrow named in the manifest, settlement through the AgentKit machine, refund = fees 0 + emission 0 (Law 19), the published proof is a dyn.post.v1 post (Law 13) | `settle` / `refund` / `post` |
 | — | **one chain of record**: craft jobs write the same WorkLedger as engine jobs and the app | `dyn_app.Dynamis` |
 
 Named deltas, honestly: the web kind's likeness is structural and textual
 (no browser runs inside a stdlib server — no pixel-level comparison, no
 screenshot states); one web/file kind today against craft-anything's
-website/app/game/firmware breadth; no human-approval UI inside the loop
-(inbox questions exist; approval cards are the app's to grow). The measured
-proof this mapping works is `records/craft-session-2026-11-06.md` — including
-its most craft-anything moment: a rebuild at **100% likeness that still fails
-its check** because one claim (the title) does not hold.
+website/app/game/firmware breadth. The first three deltas named here closed
+the day after the study: study now crawls the start page's same-site routes
+(their `pick_routes` rules, ≤4) and the check judges per-page likeness with a
+mean, the buyer's approval cards pause the loop (build and settlement refuse
+while a card is open; only the buyer answers; deny ends for a refund), and
+the nine craft actions mount as MCP tools beside the engine's seven. The
+measured proof this mapping works is `records/craft-session-2026-11-06.md` —
+including its most craft-anything moment: a rebuild at **100% likeness that
+still fails its check** because one claim (the title) does not hold.
 
 ## 8 · Sources (read in full for this study)
 

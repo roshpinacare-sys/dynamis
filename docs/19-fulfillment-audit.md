@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **361 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **367 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -119,7 +119,7 @@ from git, and execute what the plan needs now. Applied the same day, with eviden
   owner's filing decision with counsel — its acceptance criterion requires "no
   unresolved conflicts", and conflicts exist.
 
-Suite: **361 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
+Suite: **367 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
 
 ### Addendum 2 — the drill suite, completed (2026-11-05, continuation)
 
@@ -225,3 +225,36 @@ not hold. The console carries a Craft panel; the suite is 361 tests green
 (23 new). Remaining deltas are named, not hidden: structural (not pixel)
 likeness for the web kind, two target kinds today, no human approval cards
 inside the loop yet.
+
+### Addendum 6 — the craft loop's first three deltas closed (2026-11-06)
+
+Addendum 5 named what dyn.craft.v1 still lacked against the engine it
+studied. Three of those closed the same day, each measured live
+(`records/craft-session-2026-11-06.md`, `scripts/craft_session.py`):
+
+1. **Buyer approval cards inside the loop** — the craft-anything mechanism
+   that pauses a run for the person. Study opens an approval card in
+   `inbox/`; the build and settlement refuse while it is open; only the buyer
+   may answer it; a deny ends the loop for a refund (fees 0, emission 0); a
+   late `ask_approval` (scope change) blocks an otherwise-ready settlement.
+   The decision is a ledger entry (`approve`) on the same chain. Measured
+   over HTTP: build while the card is open → 400 with the card's id named.
+2. **Multi-page web likeness** — study crawls the start page's same-site
+   routes with the reference engine's `pick_routes` rules (same origin, no
+   file links, start path excluded, dash-slugs, ≤4 pages, their default
+   `max_pages`), and the check compares every studied page: per-page
+   likeness in the result (`pages`, their `PageLikeness` analog), the mean
+   as `similarity`, and a missing route page is an unknown — missing
+   evidence never counts as alike. Measured: a two-route site rebuilt with
+   its routes at 100% per page, mean 100% across 3 pages.
+3. **MCP parity** — craft-anything's most transferable decision ("every
+   tool is both a CLI subcommand and an MCP tool") now holds for the craft
+   loop: nine `craft_*` tools join the engine's seven in `dyn.mcp.v1`, the
+   same actions the CLI and the console expose, with the loop's refusals
+   (an open card, a skipped step) as tool results with isError=true. The
+   measured flow settles through the MCP dispatch itself.
+
+The suite is 367 tests green (6 new: approval gates, deny→refund, late card,
+route slugs, missing-route block, the MCP craft flow). Remaining deltas are
+named, not hidden: likeness is structural (no browser → no pixel-level
+comparison), two target kinds against their breadth.

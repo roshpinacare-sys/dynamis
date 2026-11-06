@@ -36,7 +36,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from dyn_craft import CraftJob, CraftError, MAX_ROUTES  # noqa: E402
 from dyn_engine import EngineError, WorkLoop  # noqa: E402
+from dyn_ledger import WorkLedger as CraftLedger  # noqa: E402
 from dynamis_core import usds  # noqa: E402
 
 PROTOCOL_VERSION = "2024-11-05"
@@ -103,6 +105,65 @@ def h_status(a: dict) -> dict:
             "history": [h["kind"] for h in loop.log.get("history", [])]}
 
 
+# ---- the craft loop (dyn.craft.v1): same actions as the CLI and the app ----
+def _craft_ledger() -> CraftLedger:
+    return CraftLedger()
+
+
+def h_craft_open(a: dict) -> dict:
+    m = CraftJob(a["root"]).open(
+        job_id=a["job_id"], buyer=a["buyer"], request=a["request"],
+        target_kind=a["target_kind"], target_ref=a["target_ref"],
+        value_usds=int(a.get("value_usds", 500)),
+        max_rounds=int(a.get("max_rounds", 6)),
+        good_enough=float(a.get("good_enough", 90.0)),
+        ledger=_craft_ledger(), day=int(a.get("day", 1)))
+    return {"job_id": m["job_id"], "status": m["status"],
+            "escrow_usds_muc": m["escrow_usds_muc"],
+            "rounds": m["rounds"], "good_enough": m["good_enough"]}
+
+
+def h_craft_study(a: dict) -> dict:
+    return CraftJob(a["root"]).study(ledger=_craft_ledger(), day=int(a.get("day", 1)))
+
+
+def h_craft_build(a: dict) -> dict:
+    return CraftJob(a["root"]).build(
+        worker=a["worker"], files=a["files"],
+        ledger=_craft_ledger(), day=int(a.get("day", 1)))
+
+
+def h_craft_check(a: dict) -> dict:
+    return CraftJob(a["root"]).check(ledger=_craft_ledger(), day=int(a.get("day", 1)))
+
+
+def h_craft_settle(a: dict) -> dict:
+    worker = a.get("worker", "agent-worker")
+    return CraftJob(a["root"]).settle(
+        ledger=_craft_ledger(), day=int(a.get("day", 1)),
+        persona=a.get("persona", f"{worker}.persona"),
+        keyref=a.get("keyref", f"hsm:kr-{worker}"))
+
+
+def h_craft_refund(a: dict) -> dict:
+    return CraftJob(a["root"]).refund(ledger=_craft_ledger(), day=int(a.get("day", 1)))
+
+
+def h_craft_post(a: dict) -> dict:
+    wire = CraftJob(a["root"]).post(day=int(a.get("day", 1)))
+    return {"post_id": wire["post_id"], "embeds": len(wire["embeds"])}
+
+
+def h_craft_answer(a: dict) -> dict:
+    return CraftJob(a["root"]).answer(
+        a["qid"], a["answer"], by=a.get("by"),
+        ledger=_craft_ledger(), day=int(a.get("day", 1)))
+
+
+def h_craft_view(a: dict) -> dict:
+    return dict(CraftJob(a["root"]).manifest)
+
+
 def _schema(props: dict, required: list[str]) -> dict:
     return {"type": "object", "properties": props, "required": required}
 
@@ -131,6 +192,38 @@ _TOOLS_SPEC: list[dict] = [
              ["root", "post_id"]), h_post),
     ("dyn_status", "Read the job log: status, verification class, escrow, evidence count, history.",
      _schema({"root": _ROOT["root"]}, ["root"]), h_status),
+    # ---- dyn.craft.v1: the craft loop, the same actions the CLI and the app expose ----
+    ("craft_open", "Open a craft job on a target (kind web or file) with the buyer's request in their words; escrow named in the manifest.",
+     _schema({"root": _ROOT["root"], "job_id": {"type": "string"},
+              "buyer": {"type": "string"}, "request": {"type": "string"},
+              "target_kind": {"type": "string", "enum": ["web", "file"]},
+              "target_ref": {"type": "string"},
+              "value_usds": {"type": "integer"}, "max_rounds": {"type": "integer"},
+              "good_enough": {"type": "integer"}, "day": {"type": "integer"}},
+             ["root", "job_id", "buyer", "request", "target_kind", "target_ref"]),
+     h_craft_open),
+    ("craft_study", "Capture the target: the page or file facts, same-site routes (up to 4), evidence records behind every answer; opens the buyer's approval card.",
+     _schema({"root": _ROOT["root"], "day": {"type": "integer"}}, ["root"]), h_craft_study),
+    ("craft_build", "Submit the build (files: name -> content). Refused while the buyer's approval card is open.",
+     _schema({"root": _ROOT["root"], "worker": {"type": "string"},
+              "files": {"type": "object", "additionalProperties": {"type": "string"}},
+              "day": {"type": "integer"}}, ["root", "worker", "files"]), h_craft_build),
+    ("craft_check", "Measure how alike the build is: Dice likeness, claims judged one by one, per-page likeness for web routes; unknowns block.",
+     _schema({"root": _ROOT["root"], "day": {"type": "integer"}}, ["root"]), h_craft_check),
+    ("craft_settle", "Settle the escrow on a passing check with every claim holding and no unknowns. Fail-closed.",
+     _schema({"root": _ROOT["root"], "worker": {"type": "string"},
+              "persona": {"type": "string"}, "keyref": {"type": "string"},
+              "day": {"type": "integer"}}, ["root"]), h_craft_settle),
+    ("craft_refund", "The fail path: a FAIL round or a buyer's deny — escrow returns, zero fees, zero emission.",
+     _schema({"root": _ROOT["root"], "day": {"type": "integer"}}, ["root"]), h_craft_refund),
+    ("craft_post", "Publish the settled proof as a dyn.post.v1 wire object carrying the shipped bytes.",
+     _schema({"root": _ROOT["root"], "day": {"type": "integer"}}, ["root"]), h_craft_post),
+    ("craft_answer", "Answer an inbox card. Approval cards: the buyer only, approve or deny — deny ends the loop for a refund.",
+     _schema({"root": _ROOT["root"], "qid": {"type": "string"},
+              "answer": {"type": "string"}, "by": {"type": "string"},
+              "day": {"type": "integer"}}, ["root", "qid", "answer"]), h_craft_answer),
+    ("craft_view", "Read the craft.json manifest: request, target, status, rounds, checks history, post.",
+     _schema({"root": _ROOT["root"]}, ["root"]), h_craft_view),
 ]
 TOOLS = {name: {"name": name, "description": desc, "inputSchema": schema,
                 "handler": handler}
@@ -161,6 +254,8 @@ class DynamisServer:
             else:
                 return self._err(mid, -32601, f"method not found: {method}")
         except EngineError as e:
+            result = {"content": [{"type": "text", "text": str(e)}], "isError": True}
+        except CraftError as e:
             result = {"content": [{"type": "text", "text": str(e)}], "isError": True}
         except (KeyError, TypeError, ValueError) as e:
             result = {"content": [{"type": "text", "text": f"bad arguments: {e}"}],

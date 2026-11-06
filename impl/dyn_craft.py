@@ -70,6 +70,7 @@ LINK_RATIO_TOLERANCE = 0.25
 DEFAULT_MAX_ROUNDS = 6
 DEFAULT_GOOD_ENOUGH = 90.0
 MAX_RUNTIME_S = 10
+MAX_ROUTES = 4             # same-site pages study crawls, as the reference engine's max_pages
 
 
 class CraftError(ValueError):
@@ -277,6 +278,12 @@ class CraftJob:
         self.manifest["note"] = f"study captured {len(evs)} evidence record(s)"
         if unknowns:
             self.manifest["note"] += f"; {len(unknowns)} open question(s) in inbox/"
+        qid = f"q-{len(unknowns) + 1:03d}"
+        self._ask(qid, f"Approve the study and release the build? Escrow "
+                       f"{self.manifest['escrow_usds_muc'] // 1_000_000} USDS; "
+                       f"{len(evs)} evidence record(s), {len(unknowns)} open "
+                       f"question(s). approve / deny.", kind="approval")
+        self.manifest["note"] += f"; approval card open ({qid}) — the buyer decides before the build"
         self._save()
         ledger.append(day=day, kind="check", job_id=self.manifest["job_id"],
                       agent=self.manifest["buyer"], overall="STUDIED",
@@ -299,7 +306,7 @@ class CraftJob:
                  "link_count": len(page["links"]),
                  "same_site_links": same_site,
                  "text_words": page["word_count"], "text": page["text"][:20_000],
-                 "unknowns": ["no browser ran: client-rendered content reads as its HTML source"]}
+                 "routes": [], "unknowns": ["no browser ran: client-rendered content reads as its HTML source"]}
         ev = Evidence(operation="craft_web_capture", subject={"kind": "website", "name": url},
                       params={"url": url, "max_bytes": 2_000_000},
                       result={"status": status, "headers": headers,
@@ -319,7 +326,75 @@ class CraftJob:
                                     "message": "likeness is structural, not pixel-level"}],
                       coverage={"basis": "single page", "bytes": len(body)},
                       carries_target_content=True)
-        return facts, [ev]
+        evs = [ev]
+        routes = self._study_routes(url, page["links"], facts)
+        if routes:
+            (self.root / "capture" / "routes").mkdir(parents=True, exist_ok=True)
+            for rt in routes:
+                (self.root / "capture" / "routes" / f"{rt['slug']}.json").write_text(
+                    json.dumps(rt, indent=1, sort_keys=True) + "\n")
+            facts["routes"] = [{"path": rt["path"], "slug": rt["slug"]}
+                               for rt in routes]
+            evs.append(Evidence(
+                operation="craft_web_routes", subject={"kind": "website", "name": url},
+                params={"start": url, "max_routes": MAX_ROUTES},
+                result={"routes": [{"path": rt["path"], "slug": rt["slug"],
+                                    "title": rt.get("title", ""), "error": rt.get("error")}
+                                   for rt in routes]},
+                summary=f"Crawled {len(routes)} same-site route(s) from the start page, "
+                        f"up to {MAX_ROUTES}, one level deep — same rules as the reference engine.",
+                confidence={"level": "high", "reason": "each route fetched and parsed like the start page"},
+                authority={"basis": "measured"},
+                limitations=[{"code": "crawl-breadth",
+                              "message": f"at most {MAX_ROUTES} same-site routes; deeper pages are not studied"},
+                             {"code": "no-browser", "message": "no JavaScript runs"}],
+                coverage={"basis": "sampled", "pages": 1 + len(routes)},
+                carries_target_content=True))
+        return facts, evs
+
+    def _study_routes(self, start: str, links: list[str],
+                      facts: dict) -> list[dict]:
+        """The start page's other pages, up to MAX_ROUTES — the reference
+        engine's pick_routes rules: same origin, no file links, no start path,
+        deduped by normalized path, dash-slugs."""
+        origin = f"{urlparse(start).scheme}://{urlparse(start).netloc.lower()}"
+        start_path = urlparse(start).path.rstrip("/")
+        picked: list[dict] = []
+        for href in links:
+            if len(picked) >= MAX_ROUTES:
+                break
+            absu = urljoin(start, href)
+            u = urlparse(absu)
+            if f"{u.scheme}://{u.netloc.lower()}" != origin:
+                continue
+            path = u.path or "/"
+            last = path.rsplit("/", 1)[-1]
+            if "." in last and not last.endswith((".html", ".htm")):
+                continue
+            if path.rstrip("/") == start_path:
+                continue
+            if any(r["path"].rstrip("/") == path.rstrip("/") for r in picked):
+                continue
+            slug = re.sub(r"[^a-z0-9]+", "-",
+                          path.strip("/").lower()).strip("-")
+            if not slug or any(r["slug"] == slug for r in picked):
+                continue
+            rt = {"url": f"{origin}{path}", "path": path, "slug": slug}
+            try:
+                with urllib.request.urlopen(urllib.request.Request(
+                        rt["url"], headers={"User-Agent": "dyn-craft-v1 (+protocol study)"}),
+                        timeout=20) as r:
+                    rpage = parse_page(r.read(2_000_000).decode("utf-8", "replace"))
+                rt.update({"title": rpage["title"], "headings": rpage["headings"],
+                           "links": len(rpage["links"]),
+                           "text": rpage["text"][:20_000],
+                           "word_count": rpage["word_count"]})
+            except Exception as exc:                  # a page that won't fetch is said, not hidden
+                rt["error"] = str(exc)[:120]
+                facts["unknowns"].append(
+                    f"route {path} couldn't be fetched at study — it cannot be judged")
+            picked.append(rt)
+        return picked
 
     def _study_file(self, path: Path) -> tuple[dict, list[Evidence]]:
         if not path.is_file():
@@ -362,6 +437,7 @@ class CraftJob:
     def build(self, *, worker: str, files: dict[str, str],
               ledger: WorkLedger, day: int) -> dict:
         self._require(statuses=("studied", "checked_fail"))
+        self._no_open_approval("the build")
         if self.manifest["status"] == "checked_fail":
             if self.manifest["rounds"]["done"] >= self.manifest["rounds"]["max"]:
                 raise CraftError("refinement rounds exhausted — the loop refuses a further build")
@@ -373,9 +449,11 @@ class CraftJob:
         app.mkdir(parents=True, exist_ok=True)
         recorded = {}
         for name, content in files.items():
-            if not re.fullmatch(r"[A-Za-z0-9._-]+", name) or ".." in name:
+            if (not re.fullmatch(r"[A-Za-z0-9._/-]+", name) or ".." in name
+                    or name.startswith("/") or name.endswith("/")):
                 raise CraftError(f"file name {name!r} fails the name check")
             p = app / name
+            p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(content, encoding="utf-8")
             recorded[name] = {"sha256": hashlib.sha256(content.encode()).hexdigest(),
                               "bytes": p.stat().st_size}
@@ -459,16 +537,54 @@ class CraftJob:
         ]
         if not facts.get("text"):
             unknowns.append("the original's visible text was never captured — likeness cannot be judged")
-        similarity = round(score, 1)
-        hard_ok = title_ok and head_ok and link_ok and score >= WORD_ALIKE
+        # the studied routes, page by page — a page the build lacks is not alike
+        routes = facts.get("routes", [])
+        pages: list[dict] = []
+        route_scores: list[float] = []
+        for rt in routes:
+            slug = rt["slug"]
+            full = rt if "text" in rt else json.loads(
+                (self.root / "capture" / "routes" / f"{slug}.json").read_text())
+            if full.get("error") or not full.get("text"):
+                pages.append({"name": rt["path"], "compared": False, "similarity_milli": 0})
+                unknowns.append(f"{rt['path']} couldn't be fetched at study — it cannot be judged")
+                continue
+            bp = self.root / "app" / "routes" / f"{slug}.html"
+            if not bp.is_file():
+                pages.append({"name": rt["path"], "compared": False, "similarity_milli": 0})
+                unknowns.append(f"{rt['path']} couldn't be compared — the build has no routes/{slug}.html")
+                continue
+            bpage = parse_page(bp.read_text(encoding="utf-8", errors="replace"))
+            pscore = alike(words(full["text"]), words(bpage["text"]))
+            pages.append({"name": rt["path"], "compared": True,
+                          "similarity_milli": int(round(pscore * 10))})
+            route_scores.append(pscore)
+        route_claims: list[dict] = []
+        if routes:
+            missing = [p["name"] for p in pages if not p["compared"]]
+            route_claims.append(
+                {"title": "every studied page exists in the build", "passed": not missing,
+                 "detail": "" if not missing else "missing: " + ", ".join(missing)})
+            low = [f"{p['name']} ({p['similarity_milli'] / 10:.0f}%)"
+                   for p in pages if p["compared"] and p["similarity_milli"] / 10 < WORD_ALIKE]
+            route_claims.append(
+                {"title": f"every studied page is at least {WORD_ALIKE:.0f}% alike",
+                 "passed": not low, "detail": "" if not low else "low: " + ", ".join(low)})
+        claims.extend(route_claims)
+        scores = [score] + route_scores
+        similarity = round(sum(scores) / len(scores), 1)
+        hard_ok = title_ok and head_ok and link_ok and score >= WORD_ALIKE \
+            and all(c["passed"] for c in route_claims)
         bar = self.manifest["good_enough"]
         passed = hard_ok and similarity >= bar and not unknowns
-        note = f"{similarity:.0f}% alike" + ("" if passed else
-               (" — below the good-enough bar" if hard_ok and similarity < bar
-                else " — claims fail: " + ", ".join(c["title"] for c in claims if not c["passed"])))
+        note = f"{similarity:.0f}% alike" + (
+            f" across {len(scores)} page(s)" if len(scores) > 1 else "") + ("" if passed else
+            (" — below the good-enough bar" if hard_ok and similarity < bar
+             else " — claims fail: " + ", ".join(c["title"] for c in claims if not c["passed"])))
         return {"check": "web-structure", "round": round_n, "passed": passed,
                 "similarity": similarity, "note": note, "claims": claims,
-                "unknowns": unknowns, "artifacts": ["app/index.html"]}
+                "unknowns": unknowns, "pages": pages,
+                "artifacts": ["app/index.html"]}
 
     def _check_file(self, facts: dict, round_n: int) -> dict:
         program = self.root / "app" / "main.py"
@@ -522,6 +638,7 @@ class CraftJob:
     def settle(self, *, ledger: WorkLedger, day: int, persona: str = "craft.worker",
                keyref: str = "hsm:kr-craft") -> dict:
         self._require(statuses=("checked_pass",))
+        self._no_open_approval("settlement")
         last = self.manifest["checks"][-1]
         if not last["passed"]:
             raise CraftError("settle requires a passing check — the evidence on disk decides")
@@ -561,12 +678,16 @@ class CraftJob:
         return result
 
     def refund(self, *, ledger: WorkLedger, day: int) -> dict:
-        self._require(statuses=("checked_fail",))
-        last = self.manifest["checks"][-1]
-        if last["passed"]:
-            raise CraftError("refund requires a FAIL round — the evidence on disk does not show one")
+        self._require(statuses=("checked_fail", "denied"))
+        if self.manifest["status"] == "denied":
+            note = "refunded: the buyer denied the study — escrow back, fees 0, emission 0"
+        else:
+            last = self.manifest["checks"][-1]
+            if last["passed"]:
+                raise CraftError("refund requires a FAIL round — the evidence on disk does not show one")
+            note = "refunded: the build never passed — escrow back, fees 0, emission 0"
         self.manifest["status"] = "refunded"
-        self.manifest["note"] = "refunded: the build never passed — escrow back, fees 0, emission 0"
+        self.manifest["note"] = note
         self._save()
         ledger.append(day=day, kind="refund", job_id=self.manifest["job_id"],
                       agent=self.manifest["worker"] or "unassigned",
@@ -601,22 +722,65 @@ class CraftJob:
         self._save()
         return wire
 
-    # ---------- inbox: open questions, answered in plain words ----------
-    def _ask(self, qid: str, question: str) -> None:
+    # ---------- inbox: open questions and the buyer's approval cards ----------
+    def _ask(self, qid: str, question: str, kind: str = "question") -> None:
         inbox = self.root / "inbox"
         inbox.mkdir(parents=True, exist_ok=True)
         (inbox / f"{qid}.json").write_text(json.dumps(
-            {"id": qid, "question": question, "status": "open", "answer": ""},
+            {"id": qid, "kind": kind, "question": question,
+             "status": "open", "answer": "", "answered_by": ""},
             indent=1, sort_keys=True) + "\n")
 
-    def answer(self, qid: str, answer: str) -> dict:
+    def _open_approval(self) -> str | None:
+        inbox = self.root / "inbox"
+        if not inbox.is_dir():
+            return None
+        for p in sorted(inbox.glob("*.json")):
+            item = json.loads(p.read_text())
+            if item.get("kind") == "approval" and item.get("status") == "open":
+                return item["id"]
+        return None
+
+    def _no_open_approval(self, what: str) -> None:
+        open_card = self._open_approval()
+        if open_card:
+            raise CraftError(f"{open_card} is open — the buyer approves or denies before {what}")
+
+    def ask_approval(self, question: str) -> str:
+        """A scope change mid-loop: the buyer decides before the loop goes on."""
+        qid = f"q-{len(list((self.root / 'inbox').glob('*.json'))) + 1:03d}" \
+            if (self.root / "inbox").is_dir() else "q-001"
+        self._ask(qid, question, kind="approval")
+        return qid
+
+    def answer(self, qid: str, answer: str, *, by: str | None = None,
+               ledger: WorkLedger | None = None, day: int = 1) -> dict:
         p = self.root / "inbox" / f"{qid}.json"
         if not p.is_file():
             raise CraftError(f"no such question: {qid}")
         item = json.loads(p.read_text())
+        if item["status"] != "open":
+            raise CraftError(f"{qid} is already answered — a decision is on the record once")
+        if item.get("kind") == "approval":
+            if not by:
+                raise CraftError("an approval card names its answerer — pass by=<buyer>")
+            if by != self.manifest["buyer"]:
+                raise CraftError(f"only the buyer ({self.manifest['buyer']}) may answer "
+                                 f"an approval card, not {by}")
+            answer = answer.strip().lower()
+            if answer not in ("approve", "deny"):
+                raise CraftError("an approval card is answered approve or deny")
+            if answer == "deny":
+                self.manifest["status"] = "denied"
+                self.manifest["note"] = f"denied by the buyer ({qid}) — the loop ends, escrow returns via refund"
+                self._save()
         item["status"] = "answered"
         item["answer"] = answer
+        item["answered_by"] = by or "unknown"
         p.write_text(json.dumps(item, indent=1, sort_keys=True) + "\n")
+        if item.get("kind") == "approval" and ledger is not None:
+            ledger.append(day=day, kind="approve", job_id=self.manifest["job_id"],
+                          agent=by or "unknown", decision=answer, card=qid)
         return item
 
     # ---------- plumbing ----------
@@ -660,6 +824,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("post"); p.add_argument("root"); p.add_argument("--day", type=int, default=1)
     p = sub.add_parser("answer"); p.add_argument("root"); p.add_argument("--qid", required=True)
     p.add_argument("--answer", required=True)
+    p.add_argument("--by", help="who answers (the buyer, for approval cards)")
+    p.add_argument("--day", type=int, default=1)
     sub.add_parser("demo")
     a = ap.parse_args(argv)
 
@@ -698,8 +864,9 @@ def main(argv: list[str] | None = None) -> int:
         wire = job.post(day=a.day)
         print(f"posted {wire['post_id']} — {len(wire['embeds'])} verifiable embed(s)")
     elif a.cmd == "answer":
-        item = job.answer(a.qid, a.answer)
-        print(f"{item['id']} answered")
+        item = job.answer(a.qid, a.answer, by=a.by,
+                          ledger=WorkLedger(), day=a.day)
+        print(f"{item['id']} answered ({item['kind']}) by {item['answered_by']}: {item['answer']}")
     return 0
 
 
@@ -718,6 +885,12 @@ def demo() -> int:
                       "--kind", "file", "--ref", str(target)],
                      ["study", str(root)]):
             main(args)
+        # the buyer approves the study — the card the loop pauses on
+        card = next(json.loads(p.read_text()) for p in sorted((root / "inbox").glob("*.json"))
+                    if json.loads(p.read_text())["kind"] == "approval"
+                    and json.loads(p.read_text())["status"] == "open")
+        main(["answer", str(root), "--qid", card["id"], "--answer", "approve",
+              "--by", "agent-buyer"])
         facts = json.loads((root / "capture" / "facts.json").read_text())
         main(["build", str(root), "--worker", "agent-worker", "--files", json.dumps({
             "main.py": f'''#!/usr/bin/env python3

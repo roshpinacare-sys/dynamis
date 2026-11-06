@@ -46,7 +46,7 @@ BFT_THRESHOLD = 5        # ≥ 5 of 7: BFT ≤ 1 Byzantine with 7
 WITNESSES = tuple(f"witness-{i}" for i in range(1, ACTIVE_WITNESSES + 1))
 SIG_DOMAIN = "dyn.checkpoint.sig"
 KINDS = ("open", "work", "check", "refine", "settle", "refund", "post",
-         "witness", "anchor")
+         "witness", "anchor", "approve")
 
 
 # --------------------------------------------------------------------------

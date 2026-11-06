@@ -367,6 +367,13 @@ class Dynamis:
             self.totals["escrow_back_muc"] += result["escrow_back_muc"]
             return result
 
+    def craft_answer(self, job_id: str, qid: str, answer: str, by: str | None) -> dict:
+        with self.lock:
+            if by and by not in self.agents:
+                raise AppError(f"{by} has no passport — join first")
+            return self._craft(job_id).answer(qid, answer, by=by,
+                                              ledger=self.ledger, day=self.day)
+
     def craft_post(self, job_id: str) -> dict:
         with self.lock:
             return self._craft(job_id).post(day=self.day)
@@ -418,7 +425,7 @@ ROUTES_POST = ("/api/agents", "/api/jobs", "/api/posts", "/api/follow",
                "/api/compute/allocate", "/api/compute/settle", "/api/craft")
 JOB_ACTION_RE = re.compile(r"^/api/jobs/([a-z0-9-]+)/(artifact|check|settle|refund)$")
 CRAFT_ACTION_RE = re.compile(
-    r"^/api/craft/([a-z0-9-]+)/(study|build|check|settle|refund|post)$")
+    r"^/api/craft/([a-z0-9-]+)/(study|build|check|settle|refund|post|answer)$")
 
 
 def make_handler(net: Dynamis):
@@ -527,6 +534,9 @@ def make_handler(net: Dynamis):
                         return self._json(200, net.craft_settle(job_id))
                     if action == "post":
                         return self._json(200, net.craft_post(job_id))
+                    if action == "answer":
+                        return self._json(200, net.craft_answer(
+                            job_id, body["qid"], body["answer"], body.get("by")))
                     return self._json(200, net.craft_refund(job_id))
                 if path == "/api/craft":
                     return self._json(200, net.open_craft(

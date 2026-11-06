@@ -251,6 +251,12 @@ print("evidence over claims")
           <button class="btn warn" onclick="craftRefund()">Refund</button>
           <button class="btn ghost" onclick="craftPost()">Post</button>
         </div>
+        <div class="row" style="margin-top:8px">
+          <label>card id<input id="cr-qid" placeholder="q-001"></label>
+          <button class="btn good" onclick="craftAnswer('approve')">Buyer approves</button>
+          <button class="btn warn" onclick="craftAnswer('deny')">Buyer denies</button>
+          <span class="dir">the approver is the buyer in the open form above — a deny ends the loop for a refund</span>
+        </div>
         <textarea id="cr-files" spellcheck="false" placeholder='{"index.html": "&lt;!doctype html&gt;…"} or {"main.py": "…"} — JSON object of file name to content'></textarea>
       </div>
       <div class="card"><h3>Craft jobs</h3><div id="craftlist"></div></div>
@@ -393,6 +399,10 @@ async function loadCraft(){try{const r=await api("/api/craft");
       `<td>${esc(j.buyer)} → ${esc(j.worker||"—")}</td><td>${muc(j.escrow_usds_muc)}</td>`+
       `<td>${j.rounds.done}/${j.rounds.max}</td><td>${last?(last.compared?(last.similarity_milli/10).toFixed(0)+"%":"not compared"):"—"}</td></tr>`}).join("")+"</table>"
     :`<div class="empty">No craft jobs. Point one at a target — the study captures the facts first.</div>`;refreshPills()}catch(e){flash(e.message,true)}}
+
+async function craftAnswer(decision){try{const r=await api(`/api/craft/${$("cr-job").value.trim()}/answer`,"POST",
+  {qid:$("cr-qid").value.trim(),answer:decision,by:$("cr-buyer").value.trim()});
+  flash(`${r.id} ${decision}d by ${r.answered_by}`);loadCraft()}catch(e){flash(e.message,true)}}
 
 /* ---------- chain ---------- */
 async function loadChain(){try{const c=await api("/api/chain");

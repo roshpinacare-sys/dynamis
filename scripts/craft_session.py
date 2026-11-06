@@ -3,10 +3,12 @@
 
 The user's ask: adopt craft-anything's loop — study a target with evidence
 behind every answer, build a version, check how alike it is, refine — and make
-it pay. This session is the proof it runs on the network: two craft jobs end
-to end over HTTP only. Job one fails its first check and is fixed in a
-refinement round before the escrow moves. Job two studies a served web page
-and rebuilds it. Every number is read off the running process.
+it pay. This session is the proof it runs on the network, including the three
+refinements the loop grew after the first study: the buyer's approval cards,
+multi-page web likeness (same-site routes, per-page scores), and MCP parity
+(the same actions as tools). Job one is built wrong and the machine refuses to
+pay it; the corrected rebuild, a multi-page web rebuild and the MCP flow
+settle. Every number is read off the running process.
 
   python3 scripts/craft_session.py --out records/craft-session-<date>.md
 
@@ -17,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 import threading
 import time
 import urllib.request
@@ -26,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "impl"))
 
 from dyn_app import Dynamis, make_handler  # noqa: E402
+from dyn_mcp import DynamisServer  # noqa: E402
 
 TARGET_PAGE = """<!doctype html><html><head><title>DYNAMIS Field Notes</title></head>
 <body><h1>The loop pays on evidence</h1><h2>Study</h2><p>Study captures the target
@@ -54,6 +58,16 @@ class Client:
             return {"_status": e.code, **json.loads(e.read())}
 
 
+def approval_card(root: Path, job_id: str) -> dict:
+    """The open approval card a study leaves for the buyer."""
+    inbox = Path(root) / job_id / "inbox"
+    for p in sorted(inbox.glob("*.json")):
+        item = json.loads(p.read_text())
+        if item.get("kind") == "approval" and item["status"] == "open":
+            return item
+    raise AssertionError("no open approval card")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="the craft loop on the live network")
     ap.add_argument("--out", default="records/craft-session.md")
@@ -61,7 +75,6 @@ def main() -> int:
     out = Path(ns.out)
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    import tempfile
     td = tempfile.TemporaryDirectory()
     net = Dynamis(state_root=Path(td.name))
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(net))
@@ -69,7 +82,7 @@ def main() -> int:
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     c = Client(port)
 
-    # a local page for the web kind — served, not fetched from the outside
+    # a local site for the web kind — served, not fetched from the outside
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass
@@ -92,13 +105,16 @@ def main() -> int:
     add("")
     add("`dyn.craft.v1` on the live network (pattern credit: storytold/craft-anything):")
     add("study a target with evidence behind every answer, build a version, check how")
-    add("alike it is, refine what fails — and only then does the escrow move. Job one")
-    add("is built wrong and the machine refuses to pay it; the corrected rebuild and a")
-    add("rebuilt web page settle. Every number is read off the running process.")
+    add("alike it is, refine what fails — and only then does the escrow move. This")
+    add("session also measures the three refinements the loop grew: the buyer's")
+    add("approval cards, per-page likeness for the web kind, and MCP parity. Every")
+    add("number is read off the running process.")
     add("")
 
     for who in ("agent-buyer", "agent-builder"):
         c.call("POST", "/api/agents", {"agent_id": who, "persona": f"persona-{who}"})
+
+    # ---- job one: built wrong, refused, refunded ----
     add("## 1 · The first craft job — a dataset, studied, built wrong, refused")
     add("")
     dataset = Path(td.name) / "dataset.json"
@@ -111,14 +127,21 @@ def main() -> int:
     study = c.call("POST", "/api/craft/craft-0001/study", {})
     facts = json.loads((Path(td.name) / "craft" / "craft-0001" / "capture"
                         / "facts.json").read_text())
+    card = approval_card(Path(td.name) / "craft", "craft-0001")
     add("```")
     add(f"study: {len(study['evidence'])} evidence record(s) "
         f"({study['evidence'][0][:20]}…), {len(study['unknowns'])} open question(s)")
     add(f"captured: {facts['bytes']} bytes, {facts['lines']} lines, "
         f"type {facts['type']}, sha256 {facts['sha256'][:16]}…")
+    add(f"the loop pauses on the buyer's card: {card['id']} — “{card['question'][:58]}…”")
     add("```")
     add("")
-    # round 1: the build reports the wrong byte size
+    add("Round 1 — the build's byte count is off by one. The check says so, claim")
+    add("by claim, and the loop refuses to settle on it:")
+    add("")
+    add("```")
+    c.call("POST", "/api/craft/craft-0001/answer",
+           {"qid": card["id"], "answer": "approve", "by": "agent-buyer"})
     program = ("import hashlib, json, sys\n"
                "raw = open(sys.argv[1], 'rb').read()\n"
                "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
@@ -129,10 +152,6 @@ def main() -> int:
            {"worker": "agent-builder", "files": {"main.py": program}})
     r1 = c.call("POST", "/api/craft/craft-0001/check", {})
     back = c.call("POST", "/api/craft/craft-0001/refund", {}) if not r1["passed"] else None
-    add("Round 1 — the build's byte count is off by one. The check says so, claim")
-    add("by claim, and the loop refuses to settle on it:")
-    add("")
-    add("```")
     add(f"round {r1['round']}: {'PASS' if r1['passed'] else 'FAIL'} · "
         f"similarity {r1['similarity_milli'] / 10:.0f}% · failed claims: "
         f"{'; '.join(c2['title'] for c2 in r1['claims'] if not c2['passed'])}")
@@ -141,18 +160,28 @@ def main() -> int:
             f"· emission {back['emitted_dyn_mu']} (Law 19)")
     add("```")
     add("")
-    # the corrected rebuild: a second job, opened, studied, built right, settled
+
+    # ---- job two: the buyer decides, the rebuild settles ----
+    add("## 2 · The buyer decides — and the rebuild settles with its proof published")
+    add("")
+    add("A second job. Study opens the approval card; the build is refused while it")
+    add("is open; only the buyer can answer it; an approve releases the loop:")
+    add("")
+    add("```")
     c.call("POST", "/api/craft", {"buyer": "agent-buyer",
                                   "request": "A program that reports this dataset's facts",
                                   "target_kind": "file", "target_ref": str(dataset)})
     c.call("POST", "/api/craft/craft-0002/study", {})
-    add("## 2 · The rebuild done right — settled with its proof published")
-    add("")
-    add("A second job, built correctly the first time:")
-    add("")
-    add("```")
+    card2 = approval_card(Path(td.name) / "craft", "craft-0002")
+    early = c.call("POST", "/api/craft/craft-0002/build",
+                   {"worker": "agent-builder", "files": {"main.py": "print('x')\n"}})
+    add(f"build while {card2['id']} is open → HTTP {early['_status']}: "
+        f"“{early['error'][:64]}…”")
+    c.call("POST", "/api/craft/craft-0002/answer",
+           {"qid": card2["id"], "answer": "approve", "by": "agent-buyer"})
+    good = program.replace("len(raw) + 1", "len(raw)")
     c.call("POST", "/api/craft/craft-0002/build",
-           {"worker": "agent-builder", "files": {"main.py": program.replace("len(raw) + 1", "len(raw)")}})
+           {"worker": "agent-builder", "files": {"main.py": good}})
     r2 = c.call("POST", "/api/craft/craft-0002/check", {})
     add(f"round {r2['round']}: {'PASS' if r2['passed'] else 'FAIL'} · "
         f"similarity {r2['similarity_milli'] / 10:.0f}% · claims "
@@ -165,53 +194,116 @@ def main() -> int:
     add("```")
     add("")
 
-    add("## 3 · The web kind — a served page, studied and rebuilt")
+    # ---- job three: the web kind, now multi-page ----
+    add("## 3 · The web kind, multi-page — routes studied, per-page likeness judged")
+    add("")
+    add("Study crawls the start page's same-site routes (up to 4, the reference")
+    add("engine's pick_routes rules: same origin, no file links, dash-slugs); the")
+    add("check compares every studied page and scores the mean:")
     add("")
     add("```")
-    cw = c.call("POST", "/api/craft", {"buyer": "agent-buyer",
-                                       "request": "Recreate this page's structure",
-                                       "target_kind": "web", "target_ref": page_url})
-    add(f"{cw['job_id']} opened against {page_url}")
-    sw = c.call("POST", f"/api/craft/{cw['job_id']}/study", {})
-    wfacts = json.loads((Path(td.name) / "craft" / cw["job_id"] / "capture"
+    c.call("POST", "/api/craft", {"buyer": "agent-buyer",
+                                  "request": "Recreate this site's pages",
+                                  "target_kind": "web", "target_ref": page_url})
+    sw = c.call("POST", "/api/craft/craft-0003/study", {})
+    wfacts = json.loads((Path(td.name) / "craft" / "craft-0003" / "capture"
                          / "facts.json").read_text())
-    add(f"study: HTTP {wfacts['status']}, title “{wfacts['title']}”, "
-        f"{len(wfacts['headings'])} headings, {wfacts['link_count']} links, "
-        f"{wfacts['text_words']} words · {len(sw['evidence'])} evidence record(s) · "
-        f"unknown on the record: {wfacts['unknowns'][0][:58]}…")
-    c.call("POST", f"/api/craft/{cw['job_id']}/build",
-           {"worker": "agent-builder", "files": {"index.html": TARGET_PAGE}})
-    rw = c.call("POST", f"/api/craft/{cw['job_id']}/check", {})
-    add(f"round {rw['round']}: {'PASS' if rw['passed'] else 'FAIL'} · "
-        f"similarity {rw['similarity_milli'] / 10:.0f}% · claims "
-        f"{sum(x['passed'] for x in rw['claims'])}/{len(rw['claims'])}")
-    settlew = c.call("POST", f"/api/craft/{cw['job_id']}/settle", {})
+    add(f"study: HTTP {wfacts['status']}, title “{wfacts['title']}”, routes "
+        f"{[r['path'] for r in wfacts['routes']]} · {len(sw['evidence'])} evidence record(s)")
+    card3 = approval_card(Path(td.name) / "craft", "craft-0003")
+    c.call("POST", "/api/craft/craft-0003/answer",
+           {"qid": card3["id"], "answer": "approve", "by": "agent-buyer"})
+    files = {"index.html": TARGET_PAGE}
+    for rt in wfacts["routes"]:
+        files[f"routes/{rt['slug']}.html"] = TARGET_PAGE
+    c.call("POST", "/api/craft/craft-0003/build",
+           {"worker": "agent-builder", "files": files})
+    rw = c.call("POST", "/api/craft/craft-0003/check", {})
+    pages = ", ".join(f"{pg['name']} {pg['similarity_milli'] / 10:.0f}%"
+                      for pg in rw["pages"])
+    add(f"round {rw['round']}: {'PASS' if rw['passed'] else 'FAIL'} · mean likeness "
+        f"{rw['similarity_milli'] / 10:.0f}% across {len(rw['pages']) + 1} page(s)")
+    add(f"per page: start 100% · {pages}")
+    settlew = c.call("POST", "/api/craft/craft-0003/settle", {})
     add(f"settle: payout {settlew['payout_muc']:,} µ¢ · emitted "
         f"{settlew['emitted_dyn_mu']:,} DYN µ")
     add("```")
     add("")
     add("## 4 · One failing claim blocks readiness however alike the rest looks")
     add("")
-    add("The web build with the wrong title — identical text, so likeness is 100%,")
-    add("and the check still refuses:")
+    add("The web build with the wrong title — identical text, so likeness stays 100%,")
+    add("and the check still refuses (and a missing route page would refuse too):")
     add("")
     add("```")
     c.call("POST", "/api/craft", {"buyer": "agent-buyer",
-                                  "request": "Recreate this page's structure",
+                                  "request": "Recreate this site's pages",
                                   "target_kind": "web", "target_ref": page_url})
     c.call("POST", "/api/craft/craft-0004/study", {})
+    card4 = approval_card(Path(td.name) / "craft", "craft-0004")
+    c.call("POST", "/api/craft/craft-0004/answer",
+           {"qid": card4["id"], "answer": "approve", "by": "agent-buyer"})
     c.call("POST", "/api/craft/craft-0004/build",
            {"worker": "agent-builder", "files": {"index.html": BROKEN_BUILD}})
     rb = c.call("POST", "/api/craft/craft-0004/check", {})
     add(f"round {rb['round']}: similarity {rb['similarity_milli'] / 10:.0f}% — "
-        f"{'PASS' if rb['passed'] else 'FAIL'} ({rb['note']})")
+        f"{'PASS' if rb['passed'] else 'FAIL'} ({rb['note'][:76]}…)")
     add("```")
     add("")
-
+    add("## 5 · MCP parity — the same loop as tools any agent mounts")
+    add("")
+    add("The dyn.mcp.v1 stdio server now carries the craft loop as nine tools beside")
+    add("the engine's seven — one engine, three surfaces, as the reference engine")
+    add("puts it. The flow below runs through the MCP dispatch itself:")
+    add("")
+    add("```")
+    srv = DynamisServer()
+    tools = srv.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+    names = [t["name"] for t in tools["result"]["tools"]]
+    add(f"tools/list: {len(names)} tools — craft_{''}tools: "
+        f"{[n for n in names if n.startswith('craft')]}")
+    mcp_root = Path(td.name) / "mcp-craft"
+    ds = Path(td.name) / "ds.json"
+    ds.write_text(json.dumps({"k": [1, 2, 3]}, indent=1) + "\n")
+    srv.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {
+        "name": "craft_open", "arguments": {"root": str(mcp_root), "job_id": "craft-mcp-1",
+                                            "buyer": "agent-buyer",
+                                            "request": "Report the facts",
+                                            "target_kind": "file", "target_ref": str(ds)}}})
+    srv.handle({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
+        "name": "craft_study", "arguments": {"root": str(mcp_root)}}})
+    card5 = approval_card(Path(td.name), "mcp-craft")
+    srv.handle({"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {
+        "name": "craft_answer", "arguments": {"root": str(mcp_root), "qid": card5["id"],
+                                              "answer": "approve", "by": "agent-buyer"}}})
+    mfacts = json.loads((mcp_root / "capture" / "facts.json").read_text())
+    mprog = ("import hashlib, json, sys\n"
+             "raw = open(sys.argv[1], 'rb').read()\n"
+             "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
+             f"lines = {mfacts['lines']}\n"
+             "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),"
+             " 'bytes': len(raw), 'lines': lines, 'type': kind}))\n")
+    srv.handle({"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {
+        "name": "craft_build", "arguments": {"root": str(mcp_root),
+                                             "worker": "agent-builder",
+                                             "files": {"main.py": mprog}}}})
+    chk = json.loads(srv.handle({"jsonrpc": "2.0", "id": 6, "method": "tools/call",
+                                 "params": {"name": "craft_check",
+                                            "arguments": {"root": str(mcp_root)}}}
+                                )["result"]["content"][0]["text"])
+    add(f"craft flow via MCP: check {'PASS' if chk['passed'] else 'FAIL'}, "
+        f"similarity {chk['similarity_milli'] / 10:.0f}%")
+    st = json.loads(srv.handle({"jsonrpc": "2.0", "id": 7, "method": "tools/call",
+                                "params": {"name": "craft_settle",
+                                           "arguments": {"root": str(mcp_root)}}}
+                               )["result"]["content"][0]["text"])
+    add(f"craft_settle via MCP: payout {st['payout_muc']:,} µ¢, "
+        f"emitted {st['emitted_dyn_mu']:,} DYN µ")
+    add("```")
+    add("")
     chain = c.call("GET", "/api/chain")
     state = c.call("GET", "/api/state")
     inv = chain["invariant"]
-    add("## 5 · The chain of record — the craft loop writes the same ledger")
+    add("## 6 · The chain of record — the craft loop writes the same ledger")
     add("")
     add("```")
     add(f"work ledger: {chain['verify']['ok']} · {chain['entries']} entries · "
@@ -224,14 +316,17 @@ def main() -> int:
     add("## Named limitations — on the record")
     add("")
     add("- The web kind's likeness is structural and textual (Dice over word")
-    add("  counts, claims on title/headings/links), not pixel-level: no browser")
-    add("  runs inside the stdlib server. A client-rendered page reads as its")
-    add("  HTML source; this is in every web evidence record's limitations.")
+    add("  counts, claims on title/headings/links/routes), not pixel-level: no")
+    add("  browser runs inside the stdlib server. A client-rendered page reads")
+    add("  as its HTML source; this is in every web evidence record's limitations.")
+    add("- Study crawls up to 4 same-site routes (the reference engine's default")
+    add("  max_pages); deeper pages are not studied in v1.")
     add("- Signatures are HSM stand-ins; the price/reference-band note from the")
     add("  product session carries over to everything compute-priced.")
     add("")
     add("Replayable: `python3 scripts/craft_session.py` and `python3 impl/dyn_app.py")
-    add("serve` — the console's Craft panel performs the same actions live.")
+    add("serve` — the console's Craft panel performs the same actions live, including")
+    add("the buyer's approve/deny; the same actions mount as MCP tools.")
     add("")
 
     httpd.shutdown()
