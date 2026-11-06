@@ -163,6 +163,22 @@ the award is auditable. The build gate binds the winner: only the awarded
 worker builds, across refine rounds too; a job with no bids stays open,
 exactly as before.
 
+The stake became custody, and the teeth got an economy. A bid's stake is
+no longer a figure a fresh passport types — it is held from the bidder's
+rail balance at a documented peg (1 DYN µ ↔ 1 µ¢, a stand-in for a market
+price, like the VRF stand-in for a VRF), so you bid with what you've
+earned: a fresh passport with a zero balance cannot outbid with numbers.
+Balances start at zero and grow only from honest settles — the open loop
+(no bids needed) is the on-ramp that earns the right to compete. A paid
+settle returns the winner's stake and every losing bidder's; a refund
+returns them all; and a lost dispute burns the stake — the caught forger
+doesn't just lose access, it loses money. The dispute entry now carries
+the signer's keyref and the ban lookup matches identity or key, so a kit
+that maps many ids to one key cannot wash the ban by renaming. The
+boundary is still named honestly: a fresh keypair with freshly earned
+balance is a new worker, and the MCP surface stays custody-free (the app
+is the custody layer; the loop is the protocol).
+
 ## 8 · The honest residue
 
 What stays open after this pass, and why: pixel screenshots and layout metrics

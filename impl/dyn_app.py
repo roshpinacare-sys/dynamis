@@ -41,7 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dyn_compute import Pool, ComputeError  # noqa: E402
-from dyn_craft import CraftJob, CraftError  # noqa: E402
+from dyn_craft import CraftJob, CraftError, dispute_on_record  # noqa: E402
 from dyn_bench import run_benchmark  # noqa: E402
 from dyn_engine import ARTIFACT_INVOICE_PARSER, EngineError, WorkLoop  # noqa: E402
 from dyn_ledger import WorkLedger  # noqa: E402
@@ -57,6 +57,9 @@ ROOT = Path(__file__).resolve().parent.parent
 UI_PATH = ROOT / "app" / "index.html"
 CAPABILITIES = ("social.post", "job.claim", "job.post", "compute.hire", "dm.send")
 STARTER_STAKE_DYN_MU = 2_500_000
+# the custody peg for auction stakes: 1 DYN µ of stake ↔ 1 µ¢ held — a
+# documented stand-in for a market price, like the VRF stand-in for a VRF
+STAKE_PEG_MUC_PER_MU = 1
 # the reference price band (µ¢ per ERG) — three reference witnesses until 3.1
 REFERENCE_SAMPLES = {"w-reference-1": 2200, "w-reference-2": 2400,
                      "w-reference-3": 2600}
@@ -104,7 +107,8 @@ class Dynamis:
                    "keyref": f"hsm:kr-{agent_id}", "wallet": f"pw-{agent_id}",
                    "capabilities": list(CAPABILITIES),
                    "joined_day": self.day, "balance_muc": 0,
-                   "earned_muc": 0, "stake_dyn_mu": STARTER_STAKE_DYN_MU}
+                   "earned_muc": 0, "stake_dyn_mu": STARTER_STAKE_DYN_MU,
+                   "stakes": {}}
             self.agents[agent_id] = rec
             return dict(rec)
 
@@ -341,21 +345,46 @@ class Dynamis:
         with self.lock:
             if worker not in self.agents:
                 raise AppError(f"worker {worker} has no passport")
+            ban = dispute_on_record(self.ledger, worker,
+                                    keyref=self.agents[worker]["keyref"])
+            if ban:
+                raise AppError(f"worker {worker} is banned (dispute on job {ban})")
             return self._craft(job_id).build(worker=worker, files=files,
                                              ledger=self.ledger, day=self.day,
                                              statement=statement)
 
     def craft_bid_route(self, job_id: str, body: dict) -> dict:
         """A worker applies to build: terms on the record while the buyer
-        decides; the award binds and only the awarded worker builds."""
+        decides; the award binds and only the awarded worker builds. The
+        stake is custody, not a number: it is held from the bidder's rail
+        balance at the documented peg (1 DYN µ ↔ 1 µ¢ — a stand-in for a
+        market price, like the VRF stand-in for a VRF). You bid with what
+        you've earned; a fresh passport cannot outbid with figures."""
         with self.lock:
             worker = body.get("worker", "")
             if worker not in self.agents:
                 raise AppError(f"worker {worker} has no passport")
-            return self._craft(job_id).bid(
+            rec = self.agents[worker]
+            stake = int(body.get("stake_dyn_mu", 0))
+            ban = dispute_on_record(self.ledger, worker, keyref=rec["keyref"])
+            if ban:
+                raise AppError(f"worker {worker} is banned (dispute on job {ban})")
+            if stake * STAKE_PEG_MUC_PER_MU > rec["balance_muc"]:
+                raise AppError(
+                    f"bid with what you've earned — {worker} holds "
+                    f"{rec['balance_muc']:,} µ¢, the stake asks "
+                    f"{stake:,} µ¢ at the peg")
+            out = self._craft(job_id).bid(
                 worker=worker, price_usds_muc=int(body.get("price_usds_muc", 0)),
-                stake_dyn_mu=int(body.get("stake_dyn_mu", 0)),
-                ledger=self.ledger, day=self.day)
+                stake_dyn_mu=stake, ledger=self.ledger, day=self.day)
+            rec["balance_muc"] -= stake * STAKE_PEG_MUC_PER_MU
+            rec["stakes"][job_id] = rec.get("stakes", {}).get(job_id, 0) + stake
+            self.ledger.append(day=self.day, kind="stake", job_id=job_id,
+                               agent=worker, action="hold", amount_muc=stake,
+                               balance_muc=rec["balance_muc"])
+            out["custody"] = {"held_muc": stake * STAKE_PEG_MUC_PER_MU,
+                              "balance_muc": rec["balance_muc"]}
+            return out
 
     def craft_check(self, job_id: str) -> dict:
         with self.lock:
@@ -373,6 +402,26 @@ class Dynamis:
             self.totals["craft_settled_muc"] += result["payout_muc"]
             rec["earned_muc"] += result["payout_muc"]
             rec["balance_muc"] += result["payout_muc"]
+            held = rec.get("stakes", {}).pop(job_id, 0)
+            if held:
+                if result["verdict"] == "paid":
+                    rec["balance_muc"] += held * STAKE_PEG_MUC_PER_MU
+                    action = "return"
+                else:
+                    action = "burn"      # a lost dispute forfeits the stake
+                self.ledger.append(day=self.day, kind="stake", job_id=job_id,
+                                   agent=worker, action=action, amount_muc=held,
+                                   balance_muc=rec["balance_muc"])
+            # the auction is over: every losing bidder gets its stake back
+            for w, other in self.agents.items():
+                if w == worker:
+                    continue
+                lost = other.get("stakes", {}).pop(job_id, 0)
+                if lost:
+                    other["balance_muc"] += lost * STAKE_PEG_MUC_PER_MU
+                    self.ledger.append(day=self.day, kind="stake", job_id=job_id,
+                                       agent=w, action="return", amount_muc=lost,
+                                       balance_muc=other["balance_muc"])
             return result
 
     def craft_verify_route(self, job_id: str) -> dict:
@@ -395,6 +444,14 @@ class Dynamis:
         with self.lock:
             result = self._craft(job_id).refund(ledger=self.ledger, day=self.day)
             self.totals["escrow_back_muc"] += result["escrow_back_muc"]
+            # every bidder gets their stake back — deny comes before any award
+            for w, rec in self.agents.items():
+                held = rec.get("stakes", {}).pop(job_id, 0)
+                if held:
+                    rec["balance_muc"] += held * STAKE_PEG_MUC_PER_MU
+                    self.ledger.append(day=self.day, kind="stake", job_id=job_id,
+                                       agent=w, action="return", amount_muc=held,
+                                       balance_muc=rec["balance_muc"])
             return result
 
     def craft_answer(self, job_id: str, qid: str, answer: str, by: str | None) -> dict:

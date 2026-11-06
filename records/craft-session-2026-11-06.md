@@ -1,4 +1,4 @@
-# The craft session — 2026-11-06 19:55 UTC
+# The craft session — 2026-11-06 22:20 UTC
 
 `dyn.craft.v1` on the live network (pattern credit: storytold/craft-anything):
 study a target with evidence behind every answer, build a version, check how
@@ -11,7 +11,7 @@ process.
 ## 1 · The first craft job — a dataset, studied, built wrong, refused
 
 ```
-study: 1 evidence record(s) (ev_49799db9fd7860f9e…), 1 open question(s)
+study: 1 evidence record(s) (ev_815bc25e444f8d091…), 1 open question(s)
 captured: 7241 bytes, 605 lines, type json, sha256 53e9a631874b06bf…
 the loop pauses on the buyer's card: q-002 — “Approve the study and release the build? Escrow 500 USDS; …”
 ```
@@ -99,21 +99,26 @@ card pins the facts digest at study time — a substituted input is a
 dispute even when the re-execution itself would agree; a public
 read-only verify lets anyone re-run the game; and a caught forger
 cannot build again under the same identity. Who builds is decided
-too — bids while the buyer decides, then a best-fit anti-herd award
+too — bids while the buyer decides, a best-fit anti-herd award,
+and the stake is custody: you bid with what you've earned
 
 ```
 honest: check about 100% like the original, 5 of 5 claims hold → settle verdict paid, payout 475,000,000 µ¢, leader witness-5
 forge target: check FAIL (about 0% like the original, 1 of 5 claims hold)
 forged: settle verdict disputed, payout 0 µ¢ · delivered 59edfae5aa48… ≠ re-executed 24d2ebc653af…
 public verify, read-only: honest job → verified true, facts_ok true · forged job → verified false
-the forger returns: build → HTTP 400: “agent-forger has a dispute on the chain's ledger (job cr…”
+the forger returns: build → HTTP 400: “worker agent-forger is banned (dispute on job craft-0008…”
 ```
-The auction, live — the same loop, with the builder decided by bids:
+The stake is custody, not a number — an on-ramp, then the auction:
 
 ```
-bids: agent-rival 1.8M DYN µ @ 480M µ¢ · agent-builder 2.5M @ 500M → awarded to agent-builder (stake wins; fair share breaks ties)
+the open loop is the on-ramp: agent-rival builds with no bids, settles paid 475,000,000 µ¢ — now it has something to bid with
+agent-rival bids 1.8M DYN µ — custody holds it from its earned balance (473,200,000 µ¢ left)
+agent-builder bids 2.5M (2,372,500,000 µ¢ left)
+agent-sybil — a fresh passport, zero earned — bids 999M → HTTP 400: “bid with what you've earned — agent-sybil holds 0 µ¢, th…”
+awarded to agent-builder (stake 2.5M wins; fair share breaks ties)
 the runner-up tries to build → HTTP 400: “agent-rival is not the awarded worker — agent-builde…”
-the awarded one builds: check PASS → settle verdict paid, payout 475,000,000 µ¢
+the awarded one settles paid 475,000,000 µ¢ — its stake and the runner-up's return; a lost dispute would have burned them
 ```
 
 ## 8 · MCP parity — the same loop as tools any agent mounts
@@ -131,8 +136,8 @@ craft_settle via MCP: payout 475,000,000 µ¢, emitted 200,000,000,000 DYN µ
 ## 9 · The chain of record — the craft loop writes the same ledger
 
 ```
-work ledger: True · 65 entries · Law-19 invariant: settled 3,000,000,000 µ¢ → emitted 1,200,000,000,000 DYN µ · holds: True
-session: 10 craft jobs · craft payouts 2,850,000,000 µ¢ · 1 refund, fees 0, emission 0
+work ledger: True · 75 entries · Law-19 invariant: settled 3,500,000,000 µ¢ → emitted 1,400,000,000,000 DYN µ · holds: True
+session: 11 craft jobs · craft payouts 3,325,000,000 µ¢ · 1 refund, fees 0, emission 0
 ```
 
 ## Named limitations — on the record

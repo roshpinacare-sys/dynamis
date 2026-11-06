@@ -928,6 +928,157 @@ class TestDurabilityAndProofs(unittest.TestCase):
                 proof, root))
 
 
+class TestStakeBecomesCustody(unittest.TestCase):
+    """The stake is custody, not a number: held from the bidder's balance at
+    the documented peg, returned on a paid settle, burned on a lost
+    dispute, returned to every bidder on refund. You bid with what you've
+    earned."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.sd = Path(self._td.name)
+        from dyn_app import Dynamis
+        self.net = Dynamis(state_root=self.sd)
+        for who in ("agent-buyer", "agent-earned", "agent-sybil"):
+            self.net.join(who, f"persona-{who}")
+        self.target = self.sd / "dataset.json"
+        self.target.write_text(json.dumps({"rows": [{"n": i} for i in range(40)]}) + "\n")
+        self.net.open_craft(buyer="agent-buyer", request="A program that reports this dataset's facts",
+                            target_kind="file", target_ref=str(self.target))
+        self.net.craft_study("craft-0001")
+        self.card = next(p for p in (self.sd / "craft" / "craft-0001" / "inbox").glob("*.json")
+                         if json.loads(p.read_text())["kind"] == "approval")
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _fund(self, who, muc):
+        self.net.agents[who]["balance_muc"] = muc
+
+    def _bid(self, worker, stake):
+        return self.net.craft_bid_route("craft-0001", {"worker": worker,
+                                                       "price_usds_muc": 500_000_000,
+                                                       "stake_dyn_mu": stake})
+
+    def _facts(self):
+        return json.loads((self.sd / "craft" / "craft-0001" / "capture" / "facts.json").read_text())
+
+    def test_you_bid_with_what_youve_earned(self):
+        from dyn_app import AppError
+        with self.assertRaisesRegex(AppError, "bid with what you've earned"):
+            self._bid("agent-sybil", stake=999_000_000)
+        self._fund("agent-sybil", 2_000_000)
+        with self.assertRaisesRegex(AppError, "the stake asks 2,500,000"):
+            self._bid("agent-sybil", stake=2_500_000)
+        self._fund("agent-earned", 5_000_000)
+        self._bid("agent-earned", stake=1_800_000)
+        rec = self.net.agents["agent-earned"]
+        self.assertEqual(rec["balance_muc"], 3_200_000)
+        self.assertEqual(rec["stakes"]["craft-0001"], 1_800_000)
+        self.assertIn(("stake"), [e["kind"] for e in self.net.ledger.entries])
+        with self.assertRaisesRegex(Exception, "on the record once"):
+            self._bid("agent-earned", stake=100_000)
+        self.assertEqual(rec["balance_muc"], 3_200_000, "a refused bid holds nothing")
+
+    def test_a_paid_settle_returns_the_stake(self):
+        self.net.join("agent-two", "persona-two")
+        self._fund("agent-two", 2_000_000)
+        self.net.craft_bid_route("craft-0001", {"worker": "agent-two",
+                                                "price_usds_muc": 500_000_000,
+                                                "stake_dyn_mu": 1_200_000})
+        self._fund("agent-earned", 5_000_000)
+        self._bid("agent-earned", stake=1_800_000)
+        self.net.craft_answer("craft-0001", self.card.stem, "approve", "agent-buyer")
+        self.net.craft_build("craft-0001", "agent-earned", report_program(self._facts()))
+        self.net.craft_check("craft-0001")
+        out = self.net.craft_settle("craft-0001")
+        rec = self.net.agents["agent-earned"]
+        self.assertEqual(out["verdict"], "paid")
+        self.assertEqual(rec["stakes"], {})
+        self.assertEqual(rec["balance_muc"], 5_000_000 - 1_800_000
+                         + 1_800_000 + out["payout_muc"])
+        self.assertEqual(self.net.agents["agent-two"]["stakes"], {})
+        self.assertEqual(self.net.agents["agent-two"]["balance_muc"], 2_000_000,
+                         "the losing bidder's stake comes back when the auction ends")
+        self.assertEqual(self.net._craft("craft-0001").manifest["award"]["worker"],
+                         "agent-earned", "the stronger stake still wins the award")
+        kinds = [(e["kind"], e["body"].get("action")) for e in self.net.ledger.entries]
+        self.assertEqual(sum(1 for k in kinds if k == ("stake", "return")), 2,
+                         "the winner's stake and the loser's stake both return")
+    def test_a_lost_dispute_burns_the_stake(self):
+        self._fund("agent-earned", 5_000_000)
+        self._bid("agent-earned", stake=1_800_000)
+        self.net.craft_answer("craft-0001", self.card.stem, "approve", "agent-buyer")
+        self.net.craft_build("craft-0001", "agent-earned", {"main.py": "print('not json')"})
+        self.assertFalse(self.net.craft_check("craft-0001")["passed"])
+        job = self.net._craft("craft-0001")
+        m = job.manifest
+        m["checks"][-1].update({"passed": True, "similarity_milli": 1000,
+                                "summary": "about 100% like the original"})
+        for c in m["checks"][-1]["claims"]:
+            c["passed"] = True
+        m["checks"][-1]["unknowns"] = []
+        m["status"] = "checked_pass"
+        job._save()
+        out = self.net.craft_settle("craft-0001")
+        rec = self.net.agents["agent-earned"]
+        self.assertEqual(out["verdict"], "disputed")
+        self.assertEqual(rec["stakes"], {})
+        self.assertEqual(rec["balance_muc"], 3_200_000,
+                         "the stake is burned, not returned — the balance never comes back")
+        self.assertIn(("stake", "burn"),
+                      [(e["kind"], e["body"].get("action")) for e in self.net.ledger.entries])
+        # the ban now binds the key too: the dispute entry carries the keyref
+        d = next(e for e in self.net.ledger.entries if e["kind"] == "dispute")
+        self.assertEqual(d["body"]["keyref"], self.net.agents["agent-earned"]["keyref"])
+        from dyn_craft import dispute_on_record
+        self.assertIsNotNone(dispute_on_record(self.net.ledger, "agent-renamed",
+                                               keyref=d["body"]["keyref"]),
+                             "a renamed id with the same key is still banned")
+
+    def test_a_refund_returns_every_bidders_stake(self):
+        self._fund("agent-earned", 5_000_000)
+        self._bid("agent-earned", stake=1_800_000)
+        self.net.craft_answer("craft-0001", self.card.stem, "deny", "agent-buyer")
+        self.net.craft_refund("craft-0001")
+        rec = self.net.agents["agent-earned"]
+        self.assertEqual(rec["stakes"], {})
+        self.assertEqual(rec["balance_muc"], 5_000_000)
+        self.assertIn(("stake", "return"),
+                      [(e["kind"], e["body"].get("action")) for e in self.net.ledger.entries])
+
+    def test_a_banned_worker_cannot_bid_or_build_through_the_app(self):
+        from dyn_app import AppError
+        self._fund("agent-earned", 5_000_000)
+        self._bid("agent-earned", stake=1_800_000)
+        self.net.craft_answer("craft-0001", self.card.stem, "approve", "agent-buyer")
+        self.net.craft_build("craft-0001", "agent-earned", {"main.py": "print('not json')"})
+        self.net.craft_check("craft-0001")
+        job = self.net._craft("craft-0001")
+        m = job.manifest
+        m["checks"][-1].update({"passed": True, "similarity_milli": 1000,
+                                "summary": "about 100% like the original"})
+        for c in m["checks"][-1]["claims"]:
+            c["passed"] = True
+        m["checks"][-1]["unknowns"] = []
+        m["status"] = "checked_pass"
+        job._save()
+        self.net.craft_settle("craft-0001")           # disputed → banned
+        self.sd.mkdir(exist_ok=True)
+        self.net.open_craft(buyer="agent-buyer", request="second job",
+                            target_kind="file", target_ref=str(self.target))
+        with self.assertRaisesRegex(AppError, "is banned"):
+            self.net.craft_bid_route("craft-0002", {"worker": "agent-earned",
+                                                    "price_usds_muc": 100_000_000,
+                                                    "stake_dyn_mu": 100_000})
+        self.net.craft_study("craft-0002")
+        with self.assertRaisesRegex(AppError, "is banned"):
+            self.net.craft_build("craft-0002", "agent-earned",
+                                 report_program(json.loads(
+                                     (self.sd / "craft" / "craft-0002" / "capture" / "facts.json").read_text())))
+
+
 class TestTheWorkerAuction(CraftMixin, unittest.TestCase):
     """Who builds is decided, not claimed: bids while the buyer decides, a
     best-fit anti-herd award, and a build gate that binds the winner."""
@@ -1043,6 +1194,8 @@ class TestTheWorkerAuction(CraftMixin, unittest.TestCase):
             net = Dynamis(state_root=Path(sd))
             for who in ("agent-buyer", "agent-winner", "agent-runner"):
                 net.join(who, f"persona-{who}")
+            for w in ("agent-winner", "agent-runner"):
+                net.agents[w]["balance_muc"] = 5_000_000  # funded wallets: custody, not earning, is under test here
             net.open_craft(buyer="agent-buyer", request="auction me",
                            target_kind="file", target_ref=str(self.target))
             net.craft_study("craft-0001")

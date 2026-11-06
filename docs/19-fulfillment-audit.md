@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **406 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **411 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -418,3 +418,31 @@ award to the stronger stake, the runner-up's build refused at HTTP 400, the
 awarded worker builds, checks PASS and settles paid. Suite: **406 tests
 green** (6 new) — including the fair-share flip: an equal-stake tie goes to
 the worker with fewer settled builds on the chain.
+
+### Addendum 12 — the stake becomes custody (2026-11-06, sixth depth pass)
+
+Addendum 11 decided who builds; this one makes the decision cost
+something. The named residue of the auction was that stake was a ranking
+input, not money — a fresh passport could type 999M DYN µ and win every
+auction.
+
+1. **You bid with what you've earned.** The bid route holds the stake from
+   the bidder's rail balance at the documented peg (1 DYN µ ↔ 1 µ¢ — a
+   stand-in, stated as one). A zero-balance passport's bid dies at the
+   gate: "bid with what you've earned". Balances grow only from honest
+   settles; the open loop (no bids required) is the on-ramp.
+2. **The stake comes home or burns.** A paid settle returns the winner's
+   stake and every losing bidder's (a bug the transcript rework caught —
+   losers were held forever); a refund returns them all; a lost dispute
+   burns the winner's stake — the forger loses money, recorded as kind
+   `stake` entries with action hold/return/burn on the ledger.
+3. **The ban binds the key.** The dispute entry now carries the signer's
+   keyref, and `dispute_on_record` matches identity or key — a kit that
+   maps many ids to one key cannot wash the ban by renaming. The app's
+   bid and build routes enforce the key-level ban.
+
+Measured live in transcript §7: the on-ramp job earns agent-rival 475M µ¢;
+the auction holds 1.8M and 2.5M from real balances; a fresh sybil's 999M
+bid dies at HTTP 400 ("holds 0 µ¢, the stake asks 999,000,000 µ¢ at the
+peg"); the award, the runner-up's refused build, and the paid settle that
+returns both stakes. Suite: **411 tests green** (5 new).

@@ -296,11 +296,17 @@ def _ev_store(root: Path, ev: Evidence) -> str:
     return ev.id
 
 
-def dispute_on_record(ledger: "WorkLedger", worker: str) -> str | None:
+def dispute_on_record(ledger: "WorkLedger", worker: str,
+                      keyref: str | None = None) -> str | None:
     """The job of the worker's first dispute on this chain's ledger, if any —
-    the ban gate reads it; redemption is a new identity, not a whitewash."""
+    the ban gate reads it; redemption is a new identity, not a whitewash.
+    The dispute binds the signer's keyref too, so a kit that maps many ids
+    to one key cannot wash the ban by renaming."""
     for e in ledger.entries:
-        if e["kind"] == "dispute" and e["agent"] == worker:
+        if e["kind"] != "dispute":
+            continue
+        body = e.get("body") or {}
+        if e["agent"] == worker or (keyref and body.get("keyref") == keyref):
             return e["job_id"]
     return None
 
@@ -1180,7 +1186,7 @@ class CraftJob:
             self.manifest["step"] = "build"
             self._save()
             ledger.append(day=day, kind="dispute", job_id=self.manifest["job_id"],
-                          agent=worker_id, leader=game["leader"],
+                          agent=worker_id, keyref=keyref, leader=game["leader"],
                           delivered=game["delivered_digest"],
                           reexecuted=game["reexecuted_digest"],
                           facts_ok=game["facts_ok"])
