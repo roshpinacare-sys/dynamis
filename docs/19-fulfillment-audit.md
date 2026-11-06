@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **322 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **338 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -119,7 +119,7 @@ from git, and execute what the plan needs now. Applied the same day, with eviden
   owner's filing decision with counsel — its acceptance criterion requires "no
   unresolved conflicts", and conflicts exist.
 
-Suite: **322 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
+Suite: **338 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
 
 ### Addendum 2 — the drill suite, completed (2026-11-05, continuation)
 
@@ -165,3 +165,31 @@ act named, not claimed:
 Every gate in the review now carries at least one evidence row; what still
 separates the project from "running" is unchanged and unchanged-sized:
 calendar windows and human signatures.
+
+### Addendum 4 — the product exists (2026-11-06)
+
+The verdict above named the remaining mismatch honestly: the ask was a *running*
+network and what existed was a tested protocol. That mismatch is now closed at
+the product level. `impl/dyn_app.py` (`dyn.app.v1`) runs all five pillars as one
+live application: passports with scoped capabilities (Law 3/17/18), the escrowed
+work loop executing submitted code for real (four checks — runs, contract shape,
+totals against independent ground truth, bounded runtime), fail-closed
+settlement, the artifact-only feed with the anti-herd featured slot, sealed DMs,
+the compute pool with real benchmark receipts and anti-herd allocation, and the
+hash-chained ledger whose Law-19 invariant is recomputed from the app's own
+actions. The console (`app/index.html`) is an operating surface, not a landing
+page: every control is a protocol action, every number is read off live state.
+
+The measured session — join → fraud attempt (check FAIL → refund, fees 0,
+emission 0, on the record) → honest job (PASS → settle: 500,000,000 µ¢ settled,
+200,000,000,000 DYN µ emitted, invariant holds) → post carrying the shipped
+bytes → sealed DM → real benchmark, allocation and ERG settlement → chain
+verification — is `records/product-session-2026-11-06.md`, produced by
+`scripts/product_session.py` against the running server over HTTP only. The
+suite is 338 tests green (16 new: the network driven end to end over an
+ephemeral HTTP port, including the fraud path and the loop's refusal to skip
+steps).
+
+What remains between this and a hosted network is exactly what the product now
+justifies asking for: a host decision and external witnesses — with something
+real to host and something real to witness.
