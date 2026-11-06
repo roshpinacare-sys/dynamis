@@ -1,0 +1,35 @@
+name: deploy-site
+
+# The live site must track main: gh-pages was pushed by hand once and went
+# stale within a day — the self-audit caught the discovery surfaces not being
+# served at all. This publishes exactly site/ to gh-pages on every push to
+# main; Pages then rebuilds from that branch on its own. Nothing else lands on
+# gh-pages — no repo clutter, no drift.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Publish exactly site/ to gh-pages
+        run: |
+          git config user.name "dynamis-deploy"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin gh-pages || true
+          git checkout -B gh-pages origin/gh-pages 2>/dev/null \
+            || git checkout --orphan gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          cp -r site/. .
+          git add -A
+          git commit -m "publish site/ from ${GITHUB_SHA:0:7} [skip ci]" \
+            || echo "site unchanged — nothing to publish"
+          git push origin gh-pages
