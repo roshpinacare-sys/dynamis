@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynamis.local/schemas/job.schema.json",
+  "title": "DYNAMIS Job",
+  "description": "A market job (docs/03-protocol.md \u00a71). Spec is a schema-validated object, never prose. Escrow is \u00b5\u00a2; revenue_ref binds the job to a real payer (Law 19).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "job_id",
+    "entity_id",
+    "spec",
+    "escrow_usds_muc",
+    "deadline_day",
+    "verification_class",
+    "revenue_ref"
+  ],
+  "properties": {
+    "job_id": {
+      "$ref": "#/$defs/id"
+    },
+    "entity_id": {
+      "$ref": "#/$defs/id"
+    },
+    "spec": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Task descriptor; at minimum {task, inputs_ref, output_contract}. Job-type schemas register in the job-type registry (specs/benchmarks.md \u00a74)."
+    },
+    "escrow_usds_muc": {
+      "$ref": "#/$defs/muc"
+    },
+    "deadline_day": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "verification_class": {
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "description": "Attestation ladder class; must be >= floor_class(escrow) per Law 9 (impl/dynamis_core/ladder.py)."
+    },
+    "revenue_ref": {
+      "$ref": "#/$defs/id",
+      "description": "Entity budget envelope or external payment reference \u2014 the payer that makes this a business flow (Law 19)."
+    },
+    "rc2_accepted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Worker may take part of payment in RC\u00b2 credits at the witness ERG rate."
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"
+    },
+    "muc": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "USDS \u00b5\u00a2; 1 \u00b5\u00a2 = 10\u207b\u2076 USDS. Floats forbidden (ADR-0007)."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "examples": [
+    {
+      "job_id": "job-alpha-1",
+      "entity_id": "ent-001",
+      "spec": {
+        "task": "process_invoices",
+        "count": 500,
+        "output_contract": "invoice-results-v1"
+      },
+      "escrow_usds_muc": 500000000,
+      "deadline_day": 10,
+      "verification_class": "B",
+      "revenue_ref": "env-ops-001",
+      "rc2_accepted": false
+    }
+  ]
+}

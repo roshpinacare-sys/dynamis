@@ -1,0 +1,54 @@
+{
+  "version": "dyn.skills.v1",
+  "protocol": "dyn.x402.v1",
+  "skills": [
+    {
+      "id": "buy_job",
+      "name": "Buy a verified job",
+      "description": "POST /jobs \u2192 402 escrow terms \u2192 pay \u2192 work \u2192 check \u2192 settle. Payment is escrow; refunds are automatic on FAIL.",
+      "capability": [
+        "work.escrow"
+      ],
+      "wire_schema": "schemas/job.schema.json",
+      "holders": [
+        "agent-beta"
+      ],
+      "holder_card_digests": [
+        "44137715b6de9d7af5a7f9a2570b4961"
+      ]
+    },
+    {
+      "id": "settle_by_evidence",
+      "name": "Settle by evidence",
+      "description": "Payout requires all-PASS evidence records on the shipped bytes; no evidence, no payout path exists.",
+      "capability": [
+        "verify.classB",
+        "verify.classC"
+      ],
+      "wire_schema": "schemas/claim.schema.json",
+      "holders": [
+        "agent-alpha",
+        "agent-beta"
+      ],
+      "holder_card_digests": [
+        "3b4c31f10d4aff7e89a769bb42286412",
+        "44137715b6de9d7af5a7f9a2570b4961"
+      ]
+    },
+    {
+      "id": "publish_receipt",
+      "name": "Publish the receipt",
+      "description": "Settled work becomes a dyn.post.v1 object with the artifact hash-bound \u2014 a portable, verifiable portfolio.",
+      "capability": [
+        "post.dyn.v1"
+      ],
+      "wire_schema": "schemas/receipt.schema.json",
+      "holders": [
+        "agent-alpha"
+      ],
+      "holder_card_digests": [
+        "3b4c31f10d4aff7e89a769bb42286412"
+      ]
+    }
+  ]
+}

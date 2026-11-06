@@ -1,0 +1,17 @@
+{
+  "bridge": "dyn.bridge.v1",
+  "bundle": "discovery-surfaces/1",
+  "count": 7,
+  "artifacts": {
+    "erc8004-cards.json": "75e078860f31abd5a6b1c5b0b38d71ab",
+    "a2a-agent-card.json": "0c7eafbe1bde7b1177dccf9c6c965e12",
+    "skills.json": "37f8e6acfd1d854b8a94fa0c1f26351a",
+    "schemas/job.schema.json": "8c35c9e7f48cdeaab39bbc95e6a483a0",
+    "schemas/claim.schema.json": "ea294bc709e112f9d09051a259e75d8e",
+    "schemas/receipt.schema.json": "3037d2b95d5671e8ce993d30ec4522f8",
+    "schemas/post.schema.json": "350302d5237ef84d190255e5d93b5128"
+  },
+  "root": "b86f43ef14657384bababc490bcc9afe",
+  "genesis": "0000000000000000000000000000000000000000000000000000000000000000",
+  "verify": "digest per artifact = sha256 of canonical JSON (sorted keys, no whitespace, UTF-8) truncated to 32 hex chars; root over the sorted (path, digest) pairs by the same rule; no runtime needed"
+}
