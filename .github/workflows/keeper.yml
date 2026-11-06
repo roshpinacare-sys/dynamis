@@ -6,12 +6,15 @@ name: keeper
 # the windows of gates 1.1 and 2.2 cannot be kept on hope.
 #
 # This workflow is the fix: ONE self-perpetuating keeper chain that
-#   1. exits immediately if another keeper run is seen within 20 minutes
-#      (duplicate keepers self-terminate — the chain stays single),
+#   1. stands down if another keeper is alive or was seen younger than 180 s
+#      (true duplicates overlap in real time; the legitimate successor sees
+#      only its parent, completed ~13.5 min before — never counted),
 #   2. re-dispatches uptime.yml if its last run is older than 20 minutes and
 #      daily-proof.yml if its last run is older than 20 hours (a fresh daily
 #      record for "today" always lands before the UTC date rolls over),
-#   3. sleeps ~13 minutes, then dispatches its own successor.
+#   3. sleeps ~13 minutes, then dispatches its own successor. The handover
+#      runs even if the watch step failed (continue-on-error) — a transient
+#      API error kills a beat, never the chain.
 # workflow_dispatch triggered by GITHUB_TOKEN is exempt from the
 # "token events do not trigger workflows" rule, so the chain sustains itself.
 # If the chain ever dies, the 6-hourly cron re-seeds it (best-effort) and a
@@ -30,19 +33,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Watch the windows and hand over the watch
+      - id: guard
+        name: Single-chain guard — stand down if another keeper is alive
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          dup=$(gh api "repos/$REPO/actions/workflows/keeper.yml/runs?per_page=5" \
-            --jq "[.workflow_runs[] | select(.id != $RUN_ID) | select((now - (.created_at | fromdateiso8601)) < 1200)] | length")
+          dup=$(gh api "repos/$REPO/actions/workflows/keeper.yml/runs?per_page=8" \
+            --jq "[.workflow_runs[] | select(.id != $RUN_ID) | select(.status != \"completed\" or ((now - (.created_at | fromdateiso8601)) < 180))] | length")
+          echo "alive-or-young other keepers: $dup"
           if [ "$dup" -gt 0 ]; then
-            echo "a keeper is already watching ($dup recent) — exiting"
-            exit 0
+            echo "a keeper is already watching — standing down"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
           fi
-          check_and_wake () {
+
+      - id: beat
+        name: Wake stale window workflows
+        if: steps.guard.outputs.proceed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          wake () {
             wf="$1"; max="$2"
             last=$(gh api "repos/$REPO/actions/workflows/$wf/runs?per_page=1" \
               --jq '.workflow_runs[0].created_at // empty')
@@ -55,8 +71,15 @@ jobs:
               echo "$wf: stale — re-dispatched"
             fi
           }
-          check_and_wake uptime.yml 1200
-          check_and_wake daily-proof.yml 72000
+          wake uptime.yml 1200
+          wake daily-proof.yml 72000
+
+      - name: Sleep, then hand over the watch
+        if: steps.guard.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
           sleep 780
           gh api -X POST "repos/$REPO/actions/workflows/keeper.yml/dispatches" -f ref=main
           echo "watch handed over"
