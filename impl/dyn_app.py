@@ -41,6 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dyn_compute import Pool, ComputeError  # noqa: E402
+from dyn_craft import CraftJob, CraftError  # noqa: E402
 from dyn_bench import run_benchmark  # noqa: E402
 from dyn_engine import ARTIFACT_INVOICE_PARSER, EngineError, WorkLoop  # noqa: E402
 from dyn_ledger import WorkLedger  # noqa: E402
@@ -79,12 +80,15 @@ class Dynamis:
         self.lock = threading.RLock()
         self.agents: dict[str, dict] = {}
         self.jobs: dict[str, dict] = {}
+        self.craft: dict[str, dict] = {}
+        (self.state_root / "craft").mkdir(parents=True, exist_ok=True)
         self.price_round = None
         self._post_seq = 0
         self._job_seq = 0
+        self._craft_seq = 0
         self.totals = {"jobs_settled": 0, "jobs_refunded": 0, "payout_muc": 0,
                        "fee_muc": 0, "emitted_dyn_mu": 0, "escrow_back_muc": 0,
-                       "compute_cost_muc": 0}
+                       "compute_cost_muc": 0, "craft_settled_muc": 0}
 
     # ---------- identity (pillar 1) ----------
     def join(self, agent_id: str, persona: str) -> dict:
@@ -304,6 +308,77 @@ class Dynamis:
                     "ledger": self.pool.ledger.verify_chain(),
                     "refusals": len(self.pool.ledger.refusals())}
 
+    # ---------- the craft loop (dyn.craft.v1 — study → build → check → ready) ----------
+    def open_craft(self, *, buyer: str, request: str, target_kind: str,
+                   target_ref: str, value_usds: int = 500,
+                   good_enough: float | None = None) -> dict:
+        with self.lock:
+            if buyer not in self.agents:
+                raise AppError(f"buyer {buyer} has no passport — join first")
+            self._craft_seq += 1
+            job_id = f"craft-{self._craft_seq:04d}"
+            root = self.state_root / "craft" / job_id
+            job = CraftJob(root)
+            kwargs = {"good_enough": good_enough} if good_enough is not None else {}
+            job.open(job_id=job_id, buyer=buyer, request=request,
+                     target_kind=target_kind, target_ref=target_ref,
+                     value_usds=value_usds, ledger=self.ledger,
+                     day=self.day, **kwargs)
+            self.craft[job_id] = {"job": job, "root": root}
+            return dict(job.manifest)
+
+    def _craft(self, job_id: str) -> CraftJob:
+        if job_id not in self.craft:
+            raise AppError(f"no such craft job: {job_id}")
+        return self.craft[job_id]["job"]
+
+    def craft_study(self, job_id: str) -> dict:
+        with self.lock:
+            return self._craft(job_id).study(ledger=self.ledger, day=self.day)
+
+    def craft_build(self, job_id: str, worker: str, files: dict[str, str]) -> dict:
+        with self.lock:
+            if worker not in self.agents:
+                raise AppError(f"worker {worker} has no passport")
+            return self._craft(job_id).build(worker=worker, files=files,
+                                             ledger=self.ledger, day=self.day)
+
+    def craft_check(self, job_id: str) -> dict:
+        with self.lock:
+            return self._craft(job_id).check(ledger=self.ledger, day=self.day)
+
+    def craft_settle(self, job_id: str) -> dict:
+        with self.lock:
+            job = self._craft(job_id)
+            worker = job.manifest.get("worker")
+            if worker not in self.agents:
+                raise AppError(f"worker {worker} has no passport")
+            rec = self.agents[worker]
+            result = job.settle(ledger=self.ledger, day=self.day,
+                                persona=rec["persona"], keyref=rec["keyref"])
+            self.totals["craft_settled_muc"] += result["payout_muc"]
+            rec["earned_muc"] += result["payout_muc"]
+            rec["balance_muc"] += result["payout_muc"]
+            return result
+
+    def craft_refund(self, job_id: str) -> dict:
+        with self.lock:
+            result = self._craft(job_id).refund(ledger=self.ledger, day=self.day)
+            self.totals["escrow_back_muc"] += result["escrow_back_muc"]
+            return result
+
+    def craft_post(self, job_id: str) -> dict:
+        with self.lock:
+            return self._craft(job_id).post(day=self.day)
+
+    def craft_view(self, job_id: str) -> dict:
+        with self.lock:
+            return dict(self._craft(job_id).manifest)
+
+    def craft_list(self) -> dict:
+        with self.lock:
+            return {"jobs": [dict(self.craft[j]["job"].manifest) for j in self.craft]}
+
     # ---------- the chain (the record of all of it) ----------
     def chain(self) -> dict:
         with self.lock:
@@ -327,19 +402,23 @@ class Dynamis:
                     "rail": {"accounts": len(self.rail.accounts),
                              "ledger_ok": self.rail.ledger.verify_chain()["ok"]},
                     "compute": {"devices": len(self.pool.devices),
-                                "jobs": len(self.pool.jobs)}}
+                                "jobs": len(self.pool.jobs)},
+                    "craft": {"jobs": len(self.craft),
+                              "settled_muc": self.totals["craft_settled_muc"]}}
 
 
 # --------------------------------------------------------------------------
 # the HTTP surface
 # --------------------------------------------------------------------------
 ROUTES_GET = ("/", "/health", "/api/state", "/api/agents", "/api/jobs",
-              "/api/feed", "/api/chain", "/api/compute")
+              "/api/feed", "/api/chain", "/api/compute", "/api/craft")
 ROUTES_POST = ("/api/agents", "/api/jobs", "/api/posts", "/api/follow",
                "/api/dm", "/api/inbox", "/api/compute/devices",
                "/api/compute/price", "/api/compute/jobs",
-               "/api/compute/allocate", "/api/compute/settle")
+               "/api/compute/allocate", "/api/compute/settle", "/api/craft")
 JOB_ACTION_RE = re.compile(r"^/api/jobs/([a-z0-9-]+)/(artifact|check|settle|refund)$")
+CRAFT_ACTION_RE = re.compile(
+    r"^/api/craft/([a-z0-9-]+)/(study|build|check|settle|refund|post)$")
 
 
 def make_handler(net: Dynamis):
@@ -397,9 +476,14 @@ def make_handler(net: Dynamis):
                     return self._json(200, net.chain())
                 if path == "/api/compute":
                     return self._json(200, net.compute_state())
+                if path == "/api/craft":
+                    return self._json(200, net.craft_list())
                 m = JOB_ACTION_RE.match(path)
                 if m:
                     return self._json(200, net.job_view(m.group(1)))
+                m = CRAFT_ACTION_RE.match(path)
+                if m:
+                    return self._json(200, net.craft_view(m.group(1)))
                 return self._json(404, {"error": f"no route: {path}"})
             except (AppError, SocialError, ComputeError, EngineError,
                     PostValueError, ValueError) as exc:
@@ -429,6 +513,28 @@ def make_handler(net: Dynamis):
                     if action == "settle":
                         return self._json(200, net.settle_job(job_id))
                     return self._json(200, net.refund_job(job_id))
+                m = CRAFT_ACTION_RE.match(path)
+                if m:
+                    job_id, action = m.groups()
+                    if action == "study":
+                        return self._json(200, net.craft_study(job_id))
+                    if action == "build":
+                        return self._json(200, net.craft_build(
+                            job_id, body["worker"], body["files"]))
+                    if action == "check":
+                        return self._json(200, net.craft_check(job_id))
+                    if action == "settle":
+                        return self._json(200, net.craft_settle(job_id))
+                    if action == "post":
+                        return self._json(200, net.craft_post(job_id))
+                    return self._json(200, net.craft_refund(job_id))
+                if path == "/api/craft":
+                    return self._json(200, net.open_craft(
+                        buyer=body["buyer"], request=body["request"],
+                        target_kind=body["target_kind"],
+                        target_ref=body["target_ref"],
+                        value_usds=body.get("value_usds", 500),
+                        good_enough=body.get("good_enough")))
                 if path == "/api/posts":
                     return self._json(200, net.publish(body["author"],
                                                        body["source"]))

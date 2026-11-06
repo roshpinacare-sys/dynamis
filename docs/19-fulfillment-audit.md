@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **338 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **361 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -119,7 +119,7 @@ from git, and execute what the plan needs now. Applied the same day, with eviden
   owner's filing decision with counsel — its acceptance criterion requires "no
   unresolved conflicts", and conflicts exist.
 
-Suite: **338 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
+Suite: **361 tests green** (was 291 at the audit's first writing, 249 before it, 301 when the discovery surfaces landed).
 
 ### Addendum 2 — the drill suite, completed (2026-11-05, continuation)
 
@@ -193,3 +193,35 @@ steps).
 What remains between this and a hosted network is exactly what the product now
 justifies asking for: a host decision and external witnesses — with something
 real to host and something real to witness.
+
+### Addendum 5 — the craft loop, adopted properly (2026-11-06)
+
+The owner pointed the work at `storytold/craft-anything` with the direction
+"use it to implement and understand it better than everyone." The engine was
+studied at source level (the full study: `research/craft-anything-study.md`)
+and the finding was blunt: DYNAMIS's engine was a caricature of the loop it
+cited — one hardcoded task, no study step, no likeness, no refinement. That
+gap is now closed: `impl/dyn_craft.py` (`dyn.craft.v1`) runs the real loop
+where it pays — study captures any target (web page or file in v1) with
+evidence records whose ids are content hashes (`ev_…`, `verify()`,
+`carries_target_content`), the build submits real files, and the check
+measures how alike the build is with craft-anything's exact contract: Dice
+likeness 0..=100, claims judged one by one (a failing claim blocks readiness
+however alike the rest looks), unknowns on the record (missing evidence never
+counts as alike), refinement rounds (≤6) against a good-enough bar (90),
+`craft.json` manifest and the capture/app/checks/inbox folder shape. The
+DYNAMIS additions stay the point: the loop pays — escrow named in the
+manifest, settlement through the protocol machine fail-closed on the check,
+refund = fees 0 + emission 0, and the settled proof publishes as a dyn.post.v1
+post carrying the shipped bytes — all on the one WorkLedger the network
+already keeps.
+
+Measured live over HTTP (`records/craft-session-2026-11-06.md`,
+`scripts/craft_session.py`): a dataset job built wrong is refused with the
+refund on the record; the corrected rebuild and a rebuilt web page settle at
+100% likeness; the rule the engine exists to enforce is shown live — a
+rebuild at 100% likeness that still fails because one claim (the title) does
+not hold. The console carries a Craft panel; the suite is 361 tests green
+(23 new). Remaining deltas are named, not hidden: structural (not pixel)
+likeness for the web kind, two target kinds today, no human approval cards
+inside the loop yet.

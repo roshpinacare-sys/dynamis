@@ -142,6 +142,78 @@ class TestNetwork(NetMixin, unittest.TestCase):
         self.assertEqual(st["totals"]["jobs_settled"], 1)
 
 
+class TestCraftSurface(NetMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.net = self._net()
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _dataset(self, d):
+        p = d / "dataset.json"
+        p.write_text(json.dumps({"rows": [{"n": i} for i in range(40)]},
+                                indent=1) + "\n")
+        return p
+
+    def _report(self, facts):
+        return {"main.py": ("#!/usr/bin/env python3\n"
+                            "import hashlib, json, sys\n"
+                            "raw = open(sys.argv[1], 'rb').read()\n"
+                            "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
+                            f"lines = {facts['lines']}\n"
+                            "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),\n"
+                            "                  'bytes': len(raw), 'lines': lines, 'type': kind}))\n")}
+
+    def _open_and_study(self):
+        target = self._dataset(Path(self._td.name))
+        self.net.open_craft(buyer="agent-alice", request="Report the facts",
+                            target_kind="file", target_ref=str(target))
+        self.net.craft_study("craft-0001")
+        facts = json.loads((Path(self._td.name) / "craft" / "craft-0001"
+                            / "capture" / "facts.json").read_text())
+        return target, facts
+
+    def test_craft_loop_runs_on_the_network(self):
+        target, facts = self._open_and_study()
+        self.net.craft_build("craft-0001", "agent-bob", self._report(facts))
+        result = self.net.craft_check("craft-0001")
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["similarity_milli"], 1000)
+        settle = self.net.craft_settle("craft-0001")
+        self.assertGreater(settle["payout_muc"], 0)
+        self.assertTrue(settle["chain_ok"])
+        self.assertEqual(self.net.agents["agent-bob"]["earned_muc"],
+                         settle["payout_muc"])
+        wire = self.net.craft_post("craft-0001")
+        self.assertGreaterEqual(len(wire["embeds"]), 1)
+        st = self.net.state()
+        self.assertEqual(st["craft"]["jobs"], 1)
+        self.assertGreater(st["craft"]["settled_muc"], 0)
+
+    def test_craft_fail_refunds_zero_emission_over_the_shared_chain(self):
+        target, facts = self._open_and_study()
+        bad = self._report(facts)
+        bad["main.py"] = bad["main.py"].replace("len(raw)", "len(raw) + 1")
+        self.net.craft_build("craft-0001", "agent-bob", bad)
+        self.assertFalse(self.net.craft_check("craft-0001")["passed"])
+        back = self.net.craft_refund("craft-0001")
+        self.assertEqual(back["emitted_dyn_mu"], 0)
+        inv = self.net.ledger.invariant()
+        self.assertEqual(inv["emitted_dyn_mu"], 0)
+        self.assertTrue(inv["emitted_eq_revenue"])
+
+    def test_craft_listing_and_unknown_ids(self):
+        self._open_and_study()
+        jobs = self.net.craft_list()["jobs"]
+        self.assertEqual(jobs[0]["status"], "studied")
+        self.assertEqual(self.net.craft_view("craft-0001")["buyer"], "agent-alice")
+        with self.assertRaises(ValueError):
+            self.net.craft_check("craft-nope")
+
+
+
+
 class TestHTTPSurface(NetMixin, unittest.TestCase):
 
     @classmethod
@@ -207,6 +279,33 @@ class TestHTTPSurface(NetMixin, unittest.TestCase):
         res = json.loads(body)
         self.assertGreater(res["payout_muc"], 0)
         self.assertTrue(res["chain_ok"])
+
+    def test_craft_over_http_end_to_end(self):
+        self.call("/api/agents", "POST", {"agent_id": "agent-fay"})
+        target = Path(self._td.name) / "ds.json"
+        target.write_text(json.dumps({"k": [1, 2, 3]}, indent=1) + "\n")
+        st, body = self.call("/api/craft", "POST", {
+            "buyer": "agent-fay", "request": "Report the facts",
+            "target_kind": "file", "target_ref": str(target)})
+        self.assertEqual(st, 200)
+        self.assertEqual(json.loads(body)["job_id"], "craft-0001")
+        st, _ = self.call("/api/craft/craft-0001/study", "POST", {})
+        self.assertEqual(st, 200)
+        st, _ = self.call("/api/craft/craft-0001/build", "POST", {
+            "worker": "agent-fay", "files": {
+                "main.py": ("import hashlib, json, sys\n"
+                            "raw = open(sys.argv[1], 'rb').read()\n"
+                            "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),"
+                            " 'bytes': len(raw), 'lines': raw.count(b'\\n'),"
+                            " 'type': 'json'}))\n")}})
+        self.assertEqual(st, 200)
+        st, body = self.call("/api/craft/craft-0001/check", "POST", {})
+        self.assertEqual(st, 200)
+        self.assertTrue(json.loads(body)["passed"])
+        st, body = self.call("/api/craft/craft-0001/settle", "POST", {})
+        self.assertGreater(json.loads(body)["payout_muc"], 0)
+        st, body = self.call("/api/craft", "GET")
+        self.assertEqual(len(json.loads(body)["jobs"]), 1)
 
     def test_refused_paths_are_400_with_reasons(self):
         st, body = self.call("/api/jobs/job-nope/check", "POST", {})

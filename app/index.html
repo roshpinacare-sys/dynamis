@@ -97,6 +97,7 @@ td .h{font-family:var(--sans)}
       <button data-v="jobs">Work &amp; escrow</button>
       <button data-v="feed">Feed</button>
       <button data-v="compute">Compute</button>
+      <button data-v="craft">Craft</button>
       <button data-v="chain">Chain</button>
     </nav>
     <div class="sidefoot">stdlib server · real escrow<br>Law 19 enforced live</div>
@@ -221,6 +222,40 @@ print("evidence over claims")
       <div class="card"><h3>Pool</h3><div id="pool"></div></div>
     </section>
 
+    <!-- ============ CRAFT ============ -->
+    <section id="v-craft" class="hidden">
+      <div class="card">
+        <h3>Open a craft job — point it at any target, say what you want</h3>
+        <div class="row">
+          <label>buyer<input id="cr-buyer" placeholder="agent-alice"></label>
+          <label>kind<select id="cr-kind"><option>file</option><option>web</option></select></label>
+          <label>target ref<input id="cr-ref" placeholder="/path/to/file.json or https://…"></label>
+          <label>escrow USDS<input id="cr-val" type="number" value="500" style="width:90px"></label>
+          <label>good-enough %<input id="cr-bar" type="number" value="90" style="width:90px"></label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label style="flex:1">request — your words<textarea id="cr-req" style="min-height:52px" placeholder="A program that reports this dataset's facts"></textarea></label>
+          <button class="btn" onclick="openCraft()">Open with escrow</button>
+        </div>
+        <p class="dir" style="margin-top:10px">The craft loop (pattern credit: storytold/craft-anything): study captures the target with evidence records behind every answer, build submits real files, check measures how alike the build is — claims judged one by one, and missing evidence never counts as alike. Refinement rounds (≤6) fix what the last check found; the money moves only on a passing check.</p>
+      </div>
+      <div class="card">
+        <h3>Drive a craft job</h3>
+        <div class="row" style="margin-bottom:10px">
+          <label>job id<input id="cr-job" placeholder="craft-0001"></label>
+          <label>worker<input id="cr-who" placeholder="agent-bob"></label>
+          <button class="btn ghost" onclick="craftStudy()">Study</button>
+          <button class="btn" onclick="craftBuild()">Build</button>
+          <button class="btn ghost" onclick="craftCheck()">Check</button>
+          <button class="btn ghost" onclick="craftSettle()">Settle</button>
+          <button class="btn warn" onclick="craftRefund()">Refund</button>
+          <button class="btn ghost" onclick="craftPost()">Post</button>
+        </div>
+        <textarea id="cr-files" spellcheck="false" placeholder='{"index.html": "&lt;!doctype html&gt;…"} or {"main.py": "…"} — JSON object of file name to content'></textarea>
+      </div>
+      <div class="card"><h3>Craft jobs</h3><div id="craftlist"></div></div>
+    </section>
+
     <!-- ============ CHAIN ============ -->
     <section id="v-chain" class="hidden">
       <div class="card"><h3>The chain of record — recomputed from the app's own actions</h3><div id="chainout"></div></div>
@@ -245,13 +280,15 @@ const TITLES={roster:["Roster","identity — passports, capabilities, balances"]
   jobs:["Work & escrow","the real work loop — open · work · check · settle · post"],
   feed:["Feed","artifact-only posts — Law 13 enforced on every publish"],
   compute:["Compute","shared pool — measured receipts, anti-herd allocation"],
+  craft:["Craft","study → build → check — the craft-anything loop, where it pays"],
   chain:["Chain","the hash-chained record and the Law-19 invariant"]};
 document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
-  ["roster","jobs","feed","compute","chain"].forEach(v=>$("v-"+v).classList.toggle("hidden",v!==b.dataset.v));
+  ["roster","jobs","feed","compute","craft","chain"].forEach(v=>$("v-"+v).classList.toggle("hidden",v!==b.dataset.v));
   $("viewtitle").textContent=TITLES[b.dataset.v][0];$("viewsub").textContent=TITLES[b.dataset.v][1];
   if(b.dataset.v==="roster")loadRoster();if(b.dataset.v==="jobs")loadJobs();
-  if(b.dataset.v==="feed")loadFeed();if(b.dataset.v==="compute")loadPool();if(b.dataset.v==="chain")loadChain();
+  if(b.dataset.v==="feed")loadFeed();if(b.dataset.v==="compute")loadPool();
+  if(b.dataset.v==="craft")loadCraft();if(b.dataset.v==="chain")loadChain();
 });
 
 /* ---------- pills ---------- */
@@ -328,6 +365,34 @@ async function loadPool(){try{const r=await api("/api/compute");
   $("pool").innerHTML=(r.devices.length?`<table><tr><th>device</th><th>tier</th><th>throughput µs</th><th>scheduled today</th></tr>`+
     r.devices.map(d=>`<tr><td style="color:var(--teal)">${esc(d.device_id)}</td><td>${esc(d.tier)}</td><td>${d.throughput_us}</td><td>${d.scheduled_today}</td></tr>`).join("")+"</table>":`<div class="empty">No devices. Register one — the benchmark runs the real kernels.</div>`)+
     `<p class="dir" style="margin-top:12px">jobs: ${esc(Object.entries(r.jobs).map(([k,v])=>`${k}=${v}`).join(" · ")||"none")} · price ${r.price_median_muc||"—"} µ¢/ERG · ledger ${r.ledger.ok?"OK":"BROKEN"} · refusals ${r.refusals}</p>`;refreshPills()}catch(e){flash(e.message,true)}}
+
+/* ---------- craft ---------- */
+async function openCraft(){try{const r=await api("/api/craft","POST",{buyer:$("cr-buyer").value.trim(),
+  request:$("cr-req").value,target_kind:$("cr-kind").value,target_ref:$("cr-ref").value.trim(),
+  value_usds:+$("cr-val").value,good_enough:+$("cr-bar").value});
+  flash(`${r.job_id} opened — escrow ${muc(r.escrow_usds_muc)} locked, good-enough ${r.good_enough}%`);$("cr-job").value=r.job_id;loadCraft()}catch(e){flash(e.message,true)}}
+async function craftStudy(){try{const r=await api(`/api/craft/${$("cr-job").value.trim()}/study`,"POST",{});
+  flash(`study — ${r.evidence.length} evidence record(s), ${r.unknowns.length} open question(s)`);loadCraft()}catch(e){flash(e.message,true)}}
+async function craftBuild(){try{const files=JSON.parse($("cr-files").value);
+  const r=await api(`/api/craft/${$("cr-job").value.trim()}/build`,"POST",{worker:$("cr-who").value.trim(),files});
+  flash(`build recorded — ${Object.keys(r).length} file(s)`);loadCraft()}catch(e){flash(e.message,true)}}
+async function craftCheck(){try{const r=await api(`/api/craft/${$("cr-job").value.trim()}/check`,"POST",{});
+  flash(`round ${r.round}: ${r.passed?"PASS":"FAIL"} — ${r.compared?(r.similarity_milli/10).toFixed(0)+"% alike":"not compared"}, claims ${r.claims.filter(c=>c.passed).length}/${r.claims.length}`);loadCraft()}catch(e){flash(e.message,true)}}
+async function craftSettle(){try{const r=await api(`/api/craft/${$("cr-job").value.trim()}/settle`,"POST",{});
+  flash(`settled — payout ${muc(r.payout_muc)}, emitted ${(r.emitted_dyn_mu/1e6).toLocaleString("en-US")} DYN µ, chain_ok=${r.chain_ok}`);loadCraft()}catch(e){flash(e.message,true)}}
+async function craftRefund(){try{const r=await api(`/api/craft/${$("cr-job").value.trim()}/refund`,"POST",{});
+  flash(`refunded — escrow ${muc(r.escrow_back_muc)} back, fees 0, emission 0`);loadCraft()}catch(e){flash(e.message,true)}}
+async function craftPost(){try{const r=await api(`/api/craft/${$("cr-job").value.trim()}/post`,"POST",{});
+  flash(`${r.post_id} posted — ${r.embeds.length} verifiable embed(s)`);loadCraft()}catch(e){flash(e.message,true)}}
+const CRAFT_BADGE=s=>({opened:"b-open",studied:"b-working",built:"b-working",checked_pass:"b-pass",checked_fail:"b-fail",settled:"b-settled",refunded:"b-refunded"}[s]||"b-open");
+async function loadCraft(){try{const r=await api("/api/craft");
+  $("craftlist").innerHTML=r.jobs.length?`<table><tr><th>job</th><th>status</th><th>target</th><th>buyer → worker</th><th>escrow</th><th>rounds</th><th>last likeness</th></tr>`+
+    r.jobs.map(j=>{const last=j.checks[j.checks.length-1];
+      return `<tr><td style="color:var(--teal)">${esc(j.job_id)}</td><td><span class="badge ${CRAFT_BADGE(j.status)}">${esc(j.status)}</span></td>`+
+      `<td>${esc(j.target.kind)}: ${esc(j.target.ref.length>28?j.target.ref.slice(0,28)+"…":j.target.ref)}</td>`+
+      `<td>${esc(j.buyer)} → ${esc(j.worker||"—")}</td><td>${muc(j.escrow_usds_muc)}</td>`+
+      `<td>${j.rounds.done}/${j.rounds.max}</td><td>${last?(last.compared?(last.similarity_milli/10).toFixed(0)+"%":"not compared"):"—"}</td></tr>`}).join("")+"</table>"
+    :`<div class="empty">No craft jobs. Point one at a target — the study captures the facts first.</div>`;refreshPills()}catch(e){flash(e.message,true)}}
 
 /* ---------- chain ---------- */
 async function loadChain(){try{const c=await api("/api/chain");

@@ -1,0 +1,313 @@
+"""dyn.craft.v1 — the craft-anything loop, where it pays, end to end."""
+import json
+import sys
+import threading
+import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from dyn_craft import (CraftJob, CraftError, Evidence, alike, parse_page,  # noqa: E402
+                       words)
+from dyn_ledger import WorkLedger  # noqa: E402
+
+PAGE = """<!doctype html><html><head><title>DYNAMIS Docs</title></head>
+<body><h1>The work loop</h1><h2>Settlement</h2><p>Every payout moves on evidence
+alone; the check harness re-runs the shipped bytes before any money moves and a
+failed build refunds the escrow with zero fees and zero emission.</p>
+<a href="/loop">the loop</a> <a href="/money">the money</a> <a href="/posts">posts</a>
+<script>document.title="hacked";</script></body></html>"""
+
+
+def report_program(facts):
+    """The build for the file kind: reports the studied facts exactly."""
+    code = (
+        "#!/usr/bin/env python3\n"
+        "import hashlib, json, sys\n"
+        "raw = open(sys.argv[1], 'rb').read()\n"
+        "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
+        f"lines = {facts['lines']}\n"
+        "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),\n"
+        "                  'bytes': len(raw), 'lines': lines, 'type': kind}))\n")
+    return {"main.py": code}
+
+
+class CraftMixin:
+    def _open_file_job(self, root, target, max_rounds=6, good_enough=90.0):
+        self.ledger = WorkLedger()
+        job = CraftJob(root)
+        job.open(job_id="craft-0001", buyer="agent-buyer",
+                 request="A program that reports this dataset's facts",
+                 target_kind="file", target_ref=str(target),
+                 value_usds=500, max_rounds=max_rounds,
+                 good_enough=good_enough, ledger=self.ledger, day=1)
+        return job
+
+    def _dataset(self, d):
+        p = d / "dataset.json"
+        p.write_text(json.dumps({"rows": [{"n": i} for i in range(40)]},
+                                indent=1) + "\n")
+        return p
+
+
+class TestLikeness(unittest.TestCase):
+
+    def test_dice_over_word_counts(self):
+        self.assertEqual(alike(words("same words here"), words("same words here")), 100.0)
+        self.assertEqual(alike(words("alpha beta"), words("gamma delta")), 0.0)
+        self.assertEqual(alike({}, {}), 100.0)
+        # 2 shared of 3 + 3 total: 200*2/6
+        self.assertAlmostEqual(alike(words("a b c"), words("a b d")), 200 * 2 / 6)
+
+    def test_two_empty_outputs_are_alike(self):
+        self.assertEqual(alike(words(""), words("  ")), 100.0)
+
+
+class TestEvidence(unittest.TestCase):
+
+    def _ev(self):
+        return Evidence(operation="craft_file_inspect", subject={"kind": "file", "name": "d.json"},
+                        params={"path": "/d.json"},
+                        result={"bytes": 10, "lines": 2, "type": "json"},
+                        summary="Inspected d.json.", confidence={"level": "high", "reason": "full read"},
+                        authority={"basis": "measured"},
+                        limitations=[{"code": "type-sniff", "message": "a guess"}],
+                        coverage={"basis": "complete", "bytes": 10},
+                        carries_target_content=True)
+
+    def test_id_is_content_hash_and_verifies(self):
+        ev = self._ev()
+        self.assertTrue(ev.id.startswith("ev_"))
+        self.assertTrue(ev.verify())
+
+    def test_tamper_breaks_verification(self):
+        ev = self._ev()
+        ev.result["bytes"] = 11
+        self.assertFalse(ev.verify())
+
+    def test_display_only_fields_leave_the_id_alone(self):
+        a, b = self._ev(), self._ev()
+        b.summary = "A different summary for people."
+        b.carries_target_content = False
+        self.assertEqual(a.id, b.id)
+
+
+class TestPage(unittest.TestCase):
+
+    def test_parse_page_skips_script_and_counts(self):
+        page = parse_page(PAGE)
+        self.assertEqual(page["title"], "DYNAMIS Docs")   # script's title theft ignored
+        self.assertEqual(page["headings"], ["The work loop", "Settlement"])
+        self.assertEqual(len(page["links"]), 3)
+        self.assertIn("evidence", page["text"])
+        self.assertNotIn("hacked", page["text"])
+
+
+class TestCraftLoop(CraftMixin, unittest.TestCase):
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.d = Path(self._td.name)
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def test_open_names_the_escrow_and_refuses_bad_kinds(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        self.assertEqual(job.manifest["escrow_usds_muc"], 500_000_000)
+        self.assertEqual(job.manifest["rounds"]["max"], 6)
+        self.assertEqual(job.manifest["good_enough"], 90.0)
+        with self.assertRaises(CraftError):
+            job.open(job_id="x", buyer="b", request="r", target_kind="repo",
+                     target_ref="x", value_usds=1, ledger=self.ledger, day=1)
+        with self.assertRaises(CraftError):
+            self._open_file_job(self.d / "j2", target, good_enough=101)
+
+    def test_the_loop_refuses_to_skip_steps(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        with self.assertRaises(CraftError):        # check before study/build
+            job.check(ledger=self.ledger, day=1)
+        with self.assertRaises(CraftError):        # settle before everything
+            job.settle(ledger=self.ledger, day=1)
+
+    def test_file_study_records_verifiable_evidence_and_inbox(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        r = job.study(ledger=self.ledger, day=1)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        self.assertEqual(facts["type"], "json")
+        self.assertEqual(facts["structure"]["top_level_type"], "dict")
+        self.assertEqual(len(r["evidence"]), 1)
+        self.assertTrue(r["unknowns"])                     # the sniff is a guess, on the record
+        self.assertTrue((self.d / "j1" / "inbox" / "q-001.json").is_file())
+        self.assertTrue((self.d / "j1" / "capture" / "README.md").is_file())
+        ev_path = next((self.d / "j1" / "evidence").glob("*.json"))
+        ev = json.loads(ev_path.read_text())
+        self.assertTrue(ev["carries_target_content"])
+
+    def test_file_loop_settles_for_real(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        job.build(worker="agent-worker", files=report_program(facts),
+                  ledger=self.ledger, day=1)
+        result = job.check(ledger=self.ledger, day=1)
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["similarity_milli"], 1000)
+        self.assertEqual(len(result["claims"]), 5)
+        settle = job.settle(ledger=self.ledger, day=1)
+        self.assertGreater(settle["payout_muc"], 0)
+        self.assertTrue(settle["chain_ok"])
+        inv = self.ledger.invariant()
+        self.assertEqual(inv["emitted_dyn_mu"], inv["settled_usds_muc"] * 400)
+        wire = job.post(day=1)
+        self.assertGreaterEqual(len(wire["embeds"]), 1)
+        self.assertEqual(job.manifest["status"], "settled")
+
+    def test_fail_path_refunds_with_zero_emission(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        bad = report_program(facts)
+        bad["main.py"] = bad["main.py"].replace("len(raw)", "len(raw) + 1")
+        job.build(worker="agent-worker", files=bad, ledger=self.ledger, day=1)
+        result = job.check(ledger=self.ledger, day=1)
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["claims"][1]["passed"])
+        back = job.refund(ledger=self.ledger, day=1)
+        self.assertEqual(back["escrow_back_muc"], 500_000_000)
+        self.assertEqual(back["emitted_dyn_mu"], 0)
+        inv = self.ledger.invariant()
+        self.assertEqual(inv["settled_usds_muc"], 0)
+
+    def test_refine_rounds_fix_a_build_and_carry_the_count(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        bad = report_program(facts)
+        bad["main.py"] = bad["main.py"].replace("len(raw)", "len(raw) + 1")
+        job.build(worker="agent-worker", files=bad, ledger=self.ledger, day=1)
+        self.assertFalse(job.check(ledger=self.ledger, day=1)["passed"])
+        job.build(worker="agent-worker", files=report_program(facts),
+                  ledger=self.ledger, day=1)
+        self.assertTrue(job.check(ledger=self.ledger, day=1)["passed"])
+        self.assertEqual(job.manifest["rounds"]["done"], 2)
+        self.assertEqual(job.manifest["checks"][0]["passed"], False)
+        self.assertEqual(job.manifest["checks"][1]["passed"], True)
+
+    def test_rounds_cannot_run_forever(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target, max_rounds=1)
+        job.study(ledger=self.ledger, day=1)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        bad = report_program(facts)
+        bad["main.py"] = bad["main.py"].replace("len(raw)", "len(raw) + 1")
+        job.build(worker="agent-worker", files=bad, ledger=self.ledger, day=1)
+        job.check(ledger=self.ledger, day=1)
+        with self.assertRaises(CraftError):
+            job.build(worker="agent-worker", files=report_program(facts),
+                      ledger=self.ledger, day=1)
+
+    def test_settle_refuses_a_failing_record(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        with self.assertRaises(CraftError):
+            job.settle(ledger=self.ledger, day=1)
+
+
+class TestWebKind(CraftMixin, unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):  # noqa: N802
+                body = PAGE.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        cls.url = f"http://127.0.0.1:{cls.httpd.server_address[1]}/docs"
+        threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.d = Path(self._td.name)
+        self.ledger = WorkLedger()
+        self.job = CraftJob(self.d / "j1")
+        self.job.open(job_id="craft-0002", buyer="agent-buyer",
+                      request="Recreate this page's structure", target_kind="web",
+                      target_ref=self.url, value_usds=500,
+                      ledger=self.ledger, day=1)
+        self.job.study(ledger=self.ledger, day=1)
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def test_web_study_captures_the_measured_page(self):
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        self.assertEqual(facts["status"], 200)
+        self.assertEqual(facts["title"], "DYNAMIS Docs")
+        self.assertEqual(facts["link_count"], 3)
+        self.assertEqual(facts["same_site_links"], 3)
+        self.assertIn("no browser ran", facts["unknowns"][0])
+
+    def test_an_honest_rebuild_passes_the_likeness_bar(self):
+        self.job.build(worker="agent-worker", files={"index.html": PAGE},
+                       ledger=self.ledger, day=1)
+        result = self.job.check(ledger=self.ledger, day=1)
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["similarity_milli"], 1000)
+
+    def test_one_failing_claim_blocks_readiness_however_alike(self):
+        altered = PAGE.replace("<title>DYNAMIS Docs</title>", "<title>Something Else</title>")
+        self.job.build(worker="agent-worker", files={"index.html": altered},
+                       ledger=self.ledger, day=1)
+        result = self.job.check(ledger=self.ledger, day=1)
+        # the text is identical, so likeness is 100 — and the check still fails
+        self.assertEqual(result["similarity_milli"], 1000)
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["claims"][0]["passed"])
+        self.assertIn("title", result["note"])
+
+    def test_a_mismatched_rebuild_fails_on_words_and_links(self):
+        poor = ("<!doctype html><html><head><title>Other</title></head><body>"
+                "<p>Nothing here matches the studied page at all.</p></body></html>")
+        self.job.build(worker="agent-worker", files={"index.html": poor},
+                       ledger=self.ledger, day=1)
+        result = self.job.check(ledger=self.ledger, day=1)
+        self.assertFalse(result["passed"])
+        failed = {c["title"] for c in result["claims"] if not c["passed"]}
+        self.assertIn("its title matches the original", failed)
+        self.assertTrue(any("words match" in t for t in failed))
+        self.assertIn("every original heading appears in the build", failed)
+
+    def test_no_build_is_no_comparison(self):
+        self.job.manifest["status"] = "built"     # force the state, no files
+        result = self.job.check(ledger=self.ledger, day=1)
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["compared"])
+        self.assertEqual(result["similarity_milli"], 0)
+        self.assertIn("no app/index.html", result["note"])
+
+
+if __name__ == "__main__":
+    unittest.main()
