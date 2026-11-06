@@ -21,6 +21,15 @@ The 14-day window therefore completes on **2026-11-19** — a week from now the
 project is *gate-reviewable*, and the last window closes six days later with
 zero further work: the records accrue automatically, in public, in the repo.
 
+**Mechanism note, 2026-11-06:** the first day's measurement showed GitHub's
+cron dropping beats — the uptime `*/15` schedule fired 1 of ~27 slots, and the
+00:05 record cron did not fire at all. `.github/workflows/keeper.yml` now
+keeps both loops alive: one self-perpetuating watch chain (a ~13-minute cycle,
+duplicate-guarded) that re-dispatches either workflow when its last run goes
+stale. The keeper's own 6-hourly cron is best-effort and only re-seeds the
+chain if it ever dies. A dropped beat remains a visible hole; the keeper's job
+is to make sure there is none to see.
+
 ## The seven days
 
 Each day lists: the human act, the exact command or artifact that proves it,
