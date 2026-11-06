@@ -39,9 +39,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
+          EVENT: ${{ github.event_name }}
         run: |
+          # A handover child (workflow_dispatch) always has its parent as the
+          # most recent other run — completed seconds ago, or still tearing
+          # down. It is excluded (slice [1:]). A cron seed (schedule) gets no
+          # exclusion: any live keeper makes it stand down.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            tail_filter='[1:]'
+          else
+            tail_filter=''
+          fi
           dup=$(gh api "repos/$REPO/actions/workflows/keeper.yml/runs?per_page=8" \
-            --jq "[.workflow_runs[] | select(.id != $RUN_ID) | select(.status != \"completed\" or ((now - (.created_at | fromdateiso8601)) < 180))] | length")
+            --jq "[.workflow_runs[] | select(.id != $RUN_ID)]$tail_filter | [.[] | select(.status != \"completed\" or ((now - (.created_at | fromdateiso8601)) < 180))] | length")
           echo "alive-or-young other keepers: $dup"
           if [ "$dup" -gt 0 ]; then
             echo "a keeper is already watching — standing down"
