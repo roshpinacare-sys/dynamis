@@ -29,7 +29,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "impl"))
 
-from dyn_bridge import CARD_VERSION, BridgeError, export_cards  # noqa: E402
+from dyn_bridge import (CARD_VERSION, SURFACES_BUNDLE, BridgeError,  # noqa: E402
+                        export_cards)
 from dynamis_core.canonical import object_hash  # noqa: E402
 
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
@@ -69,6 +70,77 @@ def validate(export: dict) -> list[str]:
     return fails
 
 
+def validate_surfaces(bundle_dir: Path) -> list[str]:
+    """Offline validation of the full discovery bundle (docs/18 Day 6).
+
+    Every artifact digest recomputes from the file bytes' parsed object; the
+    bundle root recomputes over the sorted (path, digest) pairs; and the
+    package cross-checks against the cards — a skill's holders must be real
+    card digests whose capabilities include the skill's declared capability,
+    and the A2A card's skills must be exactly the packaged ones.
+    """
+    fails: list[str] = []
+    mpath = bundle_dir / "manifest.json"
+    if not mpath.exists():
+        return [f"manifest.json missing in {bundle_dir}"]
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    if manifest.get("bundle") != SURFACES_BUNDLE:
+        fails.append(f"unknown bundle kind: {manifest.get('bundle')!r} "
+                     f"!= {SURFACES_BUNDLE!r}")
+    arts = manifest.get("artifacts", {})
+    for path, stated in sorted(arts.items()):
+        f = bundle_dir / path
+        if not f.exists():
+            fails.append(f"artifact missing: {path}")
+            continue
+        try:
+            obj = json.loads(f.read_text(encoding="utf-8"))
+        except (ValueError, UnicodeDecodeError) as e:
+            fails.append(f"artifact {path}: not parseable JSON: {e}")
+            continue
+        digest = object_hash(obj)[:32]
+        if digest != stated:
+            fails.append(f"artifact {path}: digest mismatch — edited after export")
+    root = object_hash({"artifacts": [[k, arts[k]] for k in sorted(arts)]})[:32]
+    if manifest.get("root") != root:
+        fails.append(f"bundle root mismatch: stated {manifest.get('root')} "
+                     f"!= recomputed {root} — the bundle was edited after export")
+
+    def artifact(path: str) -> dict:
+        return json.loads((bundle_dir / path).read_text(encoding="utf-8"))
+
+    if {"erc8004-cards.json", "a2a-agent-card.json", "skills.json"} - set(arts):
+        fails.append("bundle is missing a core artifact (cards / a2a / skills)")
+        return fails
+    cards = artifact("erc8004-cards.json")["cards"]
+    fails.extend(validate(artifact("erc8004-cards.json")))
+    by_id = {c["identity"]["agent_id"]: c for c in cards}
+    a2a = artifact("a2a-agent-card.json")
+    sk = artifact("skills.json")
+    if {s["id"] for s in a2a.get("skills", [])} != {s["id"] for s in sk.get("skills", [])}:
+        fails.append("A2A card skills != skills.json skills — the surfaces disagree")
+    for s in sk.get("skills", []):
+        if s.get("wire_schema") not in arts:
+            fails.append(f"skill {s.get('id')}: wire schema "
+                         f"{s.get('wire_schema')!r} is not in the bundle")
+        digest_by_id = {c["identity"]["agent_id"]: c["card_digest"] for c in cards}
+        for h in s.get("holders", []):
+            if h not in by_id:
+                fails.append(f"skill {s.get('id')}: holder {h} is not in the "
+                             f"export set")
+                continue
+            held = by_id[h]["capabilities"]
+            if not any(cap in held for cap in s.get("capability", [])):
+                fails.append(f"skill {s.get('id')}: holder {h} holds none of "
+                             f"{s.get('capability')} — the package would lie")
+        for dg in s.get("holder_card_digests", []):
+            ids = [i for i, d in digest_by_id.items() if d == dg]
+            if not ids:
+                fails.append(f"skill {s.get('id')}: holder digest {dg} not in "
+                             f"the export set")
+    return fails
+
+
 def samples_export() -> dict:
     """The bridge's self-contained sample set, exported in-process."""
     from dynamis_core.objects import AgentPassport
@@ -85,7 +157,21 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="offline ERC-8004 export check")
     ap.add_argument("path", nargs="?", default=None,
                     help="exported JSON file; omit to self-check the samples")
+    ap.add_argument("--surfaces", metavar="DIR", default=None,
+                    help="validate a discovery bundle directory instead")
     ns = ap.parse_args(argv)
+    if ns.surfaces:
+        fails = validate_surfaces(Path(ns.surfaces))
+        n = len(json.loads((Path(ns.surfaces) / "manifest.json")
+                           .read_text(encoding="utf-8")).get("artifacts", {}))
+        if not fails:
+            print(f"surfaces: OK — {n} artifact(s) in {ns.surfaces}; every "
+                  f"digest and the bundle root recompute offline, skills "
+                  f"cross-check against the cards")
+        for f in fails:
+            print(f"  FINDING: {f}")
+        print(f"check_cards: {len(fails)} findings")
+        return 1 if fails else 0
     if ns.path:
         export = json.loads(Path(ns.path).read_text(encoding="utf-8"))
         src = ns.path

@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynamis.local/schemas/receipt.schema.json",
+  "title": "DYNAMIS Runner Receipt",
+  "description": "Signed output of the sovereign-runner-kit (:3020), hash-chained per runner (Law 4: receipts first, consensus second). This is the estate's existing receipt contract, formalized.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_id",
+    "runner_id",
+    "task_contract",
+    "cmd_allowlist_id",
+    "stdout_sha256",
+    "artifacts",
+    "started_at",
+    "finished_at",
+    "prev_receipt_hash",
+    "signature"
+  ],
+  "properties": {
+    "receipt_id": {
+      "$ref": "#/$defs/id"
+    },
+    "runner_id": {
+      "$ref": "#/$defs/id"
+    },
+    "task_contract": {
+      "type": "string",
+      "enum": [
+        "netrun"
+      ],
+      "description": "The fleet's existing task contract (status|claim|verify|done). No second contract may be invented (AGENTS.md \u00a75)."
+    },
+    "cmd_allowlist_id": {
+      "$ref": "#/$defs/id",
+      "description": "Version of the runner's whitelisted command set used for this run."
+    },
+    "stdout_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "bytes"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "prev_receipt_hash": {
+      "$ref": "#/$defs/sha256",
+      "description": "Hash-chain link to the runner's previous receipt; genesis link is 64 zeros."
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "keyref",
+        "domain",
+        "digest_hex"
+      ],
+      "properties": {
+        "keyref": {
+          "type": "string",
+          "pattern": "^hsm:.+$",
+          "description": "HSM key reference \u2014 never key material (Law 3)."
+        },
+        "domain": {
+          "type": "string",
+          "const": "dyn.receipt.v1"
+        },
+        "digest_hex": {
+          "$ref": "#/$defs/sha256",
+          "description": "HSM signature over domain_hash('dyn.receipt.v1', receipt-without-signature)."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

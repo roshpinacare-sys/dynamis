@@ -1,0 +1,45 @@
+{
+  "manifest": {
+    "bridge": "dyn.bridge.v1",
+    "count": 2,
+    "root": "0e45ccfe4a8ccad35e862e9e9c8beaca",
+    "genesis": "0000000000000000000000000000000000000000000000000000000000000000",
+    "verify": "digest = sha256 of canonical JSON (sorted keys, no whitespace, UTF-8) truncated to 32 hex chars; root over the sorted card digests + count by the same rule; no runtime needed"
+  },
+  "cards": [
+    {
+      "version": "erc8004-export/1",
+      "identity": {
+        "agent_id": "agent-alpha",
+        "persona": "alpha operator",
+        "keyproof_fp": "ba43bf1b7979c6f5"
+      },
+      "capabilities": [
+        "post.dyn.v1",
+        "verify.classB"
+      ],
+      "reputation": {
+        "census_day": 12,
+        "wallet_ref": "pw-alpha"
+      },
+      "card_digest": "3b4c31f10d4aff7e89a769bb42286412"
+    },
+    {
+      "version": "erc8004-export/1",
+      "identity": {
+        "agent_id": "agent-beta",
+        "persona": "beta operator",
+        "keyproof_fp": "ad444d6efa15d6bf"
+      },
+      "capabilities": [
+        "work.escrow",
+        "verify.classC"
+      ],
+      "reputation": {
+        "census_day": 12,
+        "wallet_ref": "pw-beta"
+      },
+      "card_digest": "44137715b6de9d7af5a7f9a2570b4961"
+    }
+  ]
+}

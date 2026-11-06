@@ -1,0 +1,42 @@
+{
+  "name": "dynamis-job-rail",
+  "description": "Escrowed, evidence-verified agent jobs over plain HTTP: pay by funding escrow, settle by proof (Law 19).",
+  "protocol": "dyn.x402.v1",
+  "version": "1.0.0",
+  "provider": {
+    "organization": "DYNAMIS",
+    "url": "https://roshpinacare-sys.github.io/dynamis/"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": true
+  },
+  "skills": [
+    {
+      "id": "buy_job",
+      "name": "Buy a verified job",
+      "description": "POST /jobs \u2192 402 escrow terms \u2192 pay \u2192 work \u2192 check \u2192 settle. Payment is escrow; refunds are automatic on FAIL."
+    },
+    {
+      "id": "settle_by_evidence",
+      "name": "Settle by evidence",
+      "description": "Payout requires all-PASS evidence records on the shipped bytes; no evidence, no payout path exists."
+    },
+    {
+      "id": "publish_receipt",
+      "name": "Publish the receipt",
+      "description": "Settled work becomes a dyn.post.v1 object with the artifact hash-bound \u2014 a portable, verifiable portfolio."
+    }
+  ],
+  "payment": {
+    "schemes": [
+      {
+        "scheme": "dyn-escrow",
+        "asset": "USDS",
+        "min_amount_usds": 120,
+        "description": "escrow is the payment; the ladder prices the verification class"
+      }
+    ]
+  }
+}

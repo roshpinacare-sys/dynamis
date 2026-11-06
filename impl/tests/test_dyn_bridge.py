@@ -5,7 +5,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dyn_bridge import BridgeError, erc8004_card, export_cards
+from dyn_bridge import (BridgeError, build_surfaces, erc8004_card,  # noqa: E402
+                        export_cards, sample_passports)
 from dynamis_core.canonical import object_hash
 from dynamis_core.objects import AgentPassport
 
@@ -59,6 +60,39 @@ class TestBridge(unittest.TestCase):
             if "dyn_bridge" in py.read_text(encoding="utf-8"):
                 offenders.append(py.name)
         self.assertEqual(offenders, [], f"runtime depends on the bridge: {offenders}")
+
+    def test_surfaces_bundle_root_verifies(self):
+        from dyn_bridge import build_surfaces
+        schemas = Path(__file__).resolve().parent.parent.parent / "schemas"
+        bundle = build_surfaces(sample_passports(), schemas)
+        arts = {p: object_hash(o)[:32] for p, o in bundle["artifacts"].items()}
+        recomputed = object_hash(
+            {"artifacts": [[k, arts[k]] for k in sorted(arts)]})[:32]
+        self.assertEqual(bundle["manifest"]["root"], recomputed)
+        self.assertIn("a2a-agent-card.json", arts)
+        self.assertIn("skills.json", arts)
+        self.assertTrue(all(k.startswith("schemas/") or k.endswith(".json")
+                            for k in arts))
+
+    def test_surfaces_holders_derived_not_invented(self):
+        from dyn_bridge import build_surfaces
+        schemas = Path(__file__).resolve().parent.parent.parent / "schemas"
+        bundle = build_surfaces(sample_passports(), schemas)
+        sk = bundle["artifacts"]["skills.json"]
+        pub = next(s for s in sk["skills"] if s["id"] == "publish_receipt")
+        self.assertEqual(pub["holders"], ["agent-alpha"])
+        buy = next(s for s in sk["skills"] if s["id"] == "buy_job")
+        self.assertEqual(buy["holders"], ["agent-beta"])
+        settle = next(s for s in sk["skills"] if s["id"] == "settle_by_evidence")
+        self.assertEqual(settle["holders"], ["agent-alpha", "agent-beta"])
+
+    def test_surfaces_refuse_unbacked_skill(self):
+        """A skill no exported card can exercise refuses the whole bundle."""
+        from dyn_bridge import build_surfaces
+        schemas = Path(__file__).resolve().parent.parent.parent / "schemas"
+        with self.assertRaises(BridgeError):
+            build_surfaces([passport("agent-alpha", ("post.dyn.v1",))],  # no work.escrow
+                           schemas)
 
 
 if __name__ == "__main__":

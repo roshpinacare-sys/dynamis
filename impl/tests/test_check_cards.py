@@ -50,6 +50,45 @@ class TestCheckCards(unittest.TestCase):
                           AgentPassport("agent-alpha", "op", ("hsm:k2",),
                                         ("post.dyn.v1",), "pw-two", 12)])
 
+    def test_surfaces_bundle_valid(self):
+        import tempfile
+        from check_cards import validate_surfaces
+        from dyn_bridge import build_surfaces, write_surfaces
+        schemas = Path(__file__).resolve().parent.parent.parent / "schemas"
+        bundle = build_surfaces(
+            [AgentPassport("agent-alpha", "alpha operator", ("hsm:k1",),
+                           ("post.dyn.v1", "verify.classB"), "pw-alpha", 12),
+             AgentPassport("agent-beta", "beta operator", ("hsm:k2",),
+                           ("work.escrow", "verify.classC"), "pw-beta", 12)],
+            schemas)
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "discovery"
+            write_surfaces(bundle, out)
+            self.assertEqual(validate_surfaces(out), [])
+
+    def test_surfaces_tamper_caught(self):
+        import json
+        import tempfile
+        from check_cards import validate_surfaces
+        from dyn_bridge import build_surfaces, write_surfaces
+        schemas = Path(__file__).resolve().parent.parent.parent / "schemas"
+        bundle = build_surfaces(
+            [AgentPassport("agent-alpha", "alpha operator", ("hsm:k1",),
+                           ("post.dyn.v1", "verify.classB"), "pw-alpha", 12),
+             AgentPassport("agent-beta", "beta operator", ("hsm:k2",),
+                           ("work.escrow", "verify.classC"), "pw-beta", 12)],
+            schemas)
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "discovery"
+            write_surfaces(bundle, out)
+            f = out / "skills.json"
+            obj = json.loads(f.read_text(encoding="utf-8"))
+            obj["skills"][0]["holders"] = ["agent-ghost"]
+            f.write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8")
+            fails = validate_surfaces(out)
+            self.assertTrue(any("digest mismatch" in x for x in fails))
+            self.assertTrue(any("holder" in x for x in fails))
+
 
 if __name__ == "__main__":
     unittest.main()
