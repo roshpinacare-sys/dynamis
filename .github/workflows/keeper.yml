@@ -1,0 +1,62 @@
+name: keeper
+
+# The scheduler problem, measured 2026-11-06: the uptime workflow's */15 cron
+# fired exactly once in its first day (20:45 UTC; 13+ slots dropped) and the
+# daily-proof 00:05 cron did not fire at all. GitHub cron is best-effort —
+# the windows of gates 1.1 and 2.2 cannot be kept on hope.
+#
+# This workflow is the fix: ONE self-perpetuating keeper chain that
+#   1. exits immediately if another keeper run is seen within 20 minutes
+#      (duplicate keepers self-terminate — the chain stays single),
+#   2. re-dispatches uptime.yml if its last run is older than 20 minutes and
+#      daily-proof.yml if its last run is older than 20 hours (a fresh daily
+#      record for "today" always lands before the UTC date rolls over),
+#   3. sleeps ~13 minutes, then dispatches its own successor.
+# workflow_dispatch triggered by GITHUB_TOKEN is exempt from the
+# "token events do not trigger workflows" rule, so the chain sustains itself.
+# If the chain ever dies, the 6-hourly cron re-seeds it (best-effort) and a
+# dropped beat stays a VISIBLE hole — that property is never given up.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Watch the windows and hand over the watch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          dup=$(gh api "repos/$REPO/actions/workflows/keeper.yml/runs?per_page=5" \
+            --jq "[.workflow_runs[] | select(.id != $RUN_ID) | select((now - (.created_at | fromdateiso8601)) < 1200)] | length")
+          if [ "$dup" -gt 0 ]; then
+            echo "a keeper is already watching ($dup recent) — exiting"
+            exit 0
+          fi
+          check_and_wake () {
+            wf="$1"; max="$2"
+            last=$(gh api "repos/$REPO/actions/workflows/$wf/runs?per_page=1" \
+              --jq '.workflow_runs[0].created_at // empty')
+            if [ -z "$last" ]; then age=999999; else
+              age=$(( $(date +%s) - $(date -u -d "$last" +%s) ))
+            fi
+            echo "$wf: last run $age s ago (threshold $max)"
+            if [ "$age" -gt "$max" ]; then
+              gh api -X POST "repos/$REPO/actions/workflows/$wf/dispatches" -f ref=main
+              echo "$wf: stale — re-dispatched"
+            fi
+          }
+          check_and_wake uptime.yml 1200
+          check_and_wake daily-proof.yml 72000
+          sleep 780
+          gh api -X POST "repos/$REPO/actions/workflows/keeper.yml/dispatches" -f ref=main
+          echo "watch handed over"
