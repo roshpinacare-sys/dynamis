@@ -1335,9 +1335,13 @@ class CraftJob:
         return result
 
     def refund(self, *, ledger: WorkLedger, day: int) -> dict:
-        self._require(statuses=("checked_fail", "denied"))
+        self._require(statuses=("checked_fail", "denied", "studied"))
         if self.manifest["status"] == "denied":
             note = "refunded: the buyer denied the study — escrow back, fees 0, emission 0"
+        elif self.manifest["status"] == "studied" and not self.manifest["checks"]:
+            # a build that never landed: the empty checks history is the
+            # evidence — nothing shipped, so nothing is earned
+            note = "refunded: no build was ever written — escrow back, fees 0, emission 0"
         else:
             last = self.manifest["checks"][-1]
             if last["passed"]:

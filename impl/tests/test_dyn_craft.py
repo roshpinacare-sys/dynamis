@@ -181,6 +181,21 @@ class TestCraftLoop(CraftMixin, unittest.TestCase):
         self.assertGreaterEqual(len(wire["embeds"]), 1)
         self.assertEqual(job.manifest["status"], "settled")
 
+    def test_an_unbuilt_job_refunds_in_full(self):
+        # the live layer found the gap: a worker who submits nothing leaves
+        # the job unbuilt — the empty checks history is the evidence
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        back = job.refund(ledger=self.ledger, day=1)
+        self.assertEqual(back["escrow_back_muc"], job.manifest["escrow_usds_muc"])
+        self.assertEqual(back["emitted_dyn_mu"], 0)
+        self.assertEqual(job.manifest["status"], "refunded")
+        self.assertIn("no build was ever written", job.manifest["note"])
+        inv = self.ledger.invariant()
+        self.assertTrue(inv["emitted_eq_revenue"])
+
     def test_fail_path_refunds_with_zero_emission(self):
         target = self._dataset(self.d)
         job = self._open_file_job(self.d / "j1", target)

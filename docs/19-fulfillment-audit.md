@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **432 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **438 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -564,6 +564,41 @@ verbatim passed with zero work.
    record reproduces exactly after the hardening (every non-overhead
    field identical); the honest price is 175 → 241 ms per job.
 
-Suite: **432 tests green** (4 new — the memorizer caught, the folder
+Suite: **438 tests green** (4 adversarial tests — the memorizer caught, the folder
 reader blinded, the honest program holding on unseen inputs, the probes
 deterministic/unseen/on-the-record).
+
+### Addendum 17 — real agents against the real harness (2026-11-07,
+### eleventh depth pass)
+
+The benchmark priced seeded workers; dyn.live.v1 puts a live model in the
+worker's seat. The same pool builder, the same loop, the same sandboxed
+check with its probes — only the delivery changes: the agent reads the
+buyer's request and the target and writes the files.
+
+1. **What the agent sees** (dyn_live.brief_for) is what a worker
+   legitimately sees: the request, the target verbatim between markers,
+   and the protocol's stated conventions (the lines/type definitions the
+   approval card settles). No facts, no check, no probes — asserted by
+   test (the true sha must not appear in the brief).
+2. **What the economy keeps** (dyn_live.run_live): per task — shipped or
+   refunded, similarity, the failed claim titles (the fault taxonomy),
+   the escrow paid and returned, wall-clock, the reply's hash. Full
+   replies ride in the job folders like any delivery.
+3. **The live layer's first find** — a protocol hole, found by the
+   model's own flakiness: a worker whose call fails (rate limit, empty
+   reply) submits nothing, and the engine had no refund for an unbuilt
+   job — the escrow would hang forever. The engine now refunds a studied
+   job with an empty checks history (the manifest itself is the evidence
+   that nothing shipped), full escrow back, zero fees, zero emission,
+   and the live loop records the empty delivery as the refund it is.
+4. **Offline plumbing**: a stub agent drives the same loop in the tests
+   (no model in CI) — honest stub ships and gets paid, garbage stub
+   refunds in full with named failed claims, an empty-delivery stub
+   refunds without crashing the loop.
+
+Results live in records/live-agents-2026-11-07.json and
+research/live-agents.md; scope stated there: this measures protocol
+effect on live builders on one day, with one model behind one CLI — not
+model quality, not a leaderboard. The seeded record remains the
+deterministic baseline.
