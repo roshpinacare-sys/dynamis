@@ -50,6 +50,7 @@ import argparse
 import ast
 import difflib
 import hashlib
+import http.client
 import html as html_mod
 import json
 import os
@@ -836,7 +837,10 @@ class CraftJob:
         result["similarity_milli"] = int(round(similarity * 10))
         claims_part = (f", {held} of {len(result['claims'])} claims hold"
                        if result["claims"] else "")
-        result["summary"] = f"about {similarity:.0f}% like the original{claims_part}"
+        result["summary"] = (
+            "the target moved since the study — nothing was judged"
+            if result.get("drifted") else
+            f"about {similarity:.0f}% like the original{claims_part}")
         if not result["passed"] and result.get("fixes"):
             result["refine_brief"] = (
                 f"Check {round_n}: your build looks {result['similarity_milli'] / 10:.0f}% "
@@ -868,7 +872,59 @@ class CraftJob:
                       failed_claims=[c["title"] for c in result["claims"] if not c["passed"]])
         return result
 
+    def _drift_round(self, check: str, round_n: int, detail: str) -> dict:
+        """A round the delivery could not be judged in: the world moved
+        under the study. Only the drift claim fails — the build is not
+        called wrong, because nothing was compared."""
+        return {"check": check, "round": round_n, "passed": False,
+                "compared": False, "drifted": True,
+                "note": "the target moved since the study — the capture is stale",
+                "claims": [{"title": "the target is what the study captured",
+                            "passed": False, "detail": detail}],
+                "unknowns": [], "notes": [], "fixes": [], "artifacts": []}
+
+    def _reground_file(self, facts: dict) -> dict | None:
+        """The world, now: the capture's own rules applied to the target
+        as it sits at check time. None — the file is gone."""
+        p = Path(facts["path"])
+        if not p.is_file():
+            return None
+        raw = p.read_bytes()
+        return {"sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw),
+                "lines": file_lines(raw), "type": file_kind(raw)}
+
+    def _reground_web(self, facts: dict) -> tuple[str, str]:
+        """The world, now: the origin re-fetched, start page and every
+        studied route, judged on visible words and title. Returns
+        ("holds"|"moved"|"unreachable", detail). An origin that does not
+        answer is not drift — the capture stays the evidence, and the
+        round says so instead of silently trusting its own notes."""
+        ref = self.manifest["target"]["ref"]
+        origin = ref.rsplit("/", 1)[0]
+        targets = [(ref, facts.get("text", ""), facts.get("title", ""))]
+        for rt in facts.get("routes", []):
+            if rt.get("text") is not None:
+                targets.append((origin + rt["path"], rt["text"],
+                                rt.get("title", "")))
+        for url, cap_text, cap_title in targets:
+            try:
+                req = urllib.request.Request(
+                    url, headers={"User-Agent": "DynamisCraftCheck/1.0"})
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    live = parse_page(r.read().decode("utf-8", errors="replace"))
+            except (urllib.error.URLError, OSError, ValueError,
+                    http.client.HTTPException) as exc:
+                return "unreachable", f"{url}: {exc}"
+            if words(live["text"]) != words(cap_text) or \
+                    live["title"].strip() != cap_title.strip():
+                return "moved", f"{url} reads differently than the study captured"
+        return "holds", ""
+
     def _check_web(self, facts: dict, round_n: int) -> dict:
+        state, detail = self._reground_web(facts)
+        if state == "moved":
+            return self._drift_round("web-drift", round_n, detail)
+        unreachable = state == "unreachable"
         page_path = self.root / "app" / "index.html"
         unknowns: list[str] = []
         notes: list[str] = []
@@ -882,6 +938,9 @@ class CraftJob:
                     "compared": False, "note": note,
                     "claims": [], "unknowns": [], "notes": [], "fixes": [],
                     "artifacts": []}
+        if unreachable:
+            unknowns.append("the origin did not answer at check time — "
+                            "likeness is judged against the capture")
         built = parse_page(page_path.read_text(encoding="utf-8", errors="replace"))
         cap_words, built_words = words(facts.get("text", "")), words(built["text"])
         score = alike(cap_words, built_words)
@@ -1060,10 +1119,18 @@ class CraftJob:
         hard_ok = all(c["passed"] for c in claims)
         bar = self.manifest["good_enough"]
         passed = hard_ok and similarity >= bar and not unknowns
+        if passed:
+            reason = ""
+        elif not hard_ok:
+            reason = (" — below the good-enough bar" if similarity < bar else
+                      " — claims fail: " + ", ".join(c["title"] for c in claims
+                                                     if not c["passed"]))
+        elif unknowns:
+            reason = " — the pass withholds: " + "; ".join(unknowns)
+        else:
+            reason = " — below the good-enough bar"
         note = f"{similarity:.0f}% alike" + (
-            f" across {len(scores)} page(s)" if len(scores) > 1 else "") + ("" if passed else
-            (" — below the good-enough bar" if hard_ok and similarity < bar
-             else " — claims fail: " + ", ".join(c["title"] for c in claims if not c["passed"])))
+            f" across {len(scores)} page(s)" if len(scores) > 1 else "") + reason
         return {"check": "web-structure", "round": round_n, "passed": passed,
                 "similarity": similarity, "note": note, "claims": claims,
                 "unknowns": unknowns, "notes": notes, "fixes": fixes,
@@ -1121,6 +1188,13 @@ class CraftJob:
         return specs
 
     def _check_file(self, facts: dict, round_n: int) -> dict:
+        now = self._reground_file(facts)
+        if now is None or any(now[k] != facts.get(k)
+                              for k in ("sha256", "bytes", "lines", "type")):
+            return self._drift_round(
+                "file-drift", round_n,
+                "the file is gone" if now is None else
+                "the file's fingerprint changed since the study")
         program = self.root / "app" / "main.py"
         unknowns: list[str] = []
         fixes: list[dict] = []
@@ -1346,7 +1420,10 @@ class CraftJob:
             last = self.manifest["checks"][-1]
             if last["passed"]:
                 raise CraftError("refund requires a FAIL round — the evidence on disk does not show one")
-            note = "refunded: the build never passed — escrow back, fees 0, emission 0"
+            note = ("refunded: the target moved since the study — the delivery "
+                    "was judged against nothing; escrow back, fees 0, emission 0"
+                    if last.get("drifted") else
+                    "refunded: the build never passed — escrow back, fees 0, emission 0")
         self.manifest["status"] = "refunded"
         self.manifest["note"] = note
         self._save()

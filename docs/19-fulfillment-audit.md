@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **438 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **443 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -602,3 +602,43 @@ research/live-agents.md; scope stated there: this measures protocol
 effect on live builders on one day, with one model behind one CLI — not
 model quality, not a leaderboard. The seeded record remains the
 deterministic baseline.
+
+### Addendum 18 — capture independence: the check re-grounds on the world
+### (2026-11-07, twelfth depth pass)
+
+Both check kinds judged against the capture — the study's own notes.
+The tenth pass sandboxed the worker away from those notes; this pass
+distrusts the notes themselves, because the world can move under them:
+
+1. **The file kind** ran the shipped program on the live file but
+   judged its output against the study-time facts. A target that
+   changed after the study blamed the worker for the world moving —
+   "content hash differs" on a program that reported the file exactly
+   as it is now. **The web kind** never touched the origin again: a
+   build of the dead page passed against stale notes, and a build of
+   the live page failed.
+2. **The fix** (dyn_craft._reground_file / _reground_web): before
+   judging, the check re-reads the target and applies the capture's own
+   rules (file), or re-fetches the origin — start page and every
+   studied route — and compares visible words and title (web). A
+   mismatch is **drift**: the round refuses judgement with a single
+   failed claim ("the target is what the study captured"), no likeness
+   claim is called, the summary says "nothing was judged", and the
+   refund names the world, not the worker — full escrow, zero fees,
+   zero emission. The protocol's answer to drift is a new job against
+   a new study.
+3. **A silent origin is not drift.** An origin that does not answer at
+   check time leaves the capture as the only evidence — and the pass
+   withholds (the engine's unknowns policy), with the round saying why:
+   "the origin did not answer at check time — likeness is judged
+   against the capture". Shipping on an unverifiable ground would be
+   the trust-my-notes hole wearing a smile. The failed-round note now
+   names that honestly instead of "claims fail:" with an empty list.
+4. **The corpus gained a moving target** (test corpus only): a page
+   that flips on its second fetch — the study captures v1, the check's
+   own re-fetch receives v2 — and a file that moves between study and
+   check. Five tests: a moved file is drift, not a wrong build; a moved
+   page refuses judgement of the studied page; a build of the new page
+   is drift too (neither side is rewarded); a still page judges as
+   before; a silent origin withholds the pass and says so. The
+   benchmark pool is untouched — the seeded record reproduces exactly.
