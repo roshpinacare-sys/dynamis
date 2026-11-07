@@ -159,7 +159,7 @@ class TestMcpServer(unittest.TestCase):
             program = ("import hashlib, json, sys\n"
                        "raw = open(sys.argv[1], 'rb').read()\n"
                        "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
-                       f"lines = {facts['lines']}\n"
+                       "lines = raw.count(b'\\n') + (0 if raw.endswith(b'\\n') or not raw else 1)\n"
                        "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),"
                        " 'bytes': len(raw), 'lines': lines, 'type': kind}))\n")
             build = self.req(13, "tools/call", {"name": "craft_build", "arguments": {

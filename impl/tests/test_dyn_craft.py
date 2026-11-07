@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dyn_craft import (CraftJob, CraftError, Evidence, alike, parse_page,  # noqa: E402
+                       file_kind, file_lines,  # noqa: E402
                        words)
 from dyn_ledger import WorkLedger, GENESIS, verify_checkpoint  # noqa: E402
 from dynamis_core.canonical import object_hash  # noqa: E402
@@ -28,7 +29,7 @@ def report_program(facts):
         "import hashlib, json, sys\n"
         "raw = open(sys.argv[1], 'rb').read()\n"
         "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
-        f"lines = {facts['lines']}\n"
+        "lines = raw.count(b'\\n') + (0 if raw.endswith(b'\\n') or not raw else 1)\n"
         "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),\n"
         "                  'bytes': len(raw), 'lines': lines, 'type': kind}))\n")
     return {"main.py": code}
@@ -170,7 +171,7 @@ class TestCraftLoop(CraftMixin, unittest.TestCase):
         result = job.check(ledger=self.ledger, day=1)
         self.assertTrue(result["passed"])
         self.assertEqual(result["similarity_milli"], 1000)
-        self.assertEqual(len(result["claims"]), 5)
+        self.assertEqual(len(result["claims"]), 7)  # 5 facts + 2 unseen-input probes
         settle = job.settle(ledger=self.ledger, day=1)
         self.assertGreater(settle["payout_muc"], 0)
         self.assertTrue(settle["chain_ok"])
@@ -1553,6 +1554,104 @@ class TestRootsTeethEyes(CraftMixin, unittest.TestCase):
         out = h_craft_verify({"root": str(job.root), "day": 1})
         self.assertTrue(out["verified"])
         self.assertEqual(out["job_id"], job.manifest["job_id"])
+
+
+class TestTheHarnessCannotBeGamed(CraftMixin, unittest.TestCase):
+    """Tenth depth pass: the check learned two attacks. A program that
+    memorizes the target's answers passes the original comparison but
+    dies on unseen inputs; a program that reads its expected answers
+    from the job folder finds no folder — the sandbox shows it nothing."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.d = Path(self._td.name)
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _checked(self, files):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        job.build(worker="agent-worker", files=files, ledger=self.ledger, day=1)
+        return job, job.check(ledger=self.ledger, day=1)
+
+    def _memorized(self, raw: bytes) -> dict:
+        """The worker legitimately holds the target, so it CAN bake the
+        answers — the original comparison cannot tell that from work."""
+        return {"main.py": (
+            "#!/usr/bin/env python3\n"
+            "import json\n"
+            "print(json.dumps(" + json.dumps(
+                {"sha256": __import__("hashlib").sha256(raw).hexdigest(),
+                 "bytes": len(raw), "lines": file_lines(raw),
+                 "type": file_kind(raw)}) + "))\n")}
+
+    def test_a_memorized_report_fails_on_unseen_inputs(self):
+        job, result = self._checked(self._memorized(self._dataset(self.d).read_bytes()))
+        self.assertFalse(result["passed"])
+        failed = [c["title"] for c in result["claims"] if not c["passed"]]
+        self.assertEqual(len(failed), 2, failed)
+        self.assertTrue(all("unseen input" in t for t in failed), failed)
+
+    def test_a_folder_reader_finds_no_exam(self):
+        # the cheat that worked before the sandbox: walk up to the job
+        # folder, read capture/facts.json, print it verbatim
+        sneaky = {"main.py": (
+            "#!/usr/bin/env python3\n"
+            "import json, os\n"
+            "found = None\n"
+            "for base in (os.getcwd(),\n"
+            "             os.path.dirname(os.path.abspath(__file__))):\n"
+            "    node = base\n"
+            "    for _ in range(8):\n"
+            "        if os.path.exists(os.path.join(node, 'craft.json')):\n"
+            "            found = node\n"
+            "            break\n"
+            "        node = os.path.dirname(node)\n"
+            "if found:\n"
+            "    print(open(os.path.join(found, 'capture', 'facts.json')).read())\n"
+            "    raise SystemExit\n"
+            "print(json.dumps({'sha256': 'x' * 64, 'bytes': 0,\n"
+            "                  'lines': 0, 'type': 'text'}))\n")}
+        job, result = self._checked(sneaky)
+        self.assertFalse(result["passed"])
+        failed = [c["title"] for c in result["claims"] if not c["passed"]]
+        self.assertTrue(any("content hash" in t for t in failed), failed)
+        self.assertTrue(any("unseen input" in t for t in failed), failed)
+
+    def test_an_honest_program_holds_on_unseen_inputs(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        job.build(worker="agent-worker", files=report_program(facts),
+                  ledger=self.ledger, day=1)
+        result = job.check(ledger=self.ledger, day=1)
+        self.assertTrue(result["passed"], result["note"])
+        probe_claims = [c for c in result["claims"] if "unseen input" in c["title"]]
+        self.assertEqual(len(probe_claims), 2)
+        self.assertTrue(all(c["passed"] for c in probe_claims))
+
+    def test_the_probes_are_unseen_deterministic_and_on_the_record(self):
+        target = self._dataset(self.d)
+        job = self._open_file_job(self.d / "j1", target)
+        job.study(ledger=self.ledger, day=1)
+        self._approve(job)
+        facts = json.loads((self.d / "j1" / "capture" / "facts.json").read_text())
+        job.build(worker="agent-worker", files=report_program(facts),
+                  ledger=self.ledger, day=1)
+        job.check(ledger=self.ledger, day=1)
+        again = job._probe_specs(1)
+        self.assertEqual([s[1] for s in again], [s[1] for s in job._probe_specs(1)])
+        self.assertNotEqual([s[1] for s in again], [s[1] for s in job._probe_specs(2)])
+        for name, raw, truth in again:
+            self.assertNotEqual(truth["sha256"], facts["sha256"])
+            self.assertEqual(truth["lines"], file_lines(raw))
+            self.assertTrue((job.root / "checks" / "round-1" / f"{name}.bin").is_file())
 
 
 if __name__ == "__main__":

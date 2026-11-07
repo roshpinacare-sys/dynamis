@@ -66,3 +66,17 @@ built is decoration; this one was allowed to break something, and did.
   capture is the honest next hole to hunt.
 - Determinism: pool, draws, verdicts and every µ¢ are a function of the
   seed; wall-clock overhead is the only reported number that varies.
+
+## Hardening, one day later (2026-11-07)
+
+Two attacks were then aimed at the file-kind check, and both were real:
+a program that memorizes the target's answers passed the original
+comparison, and a program that read its expected answers from the job's
+own capture passed with zero work. The harness now runs every execution
+in a disposable sandbox and judges two unseen inputs per round (their
+truth computed with the capture's own rules); the report kind's honest
+builders — including this benchmark's own — turned out half-memorized
+under the new probes and were made to compute. The record above still
+reproduces exactly after the hardening (every non-overhead field
+identical at seed 20261106); the honest price is 175 → 241 ms per job.
+Method note unchanged: the protocol's effect, not model quality.

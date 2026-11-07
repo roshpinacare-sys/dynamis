@@ -161,7 +161,7 @@ class TestCraftSurface(NetMixin, unittest.TestCase):
                             "import hashlib, json, sys\n"
                             "raw = open(sys.argv[1], 'rb').read()\n"
                             "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
-                            f"lines = {facts['lines']}\n"
+                            "lines = raw.count(b'\\n') + (0 if raw.endswith(b'\\n') or not raw else 1)\n"
                             "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),\n"
                             "                  'bytes': len(raw), 'lines': lines, 'type': kind}))\n")}
 
@@ -302,9 +302,10 @@ class TestHTTPSurface(NetMixin, unittest.TestCase):
             "worker": "agent-fay", "files": {
                 "main.py": ("import hashlib, json, sys\n"
                             "raw = open(sys.argv[1], 'rb').read()\n"
+                            "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
+                            "lines = raw.count(b'\\n') + (0 if raw.endswith(b'\\n') or not raw else 1)\n"
                             "print(json.dumps({'sha256': hashlib.sha256(raw).hexdigest(),"
-                            " 'bytes': len(raw), 'lines': raw.count(b'\\n'),"
-                            " 'type': 'json'}))\n")}})
+                            " 'bytes': len(raw), 'lines': lines, 'type': kind}))\n")}})
         self.assertEqual(st, 200)
         st, body = self.call("/api/craft/craft-0001/check", "POST", {})
         self.assertEqual(st, 200)

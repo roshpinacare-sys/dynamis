@@ -230,7 +230,42 @@ model quality. Measuring real agents against this pool is the named next
 measurement; the harness they would face is the same one these numbers
 came from.
 
-## 9 · The honest residue
+## 9 · The adversarial layer — the check learns to catch a cheater
+
+A harness that only catches honest mistakes is a harness against straw.
+Two attacks were aimed at the file-kind check, and both were real the day
+they were written down. **Memorization**: the worker legitimately holds
+the target, so it can bake the target's answers into a program that never
+reads its input — the original comparison passes it perfectly and the
+buyer receives a lookup table that breaks on any other file. **Exam
+detection**: the check ran the shipped program un-sandboxed against a
+target inside the job folder, so a program that walked up to `craft.json`,
+read `capture/facts.json`, and printed it verbatim passed with zero work —
+the expected answers sat next to the examinee.
+
+The harness now answers both. **Probes**: for the report interface, the
+check generates two unseen inputs — deterministic in (job, round), never
+shown to the worker, their truth computed by the harness with the
+capture's own rules (`file_kind`, `file_lines`, one source of truth with
+the study) — and each ride on disk as evidence; a report that holds there
+is computed, not memorized. **Sandbox**: every execution of the shipped
+program (main comparison, probes, recorded-run replays) runs in a
+disposable temp dir — the app copied under a neutral name, inputs renamed
+`input-N.bin`, cwd and environment stripped of anything from the job
+folder — a program that looks around finds no exam to detect. Probes
+judge the report interface only; a console app's unseen stdin has no
+ground truth here, and its recorded runs remain its check. The honest
+price is measured: 175 → 241 ms per job (three sandboxed runs per file
+job), and the 60-task benchmark record reproduces exactly — every
+non-overhead field identical. The fallout was itself instructive: every
+honest builder in the tests and the bench turned out to be half-memorized
+(baked `lines`/`type`/`sha` constants) — the probes caught them all, and
+now they compute. Scope stays honest: probes raise the bar from
+"memorizes the answer" to "must compute"; a worker that predicts the
+probe generator remains the named arms race, and the web check's capture
+independence is the next hole to hunt.
+
+## 10 · The honest residue
 
 What stays open after this pass, and why: pixel screenshots and layout metrics
 (a browser cannot live in a stdlib-only server), computed-style design values,

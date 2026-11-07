@@ -121,15 +121,21 @@ def build_files(task: dict, draw: dict) -> dict[str, str]:
             facts["sha256"] = facts["sha256"][:16] + "0" * 48
         elif v == "wrong_type":
             facts["type"] = "csv"
+        # the honest worker computes everything from the file it is given;
+        # only the drawn fault rides on top — inside the program, not beside it
+        plus = 1 if v == "lines_plus_one" else 0
         code = (
             "#!/usr/bin/env python3\n"
             "import hashlib, json, sys\n"
             "raw = open(sys.argv[1], 'rb').read()\n"
             "kind = 'json' if raw[:1] in (b'{', b'[') else 'text'\n"
-            f"lines = {facts['lines']}\n"
-            f"sha = {facts['sha256']!r}\n"
-            f"typed = {facts['type']!r}\n"
-            "print(json.dumps({'sha256': sha, 'bytes': len(raw),\n"
+            "lines = raw.count(b'\\n') + (0 if raw.endswith(b'\\n') or not raw else 1)"
+            + (f" + {plus}\n" if plus else "\n")
+            + ("sha = hashlib.sha256(raw).hexdigest()[:16] + '0' * 48\n"
+               if v == "short_sha"
+               else "sha = hashlib.sha256(raw).hexdigest()\n")
+            + ("typed = kind\n" if v != "wrong_type" else "typed = 'csv'\n")
+            + "print(json.dumps({'sha256': sha, 'bytes': len(raw),\n"
             "                  'lines': lines, 'type': typed}))\n")
         return {"main.py": code}
     html = Path(task["ref"]).read_text()

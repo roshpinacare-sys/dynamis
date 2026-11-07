@@ -53,9 +53,12 @@ import hashlib
 import html as html_mod
 import json
 import os
+import random
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 from html.parser import HTMLParser
@@ -379,6 +382,18 @@ class _Page(HTMLParser):
                 self.text.append(data)
 
 
+def file_kind(raw: bytes) -> str:
+    """The capture's type rule — one source of truth for study and probes."""
+    return ("json" if raw[:1] in (b"{", b"[") else
+            ("text" if all(b in b"\t\n\r\x0c\x1f" or 32 <= b < 127 or b >= 128
+                           for b in raw[:512]) else "binary"))
+
+
+def file_lines(raw: bytes) -> int:
+    """The capture's line rule — a trailing newline does not open a line."""
+    return raw.count(b"\n") + (0 if raw.endswith(b"\n") or not raw else 1)
+
+
 def parse_page(html_text: str) -> dict:
     p = _Page()
     p.feed(html_text)
@@ -612,9 +627,8 @@ class CraftJob:
         if not path.is_file():
             raise CraftError(f"target {path} is not a file")
         raw = path.read_bytes()
-        kind = "json" if raw[:1] in (b"{", b"[") else \
-            ("text" if all(b in b"\t\n\r\x0c\x1f" or 32 <= b < 127 or b >= 128 for b in raw[:512]) else "binary")
-        lines = raw.count(b"\n") + (0 if raw.endswith(b"\n") or not raw else 1)
+        kind = file_kind(raw)
+        lines = file_lines(raw)
         structure: dict = {}
         if kind == "json":
             try:
@@ -1057,6 +1071,55 @@ class CraftJob:
                 "missing_headings": missing_headings,
                 "artifacts": ["app/index.html"]}
 
+    def _sandboxed_run(self, *, inputs: list[Path] | None = None,
+                       stdin: str | None = None) -> dict:
+        """The shipped app runs in a disposable sandbox: the app folder and
+        its inputs land under neutral names in a temp dir, the cwd and the
+        environment carry nothing from the job folder — a program that looks
+        around finds no exam to detect, and one that reads its expected
+        answers from the job's capture finds no capture."""
+        with tempfile.TemporaryDirectory() as td:
+            sandbox = Path(td) / "sandbox"
+            shutil.copytree(self.root / "app", sandbox)
+            argv = [sys.executable, "main.py"]
+            for i, src in enumerate(inputs or []):
+                shutil.copyfile(src, sandbox / f"input-{i}.bin")
+                argv.append(f"input-{i}.bin")
+            env = {"PATH": os.environ.get("PATH", ""), "HOME": td,
+                   "TMPDIR": td, "PYTHONHASHSEED": "0",
+                   "PYTHONDONTWRITEBYTECODE": "1"}
+            t0 = time.monotonic()
+            try:
+                proc = subprocess.run(argv, cwd=sandbox, env=env, input=stdin,
+                                      capture_output=True, text=True,
+                                      timeout=MAX_RUNTIME_S)
+                return {"timeout": False, "returncode": proc.returncode,
+                        "stdout": proc.stdout, "stderr": proc.stderr,
+                        "runtime": time.monotonic() - t0}
+            except subprocess.TimeoutExpired:
+                return {"timeout": True, "returncode": None, "stdout": "",
+                        "stderr": "", "runtime": time.monotonic() - t0}
+
+    def _probe_specs(self, round_n: int) -> list[tuple[str, bytes, dict]]:
+        """Two unseen inputs, deterministic in (job, round). The build
+        predates them — it cannot have memorized their answers — and the
+        harness computes their truth with the capture's own rules
+        (file_kind, file_lines), never from the worker's code."""
+        rng = random.Random(f"probe:{self.manifest['job_id']}:{round_n}")
+        a = (json.dumps({"probe": "unseen input", "n": rng.randint(2, 40),
+                         "items": [rng.randrange(100, 9999)
+                                   for _ in range(rng.randint(3, 12))]},
+                        indent=1) + "\n").encode()
+        b = ("probe input: plain text\n" + "".join(
+            f"line {i}: {rng.randrange(1000)}\n"
+            for i in range(rng.randint(2, 15)))).encode()
+        specs = []
+        for name, raw in (("probe-1", a), ("probe-2", b)):
+            specs.append((name, raw, {"sha256": hashlib.sha256(raw).hexdigest(),
+                                      "bytes": len(raw), "lines": file_lines(raw),
+                                      "type": file_kind(raw)}))
+        return specs
+
     def _check_file(self, facts: dict, round_n: int) -> dict:
         program = self.root / "app" / "main.py"
         unknowns: list[str] = []
@@ -1071,13 +1134,11 @@ class CraftJob:
                     "compared": False, "note": note,
                     "claims": [], "unknowns": [], "notes": [], "fixes": [],
                     "artifacts": []}
-        t0 = time.monotonic()
-        proc = subprocess.run([sys.executable, str(program), facts["path"]],
-                              capture_output=True, text=True, timeout=MAX_RUNTIME_S)
-        runtime = time.monotonic() - t0
-        runs_ok = proc.returncode == 0
+        run = self._sandboxed_run(inputs=[Path(facts["path"])])
+        runtime = run["runtime"]
+        runs_ok = run["returncode"] == 0
         try:
-            got = json.loads(proc.stdout)
+            got = json.loads(run["stdout"])
         except json.JSONDecodeError:
             got = None
             unknowns.append("the build printed nothing parsable — its output cannot be compared")
@@ -1088,7 +1149,8 @@ class CraftJob:
         claims = [
             {"title": f"it runs under {MAX_RUNTIME_S}s and exits cleanly",
              "passed": runs_ok, "detail": "" if runs_ok else
-             f"exit {proc.returncode}: {proc.stderr.strip()[-120:]}"},
+             ("it timed out" if run["timeout"] else
+              f"exit {run['returncode']}: {run['stderr'].strip()[-120:]}")},
             {"title": "it reports the same byte size", "passed": bytes_ok,
              "detail": "" if bytes_ok else "byte size differs"},
             {"title": "it reports the same line count", "passed": lines_ok,
@@ -1112,22 +1174,49 @@ class CraftJob:
                           f"identify the same type (the original's is {facts['type']})"})
         if not sha_ok:
             fixes.append({"code": "sha", "message": "report the same content hash"})
+        # probes: the build predates them, so a report that holds on them is
+        # computed, not memorized — the truth is the harness's own, and each
+        # probe rides on disk as evidence for the round that judged it.
+        # They judge the report interface only; a console app's unseen
+        # stdin has no ground truth here (its recorded runs are the check).
+        n_probes = 0
+        probe_dir = self.root / "checks" / f"round-{round_n}"
+        probe_dir.mkdir(parents=True, exist_ok=True)
+        for i, (pname, praw, ptruth) in enumerate(self._probe_specs(round_n), 1) \
+                if "sha256" in facts and not facts.get("runs") else []:
+            probe_path = probe_dir / f"{pname}.bin"
+            if not probe_path.exists():
+                probe_path.write_bytes(praw)
+            n_probes += 1
+            prun = self._sandboxed_run(inputs=[probe_path])
+            try:
+                pgot = json.loads(prun["stdout"])
+            except json.JSONDecodeError:
+                pgot = None
+            diff = ([k for k in ("sha256", "bytes", "lines", "type")
+                     if not pgot or pgot.get(k) != ptruth[k]]
+                    if pgot else ["no parsable report"])
+            pok = not diff
+            claims.append({"title": f"it computes — unseen input #{i} reports correctly",
+                           "passed": pok,
+                           "detail": "" if pok else
+                           f"on a file it never saw, {', '.join(diff)} differed"})
+            if not pok:
+                fixes.append({"code": "probes", "message":
+                              "compute the report from the file you are given — "
+                              "a memorized answer doesn't hold on unseen inputs"})
         score = alike(words(json.dumps(
             {k: facts[k] for k in ("sha256", "bytes", "lines", "type")},
-            sort_keys=True)), words(proc.stdout)) if got else 0.0
+            sort_keys=True)), words(run["stdout"])) if got else 0.0
         run_scores: list[float] = []
         # the recorded runs, input by input — the reference engine's RunsCheck,
         # with its exact claim wording and its name→"program" normalisation
         names = [Path(facts["path"]).stem, "main"]
         for run in facts.get("runs", []):
-            try:
-                pr = subprocess.run([sys.executable, str(program)],
-                                    input=run["input"], capture_output=True,
-                                    text=True, timeout=MAX_RUNTIME_S)
-                built_run = {"timeout": False, "returncode": pr.returncode,
-                             "stdout": pr.stdout}
-            except subprocess.TimeoutExpired:
-                built_run = {"timeout": True, "returncode": None, "stdout": ""}
+            pr = self._sandboxed_run(stdin=run["input"])
+            built_run = {"timeout": pr["timeout"],
+                         "returncode": pr["returncode"],
+                         "stdout": pr["stdout"]}
             how_o, how_b = run_how(run), run_how(built_run)
             exit_ok = how_o == how_b
             oscore = alike(output_words(run.get("stdout", ""), names),
@@ -1148,6 +1237,9 @@ class CraftJob:
                               "message": f"with {run['input']!r} as input, print what the "
                                          f"original prints ({oscore:.0f}% of the words now)"})
             run_scores.append(oscore)
+        if n_probes:
+            notes.append(f"{n_probes} unseen input(s) judged — a report that "
+                         "holds there is computed, not memorized")
         if facts.get("runs"):
             notes.append(f"{len(facts['runs'])} recorded run(s) judged, "
                          f"outputs {sum(run_scores) / len(run_scores):.0f}% alike on average")

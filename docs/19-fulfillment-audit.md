@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **428 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **432 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -533,5 +533,37 @@ asserted in code.
    protocol's effect, not model quality. Measuring real agents against
    this pool is the named next measurement.
 
-Suite: **428 tests green** (6 new — determinism, the shipping guarantee,
+Suite: **432 tests green** (6 benchmark tests — determinism, the shipping guarantee,
 the cost gradient, claim immunity, the scripts claim, seals-under-load).
+
+### Addendum 16 — the adversarial layer (2026-11-07, tenth depth pass)
+
+Two attacks aimed at the file-kind check were both real the day they were
+written down. Memorization: a program that prints the target's baked
+answers without reading its input passed the original comparison — the
+buyer would receive a lookup table. Exam detection: the check ran the
+shipped program un-sandboxed with the target inside the job folder — a
+program that walked up to `craft.json` and printed `capture/facts.json`
+verbatim passed with zero work.
+
+1. **Probes** (dyn_craft._probe_specs): for the report interface the check
+   now judges two unseen inputs per round, deterministic in (job, round),
+   truth computed by the harness with the capture's own rules
+   (`file_kind`/`file_lines` — extracted as the single source of truth),
+   each probe riding on disk under checks/round-N/ as evidence. A report
+   that holds there is computed, not memorized. Probes judge the report
+   interface only; a console app's recorded runs remain its check.
+2. **Sandbox** (dyn_craft._sandboxed_run): every execution of the shipped
+   program — main comparison, probes, recorded-run replays — runs in a
+   disposable temp dir with neutral names and a stripped environment; a
+   program that looks around finds no exam to detect and no capture to
+   read.
+3. **The fallout was the finding**: every honest builder in the tests and
+   the bench was half-memorized (baked `lines`/`type`/`sha` constants);
+   the probes caught them all and now they compute. The 60-task benchmark
+   record reproduces exactly after the hardening (every non-overhead
+   field identical); the honest price is 175 → 241 ms per job.
+
+Suite: **432 tests green** (4 new — the memorizer caught, the folder
+reader blinded, the honest program holding on unseen inputs, the probes
+deterministic/unseen/on-the-record).
