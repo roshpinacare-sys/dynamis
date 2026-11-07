@@ -508,10 +508,12 @@ def main() -> int:
     add("```")
     audit = c.call("GET", "/api/audit")
     add(f"audit: ok={str(audit['ok']).lower()} · {audit['entries']} entries · "
-        f"{audit['seals']} seal(s) at every 12th entry · problems: "
-        f"{audit['problems'] or 'none'}")
-    add("a rewritten past re-mines its hashes; the seals the observer already")
-    add("holds disagree — the audit fails closed on the state_root mismatch")
+        f"{audit['seals']} seal(s) at every 12th entry · ed25519-signed · "
+        f"problems: {audit['problems'] or 'none'}")
+    add("each seal carries real ed25519 signatures from the witness band")
+    add("(RFC 8032, stdlib-only); the audit verifies them against the pubkeys")
+    add("the observer pinned — a rewritten past re-mines its hashes and still")
+    add("fails, on the state root and on the signatures it cannot forge")
     add("```")
     add("")
     add("## 8 · MCP parity — the same loop as tools any agent mounts")

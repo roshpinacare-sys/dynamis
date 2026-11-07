@@ -929,6 +929,117 @@ class TestDurabilityAndProofs(unittest.TestCase):
                 proof, root))
 
 
+class TestTheBandHoldsRealKeys(unittest.TestCase):
+    """The witness signatures are real ed25519 (RFC 8032, stdlib-only per
+    ADR-0007) over a domain-separated seal message; seals verify only
+    against the pubkeys an observer pinned when the band formed."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.sd = Path(self._td.name)
+        from dyn_app import Dynamis
+        self.net = Dynamis(state_root=self.sd)
+        for who in ("agent-buyer", "agent-builder"):
+            self.net.join(who, f"persona-{who}")
+        self.target = self.sd / "dataset.json"
+        self.target.write_text(json.dumps({"rows": [{"n": i} for i in range(40)]}) + "\n")
+        for i in range(2):
+            self._run_job(f"sign me {i}")
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _run_job(self, request):
+        self.net.open_craft(buyer="agent-buyer", request=request,
+                            target_kind="file", target_ref=str(self.target))
+        jid = f"craft-{self.net._craft_seq:04d}"
+        self.net.craft_study(jid)
+        card = next(p for p in (self.sd / "craft" / jid / "inbox").glob("*.json")
+                    if json.loads(p.read_text())["kind"] == "approval")
+        self.net.craft_answer(jid, card.stem, "approve", "agent-buyer")
+        facts = json.loads((self.sd / "craft" / jid / "capture" / "facts.json").read_text())
+        self.net.craft_build(jid, "agent-builder", report_program(facts))
+        self.net.craft_check(jid)
+        return self.net.craft_settle(jid)
+
+    def test_the_curve_matches_rfc_8032(self):
+        from dynamis_core import ed25519
+        st = ed25519.self_test()
+        self.assertTrue(st["ok"], st)
+        self.assertEqual(st["vectors"], 3)
+        # the seal message is domain-separated and pinned by shape
+        from dyn_ledger import _seal_message
+        self.assertEqual(_seal_message(12, "abc"), b"dyn.seal.v2|12|abc")
+
+    def test_the_seals_are_real_ed25519_not_domain_hashes(self):
+        import base64
+        from dyn_ledger import _witness_sig, _seal_message
+        from dynamis_core import ed25519
+        cp = self.net.checkpoints[0]
+        self.assertEqual(cp["scheme"], "ed25519")
+        self.assertTrue(self.net.checkpoints, "the chain sealed")
+        for s in cp["witness_sigs"]:
+            self.assertNotEqual(s["s"], _witness_sig(s["w"], cp["height"], cp["state_root"]),
+                                "the stand-in must not leak back in")
+            raw = base64.b64decode(s["s"])
+            self.assertTrue(ed25519.verify(
+                _seal_message(cp["height"], cp["state_root"]), raw,
+                self.net.band.pubkeys[s["w"]]))
+
+    def test_a_forged_signature_fails_closed(self):
+        import base64
+        from dyn_ledger import verify_checkpoint, _seal_message
+        from dynamis_core import ed25519
+        cp = dict(self.net.checkpoints[0])
+        forged = base64.b64encode(ed25519.sign(_seal_message(
+            cp["height"], cp["state_root"]), b"attacker-seed".ljust(32, b"0"))).decode()
+        # the forged sig rides with enough real sigs to pass the threshold —
+        # what fails is the signature check, not the count
+        real = [dict(s) for s in self.net.checkpoints[0]["witness_sigs"][1:5]]
+        cp["witness_sigs"] = [{"w": "witness-1", "s": forged}] + real
+        # the observer pinned the BAND's keys; the attacker's seed is its own —
+        # the sig verifies against nobody the observer pinned
+        out = verify_checkpoint(cp, self.net.ledger, pubkeys=self.net.band.pubkeys)
+        self.assertFalse(out["ok"])
+        self.assertIn("witness sig invalid: witness-1", out["why"])
+
+    def test_the_threshold_still_binds(self):
+        from dyn_ledger import verify_checkpoint, BFT_THRESHOLD
+        cp = dict(self.net.checkpoints[0])
+        cp["witness_sigs"] = cp["witness_sigs"][:BFT_THRESHOLD - 1]
+        out = verify_checkpoint(cp, self.net.ledger, pubkeys=self.net.band.pubkeys)
+        self.assertFalse(out["ok"])
+        self.assertIn("BFT needs", out["why"])
+
+    def test_an_unpinned_band_verifies_nothing(self):
+        from dyn_ledger import verify_checkpoint
+        cp = self.net.checkpoints[0]
+        out = verify_checkpoint(cp, self.net.ledger)          # no pubkeys pinned
+        self.assertFalse(out["ok"])
+        self.assertEqual(out["why"], "ed25519 seal but no pinned pubkeys")
+        out = verify_checkpoint(cp, self.net.ledger,
+                                pubkeys={"witness-9": b"0" * 32})  # wrong pin
+        self.assertFalse(out["ok"])
+        self.assertIn("unpinned witness", out["why"])
+
+    def test_the_remined_past_still_fails_the_signed_seals(self):
+        from dynamis_core.canonical import object_hash
+        self.assertTrue(self.net.craft_audit()["ok"])
+        prev = self.net.ledger.entries[2]["hash"]
+        for e in self.net.ledger.entries[3:]:
+            e["body"]["payout_muc"] = 1
+            e["prev"] = prev
+            e["hash"] = object_hash({"prev": e["prev"], "seq": e["seq"],
+                                     "kind": e["kind"], "day": e["day"],
+                                     "body": e["body"]})
+            prev = e["hash"]
+        audit = self.net.craft_audit()
+        self.assertFalse(audit["ok"])
+        self.assertTrue(any("state_root mismatch" in p for p in audit["problems"]),
+                        audit["problems"])
+
+
 class TestTheSealsGoLive(unittest.TestCase):
     """The checkpoint machinery existed; now the app's live chain actually
     seals itself every full window, and the audit holds it against a
@@ -972,7 +1083,9 @@ class TestTheSealsGoLive(unittest.TestCase):
                          [h for h in (12, 24, 36) if h <= entries],
                          "one seal per full window, nothing else")
         for cp in self.net.checkpoints:
-            self.assertTrue(verify_checkpoint(cp, self.net.ledger)["ok"])
+            self.assertEqual(cp["scheme"], "ed25519")
+            self.assertTrue(verify_checkpoint(cp, self.net.ledger,
+                                              pubkeys=self.net.band.pubkeys)["ok"])
         audit = self.net.craft_audit()
         self.assertTrue(audit["ok"], audit["problems"])
         self.assertEqual(audit["seals"], len(heights))

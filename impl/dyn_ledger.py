@@ -34,6 +34,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from dynamis_core import ed25519  # noqa: E402
 from dynamis_core.canonical import object_hash  # noqa: E402
 from dynamis_core.emission import DYN_MU_PER_USDS_MUC  # noqa: E402
 
@@ -55,12 +56,14 @@ KINDS = ("open", "work", "check", "refine", "settle", "refund", "post",
 class WorkLedger:
     """One append-only hash chain over the economy's work events."""
 
-    def __init__(self, *, seal_hook=None) -> None:
+    def __init__(self, *, seal_hook=None, seal_band=None) -> None:
         """seal_hook(checkpoint) fires whenever a full SEAL_EVERY window
         completes — the app uses it to keep the chain's seals on record as
-        the events happen, so a later rewrite faces an anchor it held."""
+        the events happen, so a later rewrite faces an anchor it held.
+        seal_band signs the seals with real ed25519 keys when given."""
         self.entries: list[dict] = []
         self.seal_hook = seal_hook
+        self.seal_band = seal_band
 
     def append(self, *, day: int, kind: str, job_id: str, agent: str,
                **body) -> dict:
@@ -73,7 +76,7 @@ class WorkLedger:
                                      "kind": kind, "day": day, "body": body})
         self.entries.append(entry)
         if self.seal_hook is not None and len(self.entries) % SEAL_EVERY == 0:
-            self.seal_hook(self.checkpoint(day=day))
+            self.seal_hook(self.checkpoint(day=day, band=self.seal_band))
         return entry
 
     # ---------- integrity ----------
@@ -134,7 +137,8 @@ class WorkLedger:
 
     def all_checkpoints(self, *, day: int = 0,
                         witnesses: tuple[str, ...] = WITNESSES,
-                        threshold: int = BFT_THRESHOLD) -> list[dict]:
+                        threshold: int = BFT_THRESHOLD,
+                        band: "WitnessBand | None" = None) -> list[dict]:
         """One checkpoint per full window: 12, 24, 36 … entries covered."""
         cps = []
         for k in range(1, len(self.entries) // SEAL_EVERY + 1):
@@ -142,23 +146,32 @@ class WorkLedger:
             window = self.entries[covered - SEAL_EVERY:covered]
             state_root = self.merkle_root(
                 [e["hash"] for e in self.entries[:covered]])
+            if band is not None:
+                sigs = [{"w": w, "s": band.sign(w, covered, state_root)}
+                        for w in band.names[:threshold]]
+                scheme = "ed25519"
+            else:
+                sigs = [{"w": w, "s": _witness_sig(w, covered, state_root)}
+                        for w in witnesses[:threshold]]
+                scheme = "domain-hash"
             cps.append({
                 "checkpoint": CHECKPOINT,
+                "scheme": scheme,
                 "height": covered,
                 "day": day,
                 "seal": SEAL_EVERY,
                 "state_root": state_root,
                 "tx_root": self.merkle_root([e["hash"] for e in window]),
-                "witness_sigs": [{"w": w, "s": _witness_sig(w, covered, state_root)}
-                                 for w in witnesses[:threshold]],
+                "witness_sigs": sigs,
             })
         return cps
 
     def checkpoint(self, *, day: int, witnesses: tuple[str, ...] = WITNESSES,
-                   threshold: int = BFT_THRESHOLD) -> dict | None:
+                   threshold: int = BFT_THRESHOLD,
+                   band: "WitnessBand | None" = None) -> dict | None:
         """Seal the latest full window — None if no full window exists yet."""
         cps = self.all_checkpoints(day=day, witnesses=witnesses,
-                                   threshold=threshold)
+                                   threshold=threshold, band=band)
         return cps[-1] if cps else None
 
     # ---------- Law 19, exact ----------
@@ -181,6 +194,33 @@ class WorkLedger:
         }
 
 
+CHECKPOINT_MSG_DOMAIN = "dyn.seal.v2"
+
+
+def _seal_message(height: int, state_root: str) -> bytes:
+    """The exact bytes a witness signs: domain, height, state root."""
+    return f"{CHECKPOINT_MSG_DOMAIN}|{height}|{state_root}".encode()
+
+
+class WitnessBand:
+    """The witness band with real ed25519 keys. In production each key
+    lives in an independent witness's HSM; in the kit the band is
+    in-process — the signatures are real cryptography either way. An
+    observer pins self.pubkeys when the band forms; seals verify only
+    against the pinned keys."""
+
+    def __init__(self, names: tuple[str, ...] = WITNESSES) -> None:
+        import os
+        self.names = names
+        self.seeds = {w: os.urandom(32) for w in names}
+        self.pubkeys = {w: ed25519.publickey(s) for w, s in self.seeds.items()}
+
+    def sign(self, witness: str, height: int, state_root: str) -> str:
+        import base64
+        sig = ed25519.sign(_seal_message(height, state_root), self.seeds[witness])
+        return base64.b64encode(sig).decode()
+
+
 def _witness_sig(witness: str, height: int, state_root: str) -> str:
     """HSM stand-in: deterministic domain hash over (witness, height, root).
     Real ed25519-via-HSM signatures are the gate-2.1 hardening step."""
@@ -189,8 +229,11 @@ def _witness_sig(witness: str, height: int, state_root: str) -> str:
 
 
 def verify_checkpoint(cp: dict, ledger: WorkLedger, *,
-                      threshold: int = BFT_THRESHOLD) -> dict:
-    """Fail-closed: roots must recompute, sigs must match and meet BFT count."""
+                      threshold: int = BFT_THRESHOLD,
+                      pubkeys: dict | None = None) -> dict:
+    """Fail-closed: roots must recompute, sigs must match and meet BFT count.
+    ed25519 seals verify only against the observer's pinned pubkeys — a
+    seal without pinned keys passes nothing."""
     sealed = cp["height"]
     if sealed == 0 or sealed % SEAL_EVERY or sealed > len(ledger.entries):
         return {"ok": False, "why": "bad height"}
@@ -203,6 +246,17 @@ def verify_checkpoint(cp: dict, ledger: WorkLedger, *,
     sigs = cp["witness_sigs"]
     if len(sigs) < threshold:
         return {"ok": False, "why": f"only {len(sigs)} sigs — BFT needs {threshold}"}
+    if cp.get("scheme") == "ed25519":
+        if not pubkeys:
+            return {"ok": False, "why": "ed25519 seal but no pinned pubkeys"}
+        import base64
+        msg = _seal_message(sealed, cp["state_root"])
+        for s in sigs:
+            if s["w"] not in pubkeys:
+                return {"ok": False, "why": f"unpinned witness: {s['w']}"}
+            if not ed25519.verify(msg, base64.b64decode(s["s"]), pubkeys[s["w"]]):
+                return {"ok": False, "why": f"witness sig invalid: {s['w']}"}
+        return {"ok": True, "why": None}
     for s in sigs:
         if s["s"] != _witness_sig(s["w"], sealed, cp["state_root"]):
             return {"ok": False, "why": f"witness sig invalid: {s['w']}"}

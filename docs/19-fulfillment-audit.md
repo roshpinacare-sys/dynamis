@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **416 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **422 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -473,3 +473,34 @@ problems: none`. The boundary named in the matrix stands — the signatures
 are the HSM stand-in (deterministic domain hashes), so the seal binds the
 state an observer held, not a key an attacker lacks; real ed25519-in-HSM
 is gate 2.1. Suite: **416 tests green** (5 new).
+
+### Addendum 14 — the band holds real keys (2026-11-06, eighth depth pass)
+
+Addendum 13 anchored the past; this one signs the anchor. The named
+boundary was that the witness signatures were deterministic domain hashes
+— a re-miner with the code could re-sign. That door is closed.
+
+1. **ed25519, stdlib-only.** RFC 8032 implemented in pure python inside
+   dynamis_core (ADR-0007 forbids new dependencies in the reference):
+   pinned to the RFC's §7.1 test vectors (pubkey derivation, exact
+   signature bytes, tamper rejection — all three vectors) and
+   cross-checked against OpenSSL-backed keys out-of-band. ~3ms per
+   signature; a seal costs 7, an audit ~30 verifications.
+2. **The seals are signed.** `WitnessBand` holds a keypair per witness;
+   the ledger's seal hook signs with the band; seals carry
+   `"scheme": "ed25519"` and a domain-separated message
+   (`dyn.seal.v2|height|state_root`). Legacy domain-hash seals still
+   verify as before — the scheme is on the record, never guessed.
+3. **Verification is fail-closed against the pin.** A seal verifies only
+   against the pubkeys an observer pinned when the band formed: no pin,
+   no pass; a wrong pin, an unpinned witness, a forged signature, or a
+   sub-threshold sig set each fails with its own reason. The measured
+   teeth: a full re-mine still passes `verify_chain` alone and still
+   fails the audit — on the state root and on signatures it cannot forge.
+4. **The boundary, restated honestly.** In the kit the band is
+   in-process — the app holds its own seeds and could re-sign; in
+   production the keys live in independent witnesses' HSMs. The crypto is
+   real either way; what remains is trust geometry, named.
+
+Measured live in transcript §7: `audit: ok=true · 75 entries · 6 seals ·
+ed25519-signed · problems: none`. Suite: **422 tests green** (6 new).

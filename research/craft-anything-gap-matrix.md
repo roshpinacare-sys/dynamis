@@ -188,10 +188,18 @@ a hook the moment a full window completes, the app keeps every seal, and
 every seal — fail closed. The teeth are measurable: a rewritten past that
 re-mines all its hashes passes `verify_chain` alone, and still fails the
 audit, because the seals the observer already holds disagree on the state
-root. The named boundary stands: the witness signatures are deterministic
-domain hashes (the HSM stand-in), so a re-miner with the code can re-sign;
-real ed25519-in-HSM keys are the gate-2.1 hardening — until then the seal
-binds the state an observer held, not a key an attacker lacks.
+root. The signatures became real. The band signs with ed25519 — RFC 8032
+implemented in pure python inside dynamis_core (stdlib-only per ADR-0007,
+pinned to the RFC's own test vectors and cross-checked against
+OpenSSL-backed keys), each seal domain-separated over height and state
+root, verified only against the pubkeys an observer pinned when the band
+formed; an unpinned band verifies nothing, a forged signature fails
+closed, and the BFT threshold still binds. The boundary moves to where it
+truly lives: key custody. In the kit the band is in-process — the app
+holds its own seeds, so the app could re-sign; in production the keys sit
+in independent witnesses' HSMs and no single re-miner has them. The
+cryptography, the threshold and the fail-closed verification are already
+the protocol's; what remains is the trust geometry, named and honest.
 
 ## 8 · The honest residue
 

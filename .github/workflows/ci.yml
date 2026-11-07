@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Protocol tests (impl — 416 checks, incl. wire-schema validation)
+      - name: Protocol tests (impl — 422 checks, incl. wire-schema validation)
         run: |
           python -m pip install --quiet jsonschema
           cd impl

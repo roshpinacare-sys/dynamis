@@ -44,7 +44,7 @@ from dyn_compute import Pool, ComputeError  # noqa: E402
 from dyn_craft import CraftJob, CraftError, dispute_on_record  # noqa: E402
 from dyn_bench import run_benchmark  # noqa: E402
 from dyn_engine import ARTIFACT_INVOICE_PARSER, EngineError, WorkLoop  # noqa: E402
-from dyn_ledger import WorkLedger, verify_checkpoint  # noqa: E402
+from dyn_ledger import WorkLedger, WitnessBand, verify_checkpoint  # noqa: E402
 from dyn_post import PostValueError, from_wire, parse_post, render_post, \
     to_wire, validate_limits  # noqa: E402
 from dyn_social import Rail, SocialError, signature_stand_in  # noqa: E402
@@ -80,9 +80,12 @@ class Dynamis:
         self.rail = Rail()
         self.pool = Pool()
         # the chain's seals, kept as the events happen — the anchor an
-        # observer holds so a rewritten past has something to contradict
+        # observer holds so a rewritten past has something to contradict.
+        # The band signs with real ed25519 keys; in the kit it is
+        # in-process, in production its keys live in independent HSMs
+        self.band = WitnessBand()
         self.checkpoints: list[dict] = []
-        self.ledger = WorkLedger(seal_hook=self._store_seal)
+        self.ledger = WorkLedger(seal_hook=self._store_seal, seal_band=self.band)
         self.lock = threading.RLock()
         self.agents: dict[str, dict] = {}
         self.jobs: dict[str, dict] = {}
@@ -497,7 +500,8 @@ class Dynamis:
                 if h not in stored:
                     problems.append(f"missing seal for height {h}")
                     continue
-                v = verify_checkpoint(stored[h], self.ledger)
+                v = verify_checkpoint(stored[h], self.ledger,
+                                      pubkeys=self.band.pubkeys)
                 if not v["ok"]:
                     problems.append(f"seal {h}: {v['why']}")
             extra = sorted(set(stored) - {cp["height"] for cp in expected})

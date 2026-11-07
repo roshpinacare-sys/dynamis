@@ -1,4 +1,4 @@
-# The craft session — 2026-11-06 23:01 UTC
+# The craft session — 2026-11-07 00:38 UTC
 
 `dyn.craft.v1` on the live network (pattern credit: storytold/craft-anything):
 study a target with evidence behind every answer, build a version, check how
@@ -11,7 +11,7 @@ process.
 ## 1 · The first craft job — a dataset, studied, built wrong, refused
 
 ```
-study: 1 evidence record(s) (ev_e34ce315fcc83df5f…), 1 open question(s)
+study: 1 evidence record(s) (ev_b78ef309704a5aaee…), 1 open question(s)
 captured: 7241 bytes, 605 lines, type json, sha256 53e9a631874b06bf…
 the loop pauses on the buyer's card: q-002 — “Approve the study and release the build? Escrow 500 USDS; …”
 ```
@@ -123,9 +123,11 @@ the awarded one settles paid 475,000,000 µ¢ — its stake and the runner-up's 
 And the past is anchored — the chain seals itself every full window:
 
 ```
-audit: ok=true · 75 entries · 6 seal(s) at every 12th entry · problems: none
-a rewritten past re-mines its hashes; the seals the observer already
-holds disagree — the audit fails closed on the state_root mismatch
+audit: ok=true · 75 entries · 6 seal(s) at every 12th entry · ed25519-signed · problems: none
+each seal carries real ed25519 signatures from the witness band
+(RFC 8032, stdlib-only); the audit verifies them against the pubkeys
+the observer pinned — a rewritten past re-mines its hashes and still
+fails, on the state root and on the signatures it cannot forge
 ```
 
 ## 8 · MCP parity — the same loop as tools any agent mounts
