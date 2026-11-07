@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **422 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **428 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -504,3 +504,34 @@ boundary was that the witness signatures were deterministic domain hashes
 
 Measured live in transcript §7: `audit: ok=true · 75 entries · 6 seals ·
 ed25519-signed · problems: none`. Suite: **422 tests green** (6 new).
+
+### Addendum 15 — what the loop changes, measured (2026-11-06, ninth depth pass)
+
+The big unmeasured promise was the loop itself. `impl/dyn_measure.py`
+measures it over the real paths: the same seeded deliveries priced through
+naive, self-report and craft pipelines; the pool (60 tasks — byte-exact
+file fingerprints and web rebuilds served over a real HTTP server, routes
+included) drives open → study → approval → build → re-executed check →
+settle or refund, with money read from the delivered rows and conservation
+asserted in code.
+
+1. **The numbers** (seed 20261106; 30% of builds drawn broken, 11 forged
+   claims): naive and self-report ship all 20 broken deliveries and catch
+   no forged claims — 300 USDS per working artifact; craft ships zero,
+   catches 11/11, refunds 4,000 USDS, lands at the 200 USDS task price,
+   and pays the honest worker 8,000 USDS while the shaky one earns zero.
+   Overhead: 175 ms per full job; 30 seals; audit ok=true.
+2. **The benchmark found a hole.** Its first run leaked a broken build
+   through the web check: injected scripts are invisible to text likeness
+   (the parser skips script content — rightly), so a hostile `<script>`
+   scored 100% alike with no claim to catch it. The harness now captures
+   the original's scripts (count + srcs) and asserts "no scripts the
+   original doesn't have"; the leak is pinned as a test, the faithful copy
+   still passes, and the full battery stayed green.
+3. **The scope is on the record** (research/craft-benchmark.md): workers
+   are seeded draws over a stated error model — this measures the
+   protocol's effect, not model quality. Measuring real agents against
+   this pool is the named next measurement.
+
+Suite: **428 tests green** (6 new — determinism, the shipping guarantee,
+the cost gradient, claim immunity, the scripts claim, seals-under-load).

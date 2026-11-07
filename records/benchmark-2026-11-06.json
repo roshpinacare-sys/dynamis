@@ -1,0 +1,61 @@
+{
+ "overhead": {
+  "ms_per_job_avg": 175.2,
+  "ms_total": 10546
+ },
+ "pipelines": {
+  "craft": {
+   "buyer_paid_muc": 8000000000,
+   "cost_per_working_muc": 200000000,
+   "escrow_back_muc": 4000000000,
+   "forged_caught": 11,
+   "shipped_broken": 0,
+   "tasks": 60,
+   "working_delivered": 40
+  },
+  "naive": {
+   "buyer_paid_muc": 12000000000,
+   "cost_per_working_muc": 300000000,
+   "escrow_back_muc": 0,
+   "forged_caught": 0,
+   "shipped_broken": 20,
+   "tasks": 60,
+   "working_delivered": 40
+  },
+  "self_report": {
+   "buyer_paid_muc": 12000000000,
+   "cost_per_working_muc": 300000000,
+   "escrow_back_muc": 0,
+   "forged_caught": 0,
+   "shipped_broken": 20,
+   "tasks": 60,
+   "working_delivered": 40
+  }
+ },
+ "pool": {
+  "escrow_usds": 200,
+  "file": 30,
+  "pool_value_usds": 12000,
+  "tasks": 60,
+  "web": 30
+ },
+ "run": {
+  "audit_ok": true,
+  "entries": 360,
+  "n_tasks": 60,
+  "seals": 30,
+  "seed": 20261106
+ },
+ "worker_income_muc": {
+  "agent-honest-1": 8000000000,
+  "agent-shaky-1": 0,
+  "gradient": "broken builds earn zero; correctness is the only income"
+ },
+ "worker_model": {
+  "broken_draws": 20,
+  "correct_draws": 40,
+  "forged_draws": 11,
+  "p_broken": 0.3,
+  "p_forged_of_broken": 0.5
+ }
+}

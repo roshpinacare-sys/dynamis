@@ -327,11 +327,18 @@ class _Page(HTMLParser):
         self.skeleton: list[str] = []
         self.images_without_alt = 0
         self.lang = ""
+        self.scripts = 0
+        self.script_srcs: list[str] = []
         self._in_title = self._in_style = self._skip = 0
 
     def handle_starttag(self, tag: str, attrs) -> None:
         if tag in self._SKIP:
             self._skip += 1
+        if tag == "script":
+            self.scripts += 1
+            for k, v in attrs:
+                if k == "src" and v:
+                    self.script_srcs.append(v)
         if tag == "style":
             self._in_style += 1
         if tag == "title":
@@ -385,7 +392,8 @@ def parse_page(html_text: str) -> dict:
             "design": design_tokens(css),
             "skeleton": p.skeleton,
             "images_without_alt": p.images_without_alt,
-            "lang": p.lang}
+            "lang": p.lang,
+            "scripts": {"count": p.scripts, "srcs": p.script_srcs}}
 
 
 # --------------------------------------------------------------------------
@@ -498,6 +506,7 @@ class CraftJob:
                  "link_count": len(page["links"]),
                  "same_site_links": same_site,
                  "text_words": page["word_count"], "text": page["text"][:20_000],
+                 "scripts": page["scripts"],
                  "design": page["design"], "skeleton": page["skeleton"],
                  "images_without_alt": page["images_without_alt"],
                  "lang": page["lang"],
@@ -509,6 +518,7 @@ class CraftJob:
                               "link_count": len(page["links"]),
                               "same_site_links": same_site,
                               "word_count": page["word_count"],
+                              "scripts": page["scripts"],
                               "design": page["design"], "skeleton": page["skeleton"],
                               "images_without_alt": page["images_without_alt"],
                               "lang": page["lang"]},
@@ -871,6 +881,14 @@ class CraftJob:
         link_ok = (cap_links == 0 and built_links == 0) or (
             cap_links > 0 and built_links > 0
             and abs(built_links - cap_links) <= cap_links * LINK_RATIO_TOLERANCE)
+        # scripts are invisible to the text likeness — they get their own
+        # claim: the build may carry no script the original doesn't have
+        cap_scripts = facts.get("scripts") or {"count": 0, "srcs": []}
+        built_scripts = built["scripts"]
+        extra_srcs = [s for s in built_scripts["srcs"]
+                      if s not in cap_scripts["srcs"]]
+        script_ok = (built_scripts["count"] <= cap_scripts["count"]
+                     and not extra_srcs)
         claims = [
             {"title": "its title matches the original", "passed": title_ok,
              "detail": "" if title_ok else
@@ -884,6 +902,12 @@ class CraftJob:
             {"title": "its link count is close to the original's",
              "passed": link_ok,
              "detail": "" if link_ok else f"original {cap_links} links, build {built_links}"},
+            {"title": "no scripts the original doesn't have", "passed": script_ok,
+             "detail": "" if script_ok else
+             f"original {cap_scripts['count']} script(s), build "
+             f"{built_scripts['count']}"
+             + (f" (extra src: {', '.join(extra_srcs)})"
+                if extra_srcs else "")},
         ]
         if not title_ok:
             fixes.append({"code": "title", "message":
@@ -897,6 +921,11 @@ class CraftJob:
         if not link_ok:
             fixes.append({"code": "links", "message":
                           f"carry about the original's link count ({cap_links}; now {built_links})"})
+        if not script_ok:
+            fixes.append({"code": "scripts", "message":
+                          f"carry no script the original doesn't have "
+                          f"({cap_scripts['count']} in the original; "
+                          f"{built_scripts['count']} in the build)"})
         m_words = missing_words(cap_words, built_words)
         if m_words:
             notes.append("missing frequent words: " + ", ".join(m_words))

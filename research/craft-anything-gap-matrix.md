@@ -201,7 +201,36 @@ in independent witnesses' HSMs and no single re-miner has them. The
 cryptography, the threshold and the fail-closed verification are already
 the protocol's; what remains is the trust geometry, named and honest.
 
-## 8 · The honest residue
+## 8 · The benchmark — what the loop changes, measured
+
+The loop's promise was never that agents get smarter; it is what survives
+to the buyer, at what cost, and who earns. That is measurable without
+claiming anything about model quality: `impl/dyn_measure.py` runs the same
+seeded deliveries through three pipelines — naive (pay everything, verify
+nothing), self-report (the worker's claim gates), craft (study, build,
+re-executed check, settle or refund) — over a 60-task pool of file
+fingerprints and web rebuilds served on a real HTTP server, and reads the
+money from the delivered rows with conservation asserted in code. The
+numbers (seed 20261106, 12,000 USDS pool value, 30% broken builds, 11
+forged claims): naive and self-report ship all 20 broken deliveries and
+catch no forged claims at 300 USDS per working artifact; craft ships zero,
+catches all 11, refunds 4,000 USDS and lands at the task's own 200 USDS
+price — while the honest worker earns 8,000 USDS and the shaky one earns
+zero. Overhead, measured on the same run: 175 ms per full job, the chain
+sealed itself 30×, audit ok. The benchmark earned its keep on its first
+run: a broken build leaked through the web check because **injected
+scripts are invisible to text likeness** — the parser rightly skips script
+content, so a hostile `<script>` scored 100% alike and no claim existed to
+catch it. The harness now captures the original's scripts (count + srcs)
+and asserts "no scripts the original doesn't have"; the leak is pinned as
+a test and the faithful copy still passes. The honest scope is stated in
+`research/craft-benchmark.md`: this measures the protocol's effect under a
+stated generation-error model over real loop paths and real money — not
+model quality. Measuring real agents against this pool is the named next
+measurement; the harness they would face is the same one these numbers
+came from.
+
+## 9 · The honest residue
 
 What stays open after this pass, and why: pixel screenshots and layout metrics
 (a browser cannot live in a stdlib-only server), computed-style design values,
