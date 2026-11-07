@@ -415,6 +415,36 @@ def parse_page(html_text: str) -> dict:
 # --------------------------------------------------------------------------
 # the craft job: a folder, exactly as the reference engine shapes it
 # --------------------------------------------------------------------------
+def _page_drift(cap: dict, live: dict) -> str:
+    """The first judged dimension where the live page disagrees with the
+    capture — the verdict's whole surface, re-derived from the world,
+    not just its words. Empty string: the page is what was studied."""
+    norm = lambda s: " ".join(s.split()).lower()  # noqa: E731
+    if words(live["text"]) != words(cap.get("text", "")):
+        return "visible text"
+    if live["title"].strip() != cap.get("title", "").strip():
+        return "title"
+    if ({norm(h) for h in live["headings"]} !=
+            {norm(h) for h in cap.get("headings", [])}):
+        return "headings"
+    if len(live["links"]) != cap.get("link_count", cap.get("links", 0)):
+        return "link count"
+    if cap.get("scripts") is not None and (
+            live["scripts"]["count"] != cap["scripts"].get("count", 0) or
+            sorted(live["scripts"]["srcs"]) !=
+            sorted(cap["scripts"].get("srcs", []))):
+        return "scripts"
+    if cap.get("skeleton") is not None and live["skeleton"] != cap["skeleton"]:
+        return "structure"
+    if cap.get("design") is not None and live["design"] != cap["design"]:
+        return "design"
+    if live["images_without_alt"] != cap.get("images_without_alt", 0):
+        return "pictures without alt"
+    if cap.get("lang") and live["lang"] != cap["lang"]:
+        return "language"
+    return ""
+
+
 class CraftJob:
     """One craft job folder: study → build → check → (refine) → ready."""
 
@@ -901,12 +931,18 @@ class CraftJob:
         round says so instead of silently trusting its own notes."""
         ref = self.manifest["target"]["ref"]
         origin = ref.rsplit("/", 1)[0]
-        targets = [(ref, facts.get("text", ""), facts.get("title", ""))]
+        pages = [("", facts)]
         for rt in facts.get("routes", []):
-            if rt.get("text") is not None:
-                targets.append((origin + rt["path"], rt["text"],
-                                rt.get("title", "")))
-        for url, cap_text, cap_title in targets:
+            # the start page rides in facts; a studied route's full page
+            # rides beside it in capture/routes/<slug>.json
+            full = rt if "text" in rt else json.loads(
+                (self.root / "capture" / "routes" /
+                 f"{rt['slug']}.json").read_text())
+            if full.get("error") or full.get("text") is None:
+                continue
+            pages.append((rt["path"], full))
+        for path, cap in pages:
+            url = ref if not path else origin + path
             try:
                 req = urllib.request.Request(
                     url, headers={"User-Agent": "DynamisCraftCheck/1.0"})
@@ -915,9 +951,9 @@ class CraftJob:
             except (urllib.error.URLError, OSError, ValueError,
                     http.client.HTTPException) as exc:
                 return "unreachable", f"{url}: {exc}"
-            if words(live["text"]) != words(cap_text) or \
-                    live["title"].strip() != cap_title.strip():
-                return "moved", f"{url} reads differently than the study captured"
+            dim = _page_drift(cap, live)
+            if dim:
+                return "moved", f"{url}: the {dim} changed since the study"
         return "holds", ""
 
     def _check_web(self, facts: dict, round_n: int) -> dict:

@@ -27,6 +27,26 @@ PAGE_V1 = ("<!doctype html><html><head><title>The Still Ledger</title></head>"
 PAGE_V2 = ("<!doctype html><html><head><title>The Moved Ledger</title></head>"
            "<body><h1>The moved ledger</h1><p>One page, no routes, "
            "second wording.</p></body></html>")
+PAGE_FONT1 = ("<!doctype html><html><head><title>Typed</title><style>"
+              "body{font-family:Georgia;}</style></head><body><h1>Typed</h1>"
+              "<p>Same words, first face.</p></body></html>")
+PAGE_FONT2 = PAGE_FONT1.replace("Georgia", "'Courier New'")
+PAGE_SCRIPT1 = ("<!doctype html><html><head><title>Watched</title></head>"
+                "<body><h1>Watched</h1><p>No scripts here.</p></body></html>")
+PAGE_SCRIPT2 = PAGE_SCRIPT1.replace(
+    "</body>", '<script src="/tracker.js"></script></body>')
+PAGE_LINKS1 = ("<!doctype html><html><head><title>Linked</title></head>"
+               "<body><h1>Linked</h1><p>No way out.</p></body></html>")
+PAGE_LINKS2 = PAGE_LINKS1.replace(
+    "</body>", '<a href="/a"></a><a href="/b"></a><a href="/c"></a>'
+               '<a href="/d"></a><a href="/e"></a></body>')
+PAGE_RSTART = ("<!doctype html><html><head><title>Hub</title></head><body>"
+               "<h1>Hub</h1><p>The hub page.</p>"
+               "<a href=\"/rroute\">the route</a></body></html>")
+PAGE_RROUTE1 = ("<!doctype html><html><head><title>Route</title></head>"
+                "<body><h1>Route</h1><p>The route as studied.</p></body></html>")
+PAGE_RROUTE2 = PAGE_RROUTE1.replace(
+    "</body>", "<h2>Added later</h2></body>")
 
 
 class TestCaptureIndependence(CraftMixin, unittest.TestCase):
@@ -47,6 +67,20 @@ class TestCaptureIndependence(CraftMixin, unittest.TestCase):
                     raw = (PAGE_V1 if counts[self.path] == 1 else PAGE_V2)
                 elif self.path == "/still":
                     raw = PAGE_V1
+                elif self.path == "/font":
+                    raw = (PAGE_FONT1 if counts[self.path] == 1
+                           else PAGE_FONT2)
+                elif self.path == "/script":
+                    raw = (PAGE_SCRIPT1 if counts[self.path] == 1
+                           else PAGE_SCRIPT2)
+                elif self.path == "/links":
+                    raw = (PAGE_LINKS1 if counts[self.path] == 1
+                           else PAGE_LINKS2)
+                elif self.path == "/rstart":
+                    raw = PAGE_RSTART
+                elif self.path == "/rroute":
+                    raw = (PAGE_RROUTE1 if counts[self.path] == 1
+                           else PAGE_RROUTE2)
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -118,7 +152,8 @@ class TestCaptureIndependence(CraftMixin, unittest.TestCase):
                   ledger=self.ledger, day=1)
         check = job.check(ledger=self.ledger, day=1)
         self.assertTrue(check["drifted"])
-        self.assertIn("reads differently", check["claims"][0]["detail"])
+        self.assertIn("the visible text changed since the study",
+                      check["claims"][0]["detail"])
         back = job.refund(ledger=self.ledger, day=1)
         self.assertIn("the target moved since the study", job.manifest["note"])
         self.assertEqual(back["emitted_dyn_mu"], 0)
@@ -185,6 +220,56 @@ class TestCaptureIndependence(CraftMixin, unittest.TestCase):
         self.assertTrue(all(c["passed"] for c in check["claims"]))
         self.assertTrue(any("did not answer" in u for u in check["unknowns"]))
         self.assertIn("the pass withholds", check["note"])
+
+
+    def test_a_font_swap_is_drift_even_with_identical_words(self):
+        # CSS-only reskin: zero visible words change, yet the verdict
+        # "its main font is the original's" would be false against the
+        # live page — the word-only gate of the twelfth pass misses it,
+        # the full-surface gate names the design
+        job = self._web_job("j1", "/font")
+        job.build(worker="agent-honest-1", files={"index.html": PAGE_FONT1},
+                  ledger=self.ledger, day=1)
+        check = job.check(ledger=self.ledger, day=1)
+        self.assertTrue(check["drifted"])
+        self.assertIn("the design changed since the study",
+                      check["claims"][0]["detail"])
+
+    def test_a_script_the_world_added_is_drift(self):
+        job = self._web_job("j1", "/script")
+        job.build(worker="agent-honest-1", files={"index.html": PAGE_SCRIPT1},
+                  ledger=self.ledger, day=1)
+        check = job.check(ledger=self.ledger, day=1)
+        self.assertTrue(check["drifted"])
+        self.assertIn("the scripts changed since the study",
+                      check["claims"][0]["detail"])
+
+    def test_links_added_without_words_are_drift(self):
+        # five empty-text anchors: the word bag is untouched, the link
+        # count is not — the drift names the dimension, not the build
+        job = self._web_job("j1", "/links")
+        job.build(worker="agent-honest-1", files={"index.html": PAGE_LINKS1},
+                  ledger=self.ledger, day=1)
+        check = job.check(ledger=self.ledger, day=1)
+        self.assertTrue(check["drifted"])
+        self.assertIn("the link count changed since the study",
+                      check["claims"][0]["detail"])
+
+    def test_a_route_that_moves_is_drift_while_the_start_holds(self):
+        # the start page is static; its studied route flips — the
+        # re-ground walks every studied page, not just the start
+        job = self._web_job("j1", "/rstart")
+        job.build(worker="agent-honest-1",
+                  files={"index.html": PAGE_RSTART,
+                         "routes/rroute.html": PAGE_RROUTE1},
+                  ledger=self.ledger, day=1)
+        check = job.check(ledger=self.ledger, day=1)
+        self.assertTrue(check["drifted"])
+        self.assertIn("/rroute", check["claims"][0]["detail"])
+        # the added <h2> rides the headings dimension — heading text is
+        # not visible-body words, so the word gate alone never saw it
+        self.assertIn("the headings changed since the study",
+                      check["claims"][0]["detail"])
 
 
 if __name__ == "__main__":

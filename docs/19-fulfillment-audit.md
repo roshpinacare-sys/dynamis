@@ -64,7 +64,7 @@ and says what was done about it today.**
 **What matches:** the economic core (pillar 3), renderable posts (pillar 5), identity
 (pillar 1), and both standing constraints — plus, as of today, the social rail (pillar 2)
 and the compute allocator (pillar 4), which were the two real gaps and are now built and
-tested. The suite is **443 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
+tested. The suite is **447 tests green** (was 249; 291 at the audit's first writing, 301 when the discovery surfaces landed), the params mirror holds leaf by leaf,
 CI is green on `main`, and the site publishes the measured numbers only.
 
 **What does not match yet, and why:** the ask was a *running* network. What exists is a
@@ -642,3 +642,36 @@ distrusts the notes themselves, because the world can move under them:
    is drift too (neither side is rewarded); a still page judges as
    before; a silent origin withholds the pass and says so. The
    benchmark pool is untouched — the seeded record reproduces exactly.
+
+### Addendum 19 — the re-ground judges what the verdict judges
+### (2026-11-07, thirteenth depth pass)
+
+The twelfth pass's drift gate re-grounded the web target on visible
+words and title — two of the nine dimensions the check's claims
+actually judge (words, title, headings, link count, scripts,
+structure, design colours and fonts, alt text, language). The echo of
+the hole it fixed was still open one level deeper: a CSS-only reskin
+between study and check changes zero visible words, the gate holds,
+and the round passes on a false verdict — "its main font is the
+original's" against an original whose font moved. The buyer settles
+on it.
+
+1. **The fix** (dyn_craft._page_drift): the re-ground now re-derives
+   the verdict's whole surface from the live fetch — start page and
+   every studied route — and a mismatch in any judged dimension is
+   drift, with the round naming the dimension that moved: "the design
+   changed since the study". Heading text is not visible-body words
+   (the parser keeps them separate), so an added section rides the
+   headings dimension and the word gate alone never saw it; the
+   full-surface gate does.
+2. **Routes load their full captures**: facts holds slim route
+   entries (path, slug); the studied page rides beside it in
+   capture/routes/<slug>.json. The re-ground now walks every studied
+   page — a route that moves while the start page holds is still
+   drift, named with the route's URL.
+3. **The corpus gained four dimension moves** (test corpus only, the
+   benchmark pool untouched): a font swap with identical words, a
+   script the world adds, five empty-text anchors (link count moves,
+   the word bag does not), and a studied route that flips while its
+   start page holds. Four tests; the still-page, silent-origin and
+   word-drift paths re-verified.
