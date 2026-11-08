@@ -129,3 +129,32 @@ to its best earlier match is flagged:
 Known deterministic limit: posts share day granularity, so a same-day
 copy is caught when its post_id sorts after the original's; the farm
 pattern (cross-day copying) is always caught.
+
+---
+
+## Addendum 3 — S3 is executable (2026-11-08)
+
+`impl/dyn_ranking.py` (`dyn.ranking.v1`, 9 tests) ships the transparent
+ranked feed of §4-S3. The score is a pure function of ledger verdicts —
+nothing else enters:
+
+1. **support** = every verified unit the network paid toward the post,
+   summed from `payout` ledger events (author + curators);
+2. **flagged** = the post carries a REFUSED-PLAGIARY verdict (S2) — it
+   scores zero;
+3. **artifact** = the post carries its work (embeds ≥ 1) — plain words
+   score zero by design: the ranked surface is the artifact surface, the
+   chronological feed (Rail.feed) stays the home of everything else.
+
+`score = artifact and not flagged ? 1 + sqrt(support) : 0` — sqrt keeps
+the ranking non-linear in paid support, and the support itself is already
+whale-clipped by S1. Every row exposes its own components; the formula
+string is part of the daily hash-stamped decision (`rank` ledger event,
+top-20 table in integer micro-units, ledger stays canonical under
+ADR-0007). **There is no reader argument**: every account sees the same
+ranked feed — no filter bubble to tune, no engagement signal to farm, no
+closed algorithm to game (F7: transparency as a property, not a promise).
+Follow edges provably cannot move the ranked feed (regression test).
+
+Next: S4 (onboarding measured live in the console) and the network is
+ready to leave the sandbox.

@@ -51,7 +51,7 @@ MAX_DM_BYTES = 16_384
 MAX_FEED_DEPTH = 100
 
 KINDS = ("account", "follow", "unfollow", "dm", "post", "refused", "boost",
-         "round", "vote", "payout")
+         "round", "vote", "payout", "rank")
 
 KILL_SWITCHES: dict[str, bool] = {}   # rail name -> armed
 
