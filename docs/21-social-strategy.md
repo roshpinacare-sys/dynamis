@@ -101,3 +101,31 @@ demands:
 
 Next: S2 (corpus originality judging at reward time) closes the last
 unverified reward surface for text.
+
+---
+
+## Addendum 2 — S2 is executable (2026-11-08)
+
+`impl/dyn_originality.py` (`dyn.originality.v1`, 8 tests) closes the last
+unverified reward surface: the text itself. A post's prose — body minus
+front-matter, so titles and tags cannot game the score — is judged at
+settle time against the rail's own corpus: every earlier post, any author,
+including the poster's own earlier work (double-earning your substance is
+still plagiarism). Word-4-gram Jaccard; a post at or above 0.3 similarity
+to its best earlier match is flagged:
+
+1. **It earns nothing** — the flagged post is out of the split before any
+   weight is counted; its curators are not paid for finding a theft.
+2. **The flag is a hash-chained ledger event** (`REFUSED-PLAGIARY`, with
+   the matched post and the score in integer micro-units — the ledger
+   stays canonical under ADR-0007).
+3. **The caught author's standing is cut** by the penalty and floored at
+   zero — the only bond the social rail has, and it burns.
+4. **Originals are untouched**: distinct prose scores ~0; the curation
+   whale-simulation and social-rail suites re-verified unchanged.
+5. **Planted-corpus capture: 2/2 (100%)** — the doc's success metric
+   (§5.2: >90%) is met by construction in the seeded corpus test.
+
+Known deterministic limit: posts share day granularity, so a same-day
+copy is caught when its post_id sorts after the original's; the farm
+pattern (cross-day copying) is always caught.

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import math
 
+from dyn_originality import STANDING_PENALTY, Originality
 from dyn_social import Rail, SocialError, _check_kill
 
 CUR = "dyn.curation.v1"
@@ -61,8 +62,10 @@ def gini(values: list[float]) -> float:
 class Curation:
     """One curation ledger over a social rail: rounds, votes, settle."""
 
-    def __init__(self, rail: Rail) -> None:
+    def __init__(self, rail: Rail, originality: Originality | None = None) -> None:
         self.rail = rail
+        self.originality = originality if originality is not None \
+            else Originality(rail)
         self.standing: dict[str, float] = {}
         self.rounds: dict[str, dict] = {}
         self.closed: set[str] = set()
@@ -155,10 +158,27 @@ class Curation:
                 if w > ceiling:
                     clip[curator] = ceiling / w
 
+        # originality gate (S2): a post that copies the corpus earns nothing,
+        # is flagged in the ledger, and its author's standing is cut —
+        # before any weight is counted
+        flagged: dict[str, dict] = {}
+        for pid in sorted({v["post_id"] for v in votes}):
+            verdict = self.originality.judge(pid)
+            if verdict["plagiarized"]:
+                flagged[pid] = verdict
+                author = self.rail.author_of[pid]
+                self.rail.ledger.append(
+                    day=day, kind="refused", actor=author,
+                    body={"reason": "REFUSED-PLAGIARY", "post_id": pid,
+                          "similar_to": verdict["similar_to"],
+                          "score_micro": int(round(verdict["score"] * 10**6))})
+
         # payout gate: only work-carrying artifacts earn (Law 13)
         by_post: dict[str, float] = {}
         for v in votes:
             w = v["power"] * v["mult"] * clip.get(v["curator"], 1.0)
+            if v["post_id"] in flagged:
+                continue
             if len(self.rail.posts[v["post_id"]].get("embeds", [])) >= 1:
                 by_post[v["post_id"]] = by_post.get(v["post_id"], 0.0) + w
 
@@ -198,14 +218,20 @@ class Curation:
                                           "curators": curators_paid,
                                           "dust": post_rows[-1]["dust"]})
         unallocated = pool - allocated
+        for pid, verdict in sorted(flagged.items()):
+            author = self.rail.author_of[pid]
+            self.standing[author] = max(0.0,
+                                        self._rep(author) - STANDING_PENALTY)
         for actor, pay in sorted(payouts.items()):
             self.standing[actor] = self._rep(actor) + pay / STANDING_SCALE
         self.closed.add(rid)
         self.rail.ledger.append(day=day, kind="round", actor=rid,
                                 body={"settled_day": day, "paid": allocated,
                                       "unallocated": unallocated,
-                                      "clipped": sorted(clip)})
+                                      "clipped": sorted(clip),
+                                      "flagged": sorted(flagged)})
         return {"round": rid, "pool": pool, "paid": allocated,
                 "unallocated": unallocated, "clipped": clip,
+                "flagged": flagged,
                 "posts": post_rows, "payouts": payouts,
                 "curation_gini": gini(list(payouts.values()))}
