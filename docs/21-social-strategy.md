@@ -63,3 +63,41 @@
 ---
 
 מקורות: steemit.com/@steemitblog "Improving the Economics of Steem" (self-voting, bidbots, spam); steemit.com/@krnel (Larimer על rent-seeking ו-bid bots); סיקורי ה-fork: "How a Community Defied Justin Sun" (Nico Bordunenko), "Steem Versus Hive: Testing Blockchain Governance", "The Tokenomics of Hive".
+
+---
+
+## Addendum — S1 is executable (2026-11-07)
+
+`impl/dyn_curation.py` (`dyn.curation.v1`, 14 tests) ships the curation
+economics of §4-S1 on the social rail, exactly as the failure table
+demands:
+
+1. **Power = sqrt(standing)**, and standing is only earned: every unit the
+   network pays a verified recipient raises that account's standing at a
+   fixed rate (100 units → +1 standing). Nothing sells standing; money
+   cannot buy power (F1, F2).
+2. **Self-votes are refused outright** and land in the ledger (F4). One
+   vote per curator per post.
+3. **Anti-whale cap**: no curator counts for more than 20% of the counted
+   distribution. Each voter's ceiling is computed against the raw weight of
+   everyone else — symmetric and order-independent — with an equal-share
+   floor (`max(0.2, 1/n_voters)`) so bootstrapping rounds stay
+   proportional; capture needs a crowd, and a crowd is capped (F1).
+4. **Early discovery**: a vote's weight carries a multiplier of ×2 at
+   publish day decaying linearly to ×1 across seven days — curation
+   rewards finding, not bandwagoning (F2).
+5. **Payout gate**: only work-carrying artifacts (embeds ≥ 1) earn; a
+   plain post is visible but cannot pay (F3, F6 — Law 13 at the social
+   layer). Split per post: 60% author, 40% curators by counted weight;
+   integer floor arithmetic, dust recorded, nothing invented.
+6. **Transparency**: rounds, votes, payouts and refusals are hash-chained
+   ledger events (`round`/`vote`/`payout` kinds added to the social
+   ledger); settle is deterministic, closes the round, and raises
+   standing only from verified payouts. The whale simulation test replays
+   the Steemit failure — one whale (power 10) against ten mice (power 1)
+   — and the linear-power baseline gives the whale 200 of the curator
+   pool where the capped network gives 80, with a strictly lower payout
+   Gini (F7 metric harness).
+
+Next: S2 (corpus originality judging at reward time) closes the last
+unverified reward surface for text.
