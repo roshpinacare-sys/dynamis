@@ -1,0 +1,28 @@
+{
+  "record": "dyn.daily-record.v1",
+  "date": "2026-11-10",
+  "seed": 20261106,
+  "sim_days": 14,
+  "heartbeat_ok": true,
+  "uptime_24h": {
+    "beats": 54,
+    "completed": 53,
+    "succeeded": 53,
+    "uptime_bps": 10000
+  },
+  "jobs_opened": 27,
+  "jobs_settled": 19,
+  "jobs_refunded": 8,
+  "settled_revenue_muc": 4830000000,
+  "emitted_dyn_mu": 1932000000000,
+  "law19_ok": true,
+  "market_emitted_dyn_mu": 1932000000000,
+  "market_laws": {
+    "forged_evidence_never_paid": true,
+    "law19_fraud_never_paid": true,
+    "law19_refund_emits_nothing": true,
+    "no_payout_without_pass": true
+  },
+  "generated_at": "2026-11-10T02:08:16Z",
+  "record_digest": "660d85851c47634e4c6536ad95f9bffb"
+}
