@@ -42,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dyn_compute import Pool, ComputeError  # noqa: E402
 from dyn_craft import CraftJob, CraftError, dispute_on_record  # noqa: E402
+from dyn_onboard_live import LiveOnboarding  # noqa: E402
 from dyn_bench import run_benchmark  # noqa: E402
 from dyn_engine import ARTIFACT_INVOICE_PARSER, EngineError, WorkLoop  # noqa: E402
 from dyn_ledger import WorkLedger, WitnessBand, verify_checkpoint  # noqa: E402
@@ -91,6 +92,7 @@ class Dynamis:
         self.jobs: dict[str, dict] = {}
         self.craft: dict[str, dict] = {}
         (self.state_root / "craft").mkdir(parents=True, exist_ok=True)
+        self.onboard = LiveOnboarding(self)
         self.price_round = None
         self._post_seq = 0
         self._job_seq = 0
@@ -616,6 +618,8 @@ def make_handler(net: Dynamis):
                     return self._json(200, net.compute_state())
                 if path == "/api/craft":
                     return self._json(200, net.craft_list())
+                if path == "/onboard/kpi":
+                    return self._json(200, net.onboard.kpi())
                 m = JOB_ACTION_RE.match(path)
                 if m:
                     return self._json(200, net.job_view(m.group(1)))
@@ -683,6 +687,12 @@ def make_handler(net: Dynamis):
                 if path == "/api/posts":
                     return self._json(200, net.publish(body["author"],
                                                        body["source"]))
+                if path == "/onboard/join":
+                    return self._json(200, net.onboard.join(
+                        body["agent_id"], body.get("persona")))
+                if path == "/onboard/first-post":
+                    return self._json(200, net.onboard.first_post(
+                        body["agent_id"], body["source"]))
                 if path == "/api/follow":
                     return self._json(200, net.follow(body["actor"],
                                                       body["target"]))

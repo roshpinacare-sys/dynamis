@@ -158,3 +158,32 @@ Follow edges provably cannot move the ranked feed (regression test).
 
 Next: S4 (onboarding measured live in the console) and the network is
 ready to leave the sandbox.
+
+---
+
+## Addendum 3 — S4 is executable (2026-11-12)
+
+`impl/dyn_onboard_live.py` (`dyn.onboard.live.v1`, 7 tests) puts the
+onboarding KPI on the live host. The offline reference journey
+(`dyn.onboard.v1`) claimed under-five-minutes joining; the live layer runs
+the same journey over the app's real HTTP wires and serves the measured
+number instead of the promise:
+
+1. **`POST /onboard/join`** opens a measured journey behind the rail's own
+   custody rules — the account only exists if the passport gates pass; a
+   duplicate join refuses and leaves one journey.
+2. **`POST /onboard/first-post`** closes the journey with the first work
+   post — published through the rail's normal gates, so a rejected publish
+   does NOT close the journey: the clock runs until the work is real,
+   which is what a newcomer actually lives.
+3. **`GET /onboard/kpi`** serves the host's own claim: journeys measured,
+   open journeys, median/best/worst wall-clock, pass rate in bps against
+   the genesis target of 300 seconds.
+
+The KPI target is unchanged from the founding plan; what changed is who
+states it: the running host, from measurements, not a document. This is
+the route a persistent server will serve at its front door (the deploy
+runbook mounts dyn_app as-is).
+
+Next: S5 (parameter governance through the witness band) closes the last
+named layer of docs/21 §4.
