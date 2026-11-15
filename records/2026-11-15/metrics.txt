@@ -1,0 +1,8 @@
+dyn.metrics.v1 — 27 jobs over 14 days
+  jobs/day            1.9286
+  time-to-first-claim 0.0 d
+  pass rate by class  B: 19/27 (70%)
+  failures caught     29.6%
+  payout velocity     1.3571/day (mean payout 241.37 USDS)
+  emission coupling   1,932,000 DYN / 4,825 USDS = 400.4145 DYN per settled USDS
+  laws: no_payout_without_emission=True, refund_emits_nothing=True, no_settle_without_work=True
