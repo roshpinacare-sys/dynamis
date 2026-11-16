@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOVEREIGN SECURITY · תנוחת-האבטחה הציבורית</title>
+<meta name="description" content="הצוות-האדום-הריבוני: 10-תפקידי-אבטחה אוטונומיים סורקים את הארכיטקטורה בכל 6 שעות — פסק-תנוחה חי, קבלות ממוסכות, fail-closed.">
+<style>
+  :root { --bg:#0d1117; --fg:#e6edf3; --mut:#8b949e; --gold:#f0b429; --grn:#3fb950; --red:#f85149; --brd:#30363d; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif; line-height:1.65; }
+  .wrap { max-width:880px; margin:0 auto; padding:48px 20px 80px; }
+  h1 { font-size:2rem; letter-spacing:-.02em; }
+  .sub { color:var(--mut); margin:8px 0 32px; font-size:1.02rem; }
+  .card { border:1px solid var(--brd); border-radius:14px; padding:24px; margin-bottom:20px; background:#161b22; }
+  .card h2 { font-size:1.15rem; margin-bottom:12px; color:var(--gold); }
+  .posture { display:inline-block; border-radius:999px; padding:6px 18px; font-weight:700; font-size:1.05rem; background:rgba(63,185,80,.15); color:var(--grn); border:1px solid var(--grn); }
+  .score { font-size:2.2rem; font-weight:800; color:var(--grn); }
+  table { width:100%; border-collapse:collapse; }
+  th,td { text-align:right; padding:9px 12px; border-bottom:1px solid var(--brd); font-size:.95rem; }
+  th { color:var(--mut); font-weight:600; }
+  .badge { display:inline-block; border:1px solid var(--brd); border-radius:999px; padding:2px 12px; font-size:.8rem; color:var(--mut); margin:2px; }
+  .grn { color:var(--grn); }
+  a { color:#79c0ff; }
+  footer { color:var(--mut); font-size:.85rem; margin-top:36px; border-top:1px solid var(--brd); padding-top:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SOVEREIGN SECURITY · תנוחת-האבטחה הציבורית</h1>
+  <p class="sub">הצוות-האדום-הריבוני · 10-תפקידי-אבטחה אוטונומיים שסורקים את הארכיטקטורה בכל 6 שעות — על הרכוש שלנו בלבד, בצורה חוקית ולגיטימית לחלוטין (self-pentest מוסמך). אפס סודות בפלט, אי-פעם.</p>
+
+  <div class="card">
+    <h2>פסק-התנוחה האחרון (מדידה חיה)</h2>
+    <p><span class="posture">HARDENED · מחוזק</span>
+       &nbsp;<span class="score">100<span style="font-size:1rem;color:var(--mut)">/100</span></span></p>
+    <table>
+      <tr><th>מדד</th><th>ערך נמדד</th></tr>
+      <tr><td>מועד הסריקה</td><td>2026-11-16T17:49:58.714Z</td></tr>
+      <tr><td>תפקידים תקינים</td><td>8/8</td></tr>
+      <tr><td>ממצאים פתוחים</td><td class="grn">0 (קריטי 0 · גבוה 0 · בינוני 0)</td></tr>
+      <tr><td>משך סריקה מלאה</td><td>1783 מ״ש</td></tr>
+    </table>
+    <p style="margin-top:10px;color:var(--mut);font-size:.9rem">הקבלה הציבורית הממוסכת: <a href="../receipts/security/latest.json">receipts/security/latest.json</a> · מתעדכן בכל סריקה.</p>
+  </div>
+
+  <div class="card">
+    <h2>עשרת התפקידים · סדר הכוחות</h2>
+    <table>
+      <tr><th>תפקיד</th><th>תפקידו</th></tr>
+      <tr><td>צייד-הסודות</td><td>סורק את עץ-הקוד והיומן אחרי חומר-רגיש דולף מחוץ לכספות החוקיות</td></tr>
+      <tr><td>האקר-אדום (מורשה-עצמי)</td><td>מתקיף בפועל את נקודות-הקצה שלנו — זיופי-תשלום, עקיפת-שערים, מעבר-נתיב. כל גשש חייב להיכשל חסוד</td></tr>
+      <tr><td>AI-אדום</td><td>מנסה לשבור את שכבת-המיסוך ולהוציא סודות מפלטי ה-LLM — קורפוס 12 מתקפות-הזרקה מתועד</td></tr>
+      <tr><td>סוקר-AppSec</td><td>סטטיקה מדודה על כל שערי-ה-API — ביצוע-דינמי, דליפות-סביבה, קריאות בלי זמן-קצוב</td></tr>
+      <tr><td>חוקר-פגיעויות</td><td>ביקורת-תלויות חיה (CVE) ומעקב-גרסאות ליבה</td></tr>
+      <tr><td>אנליסט-שרשרת-אספקה</td><td>שלמות-lockfile · אפס node_modules/קבצי-סביבה בגיט · תמצית-HEAD</td></tr>
+      <tr><td>מבקר-הסוכנים</td><td>מבקר את הצי-האוטומטי עצמו: משימות, כשלים, שערי-טוקן</td></tr>
+      <tr><td>ממדל-האיומים</td><td>מודל-איומים חי המורכב מנכסים ומדידות בפועל</td></tr>
+      <tr><td>מוביל-ה-CISO</td><td>צובר הכול לפסק-תנוחה, ציון וקבלה-ציבורית</td></tr>
+      <tr><td>המתקן</td><td>ארטיפקט-ריפוי לכל ממצא חמור — עד הוכחת-סגירה בסריקה הבאה</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>בקרות-אבטחה מוכחות-במדידה</h2>
+    <table>
+      <tr><td>שער-הריבונות (middleware)</td><td class="grn">כל-כתיבה-חוצת-מקור/חסרת-מקור → 403</td></tr>
+      <tr><td>x402 fail-closed</td><td class="grn">16 תשלומים-מזויפים-נדחו-על-ידי-המאמת-הציבורי</td></tr>
+      <tr><td>שכבת-המיסוך (redact)</td><td class="grn">כל-פלט-פנקס/יומן עובר-scrubLine</td></tr>
+      <tr><td>משמורת-ואישורים</td><td class="grn">custody-gate + OwnerApproval לפעולות-הרסניות-שרשרת</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>החוק הציבורי שלנו</h2>
+    <p>· <b>חוקיות מלאה:</b> כל הסריקות פועלות על הרכוש שלנו בלבד — הגדרת האבטחה-ההגנתית הקלאסית. אף מטרה-חיצונית לא נפגעת לעולם.</p>
+    <p>· <b>ריבונות:</b> הרעיון (צוות-אבטחה אוטונומי 24/7) מומש בבית — בלי לשלוח מודיעין לשירותי-חוץ.</p>
+    <p>· <b>אפס-סודות בפלט:</b> כל ראיה בקבלות ממוסכת לטביעת-אצבע (fp8) בלבד.</p>
+    <p>· <b>fail-closed:</b> תשלום לא-מאומת = עבודה שלא מבוצעת. כתיבה בלי-מקור-ריבוני = חסימה.</p>
+    <p>· <b>הוכחה במקום הבטחה:</b> המחזור הראשון התחיל ב-EXPOSED (4-קריטי/15-גבוה), תוקן בפועל, ונסגר ב-HARDENED · 100/100 — הכל מתועד בקבלות.</p>
+  </div>
+
+  <footer>
+    SAOS · SOVEREIGN RED TEAM · §53 · הקבלה הציבורית ממוסכת מתעדכנת בכל סריקה ·
+    <a href="sovereign-ai-paid.html">דלת-הכסף · x402 ←</a> ·
+    <a href="index.html">בית ←</a>
+  </footer>
+</div>
+</body>
+</html>
