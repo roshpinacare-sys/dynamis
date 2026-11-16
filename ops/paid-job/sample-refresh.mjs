@@ -63,19 +63,19 @@ try {
 let model = null, j = null, work = null, t0 = Date.now();
 const tried = MODEL_CANDIDATES_MICRO;
 const ANCHOR = tried[tried.length - 1];
-// §54 · מירוץ-איכות-תחילה: העוגן-המוכח נורה-מיד (עונה-ב-4-5ש') אך המודלים-הישירים
-// מקבלים-חלון-חסד 25ש' לנצח-באיכות (פלט-ישיר-מלוטש) לפני-שהעוגן-לוקח.
+// §54 · מירוץ-איכות-תחילה (נוסח-מתוקן): הישירים מתחרים-ביניהם עם-חלון-25ש';
+// פקיעת-החלון = העוגן-המוכח לוקח. העוגן נורה-במקביל-מיד (חם-תמיד).
 const anchorPromise = callModel(ANCHOR).catch(() => null);
 const graceMs = Number(process.env.SAMPLE_GRACE_MS || 25000);
 let winner = null;
 try {
-  winner = await Promise.any([
-    ...tried.slice(0, -1).map(async (cand) => {
+  winner = await Promise.race([
+    Promise.any(tried.slice(0, -1).map(async (cand) => {
       console.log("firing-direct:", cand);
       const res = await callModel(cand);
       console.log("answered-direct:", cand, res.ms + "ms");
       return res;
-    }),
+    })),
     new Promise((_, rej) => setTimeout(() => rej(new Error("grace-expired")), graceMs)),
   ]);
 } catch {
