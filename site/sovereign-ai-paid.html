@@ -60,6 +60,28 @@
   </div>
 
   <div class="card">
+    <h2>דוגמה-חיה מהמנוע — מה בדיוק $0.50 קונה</h2>
+    <p id="sample-meta" style="opacity:.75;font-size:.9em">טוען-דוגמת-פלט-אמיתית…</p>
+    <pre id="sample-output" style="white-space:pre-wrap;background:#0b0e14;color:#d7e3f4;padding:14px;border-radius:10px;font-size:.85em;max-height:420px;overflow-y:auto;border:1px solid #2a3a52">…</pre>
+    <p style="opacity:.75;font-size:.85em">הדוגמה נוצרת בהרצה-חינגית של <b>אותו מנוע ואותה מדרגה בדיוק</b> (micro · 700 אסימונים-מקסימום) ומתחדשת אוטומטית — מקור-האמת: <a id="sample-src" href="samples/live-sample.json">samples/live-sample.json</a>.</p>
+    <script>
+      fetch("samples/live-sample.json", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((s) => {
+          document.getElementById("sample-meta").textContent =
+            (s.model || "engine") + " · רמת-" + (s.tier || "micro") + " · " +
+            (s.latencyMs / 1000).toFixed(1) + " שניות · " +
+            new Date(s.at).toISOString().slice(0, 16).replace("T", " ") + "Z";
+          document.getElementById("sample-output").textContent = s.output || "(ריק)";
+        })
+        .catch(() => {
+          document.getElementById("sample-meta").textContent = "הדוגמה תתפרסם בעתיד הקרוב — המנוע מאומת נפרד (security.html).";
+          document.getElementById("sample-output").textContent = "—";
+        });
+    </script>
+  </div>
+
+  <div class="card">
     <h2>חוקי-הדלת (בלתי-ניתנים-למשא-ומתן)</h2>
     <ul style="padding-right:20px">
       <li><span class="law">fail-closed</span> — תשלום שלא מאומת מול השרשרת = אין עבודה. אף פעם.</li>

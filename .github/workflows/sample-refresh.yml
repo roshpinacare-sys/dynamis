@@ -1,0 +1,33 @@
+name: sample-refresh
+# §54 · דוגמה-חיה-לדלת: פלט-אמיתי-מהמנוע (רמת-micro · $0.50) מתפרסם-לדף-המוצר.
+# מטרה: כל-מבקר רואה-בדיוק-מה-הכסף-קונה בלי-לשלם — הוכחת-איכות-ציבורית-מדידה.
+# [skip ci] בקומיט — הפריסה-השעתית של deploy-site (cron :33) מפרסמת-אותה-לאינטרנט.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 5 * * 1" # ימי-שני 05:41Z — רענון-שבועי קל
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sample-refresh
+  cancel-in-progress: false
+
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 1 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: run-engine-and-publish
+        env:
+          NVIDIA_NIM_KEY: ${{ secrets.NVIDIA_NIM_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NIM_API_KEY: ${{ secrets.NIM_API_KEY }}
+          NVIDIA_BASE_URL: ${{ secrets.NVIDIA_BASE_URL }}
+          NIM_MODEL: ${{ secrets.NIM_MODEL }}
+        run: node ops/paid-job/sample-refresh.mjs
