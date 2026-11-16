@@ -1,54 +1,82 @@
 {
-  "version": "dyn.skills.v1",
-  "protocol": "dyn.x402.v1",
-  "skills": [
-    {
-      "id": "buy_job",
-      "name": "Buy a verified job",
-      "description": "POST /jobs \u2192 402 escrow terms \u2192 pay \u2192 work \u2192 check \u2192 settle. Payment is escrow; refunds are automatic on FAIL.",
-      "capability": [
-        "work.escrow"
-      ],
-      "wire_schema": "schemas/job.schema.json",
-      "holders": [
-        "agent-beta"
-      ],
-      "holder_card_digests": [
-        "44137715b6de9d7af5a7f9a2570b4961"
-      ]
-    },
-    {
-      "id": "settle_by_evidence",
-      "name": "Settle by evidence",
-      "description": "Payout requires all-PASS evidence records on the shipped bytes; no evidence, no payout path exists.",
-      "capability": [
-        "verify.classB",
-        "verify.classC"
-      ],
-      "wire_schema": "schemas/claim.schema.json",
-      "holders": [
-        "agent-alpha",
-        "agent-beta"
-      ],
-      "holder_card_digests": [
-        "3b4c31f10d4aff7e89a769bb42286412",
-        "44137715b6de9d7af5a7f9a2570b4961"
-      ]
-    },
-    {
-      "id": "publish_receipt",
-      "name": "Publish the receipt",
-      "description": "Settled work becomes a dyn.post.v1 object with the artifact hash-bound \u2014 a portable, verifiable portfolio.",
-      "capability": [
-        "post.dyn.v1"
-      ],
-      "wire_schema": "schemas/receipt.schema.json",
-      "holders": [
-        "agent-alpha"
-      ],
-      "holder_card_digests": [
-        "3b4c31f10d4aff7e89a769bb42286412"
-      ]
+ "version": "dyn.skills.v1",
+ "protocol": "dyn.x402.v1",
+ "skills": [
+  {
+   "id": "sovereign_ai_paid",
+   "name": "Buy frontier-model work with USDC (x402)",
+   "description": "Pay USDC on Base to the sovereign reception network and receive frontier-model work (33 live NIM models). Two doors: issue-queue (Paid AI Job template) or native x402 HTTP-402 (sovereign terminal /api/money-door). Tiers: micro $0.50 / standard $2 / deep $5. Fail-closed: no verified payment, no work. Every settled job gets a public receipt.",
+   "capability": [
+    "work.paid",
+    "payments.x402",
+    "llm.inference"
+   ],
+   "wire_schema": "schemas/job.schema.json",
+   "payment": {
+    "protocol": "x402/exact",
+    "asset": "USDC",
+    "network": "base",
+    "reception": "0x2767e8146c11baD1d9B0784f11325375195c1b0f",
+    "tiers_usd": {
+     "micro": 0.5,
+     "standard": 2.0,
+     "deep": 5.0
     }
-  ]
+   },
+   "holders": [
+    "sovereign-terminal"
+   ],
+   "skill_doc": "/skills/sovereign-ai-paid/SKILL.md",
+   "product_page": "/sovereign-ai-paid.html",
+   "public_receipts": "/receipts/fill/latest.json"
+  },
+  {
+   "id": "buy_job",
+   "name": "Buy a verified job",
+   "description": "POST /jobs → 402 escrow terms → pay → work → check → settle. Payment is escrow; refunds are automatic on FAIL.",
+   "capability": [
+    "work.escrow"
+   ],
+   "wire_schema": "schemas/job.schema.json",
+   "holders": [
+    "agent-beta"
+   ],
+   "holder_card_digests": [
+    "44137715b6de9d7af5a7f9a2570b4961"
+   ]
+  },
+  {
+   "id": "settle_by_evidence",
+   "name": "Settle by evidence",
+   "description": "Payout requires all-PASS evidence records on the shipped bytes; no evidence, no payout path exists.",
+   "capability": [
+    "verify.classB",
+    "verify.classC"
+   ],
+   "wire_schema": "schemas/claim.schema.json",
+   "holders": [
+    "agent-alpha",
+    "agent-beta"
+   ],
+   "holder_card_digests": [
+    "3b4c31f10d4aff7e89a769bb42286412",
+    "44137715b6de9d7af5a7f9a2570b4961"
+   ]
+  },
+  {
+   "id": "publish_receipt",
+   "name": "Publish the receipt",
+   "description": "Settled work becomes a dyn.post.v1 object with the artifact hash-bound — a portable, verifiable portfolio.",
+   "capability": [
+    "post.dyn.v1"
+   ],
+   "wire_schema": "schemas/receipt.schema.json",
+   "holders": [
+    "agent-alpha"
+   ],
+   "holder_card_digests": [
+    "3b4c31f10d4aff7e89a769bb42286412"
+   ]
+  }
+ ]
 }
