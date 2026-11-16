@@ -93,7 +93,10 @@ async function nimWork(prompt, tierId) {
     signal: AbortSignal.timeout(120000),
   });
   const j = await r.json();
-  const work = j.choices?.[0]?.message?.content;
+  // §54 לכידת-באג-מוצר (נתפס-בדוגמה-החיה): מודלי-חשיבה מחזירים-לפעמים content=null
+  // ואת-העבודה ב-reasoning_content — בלי-נפילה-חזרה לקוח-משלם-היה-מקבל-כישלון.
+  const msg = j.choices?.[0]?.message;
+  const work = msg?.content ?? msg?.reasoning_content;
   if (!work || !String(work).trim()) throw new Error("nim-empty-completion http=" + r.status);
   return { work, model };
 }

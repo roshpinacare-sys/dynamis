@@ -30,7 +30,10 @@ const r = await fetch(base + "/chat/completions", {
   signal: AbortSignal.timeout(120000),
 });
 const j = await r.json();
-const work = j.choices?.[0]?.message?.content;
+// §54 לכידת-באג: מודלי-חשיבה (nemotron) עלולים-להחזיר content=null ואת-התשובה
+// ב-reasoning_content — נפילה-חזרה-חכמה (תקף-גם-למבצה-המשלם).
+const msg = j.choices?.[0]?.message;
+const work = msg?.content ?? msg?.reasoning_content;
 if (!work || !String(work).trim()) { console.log("nim-empty http=" + r.status + " " + JSON.stringify(j).slice(0, 200)); process.exit(1); }
 
 const sample = {
