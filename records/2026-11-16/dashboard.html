@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DYNAMIS — emission dashboard</title>
+<style>
+body{font:16px/1.6 system-ui,Georgia,serif;margin:0;background:#0b0f12;color:#e8e6e1}
+main{max-width:860px;margin:0 auto;padding:48px 24px}
+h1{font-size:1.7rem;margin:0 0 4px} .sub{color:#9aa3a9;margin-bottom:28px}
+.badge{display:inline-block;padding:6px 14px;border-radius:999px;color:#fff;
+background:#1d8f74;font-weight:600;font-size:.9rem}
+table{width:100%;border-collapse:collapse;margin:28px 0}
+td{padding:10px 8px;border-bottom:1px solid #1f262b}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+ul{list-style:none;padding:0} li{padding:8px 0;border-bottom:1px solid #1f262b}
+li.pass::before{content:"✓ ";color:#3ecfb2} li.fail::before{content:"✗ ";color:#ff7b72}
+.foot{color:#9aa3a9;font-size:.85rem;margin-top:32px}
+</style></head><body><main>
+<h1>DYNAMIS — the emission dashboard</h1>
+<div class="sub">Law 19, computed from a real market stream. Gaps are shown, not hidden.</div>
+<span class="badge">INVARIANT HOLDS</span>
+<table><tr><td>Jobs opened (work demanded by real budgets)</td><td class='num'>27</td></tr><tr><td>Jobs settled (revenue-verified)</td><td class='num'>19</td></tr><tr><td>Jobs refunded (escrow returned, nothing minted)</td><td class='num'>8</td></tr><tr><td>Settled revenue (payout + fee, µ¢)</td><td class='num'>4,830,000,000</td></tr><tr><td>Expected emission at the canonical rate (µDYN)</td><td class='num'>1,932,000,000,000</td></tr><tr><td>Measured emission (µDYN)</td><td class='num'>1,932,000,000,000</td></tr><tr><td>Canonical rate (µDYN per µ¢)</td><td class='num'>400</td></tr></table>
+<h2>Checks, as measured</h2>
+<ul><li class='pass'>emitted_eq_revenue: measured OK</li><li class='pass'>refund_emits_nothing: measured OK</li><li class='pass'>no_settlement_without_work: measured OK</li></ul>
+<p class="foot">dyn.dashboard.v1 · digest 9cf7770183afe01c45ce9c8370fbda5a ·
+recomputed from the stream, not remembered · the world half of gate 2.2 is
+14 consecutive days of this page staying true.</p>
+</main></body></html>
