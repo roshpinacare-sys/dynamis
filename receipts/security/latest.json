@@ -1,0 +1,74 @@
+{
+  "at": "2026-11-16T17:49:58.714Z",
+  "posture": "HARDENED",
+  "score": 100,
+  "durationMs": 1783,
+  "rolesRun": 8,
+  "rolesOk": 8,
+  "findings": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 0,
+    "total": 0
+  },
+  "threatModel": {
+    "assets": [
+      {
+        "name": "כספת-המפתחות",
+        "measure": "14 סודות-רשומים בפנקס (ספירה-בלבד · ערכים-לעולם-לא-נמדדים-כאן)",
+        "protection": "3-אתרים · מחוץ-לגיט · fail-closed"
+      },
+      {
+        "name": "רשת-הקבלה-הציבורית",
+        "measure": "12 EVM + 12 TRON + 12 SOL כתובות-קבלה",
+        "protection": "ציבוריות-מעצם-תכנונן · קבלה-בלבד"
+      },
+      {
+        "name": "דלת-הכסף x402",
+        "measure": "9 אתגרים · 16 זיופים-נדחו-בפועל",
+        "protection": "facilitator-ציבורי · fail-closed-מוכח"
+      }
+    ],
+    "surfaces": [
+      {
+        "name": "שערי-API",
+        "measure": "37 שערים · כתיבה-מוגנת-שער-ריבונות (CSRF+מקור)",
+        "residual": "מקור-הרשאה=היקף-הרשת (sandbox)"
+      },
+      {
+        "name": "הדלת-הציבורית",
+        "measure": "money-door · פתוחה-לעולם-בכוונה",
+        "residual": "התשלום-הוא-האימות"
+      },
+      {
+        "name": "הבית-הציבורי (dynamis)",
+        "measure": "עמודים-סטטיים + מבצה-אוטונומי בגיט-פעולות",
+        "residual": "נכסים-ציבוריים-בלבד"
+      }
+    ],
+    "controls": [
+      {
+        "name": "שער-הריבונות (middleware)",
+        "proof": "כל-כתיבה-חוצת-מקור/חסרת-מקור → 403"
+      },
+      {
+        "name": "x402 fail-closed",
+        "proof": "16 תשלומים-מזויפים-נדחו-על-ידי-המאמת-הציבורי"
+      },
+      {
+        "name": "שכבת-המיסוך (redact)",
+        "proof": "כל-פלט-פנקס/יומן עובר-scrubLine"
+      },
+      {
+        "name": "משמורת-ואישורים",
+        "proof": "custody-gate + OwnerApproval לפעולות-הרסניות-שרשרת"
+      }
+    ],
+    "jailbreakCorpus": 12,
+    "openRisks": []
+  },
+  "findingsList": [],
+  "law": "אפס-סודות-בקבלה · כל-ראיה-ממוסכת-fp8 · סריקה-עצמית-מורשית-על-רכוש-עצמי-בלבד"
+}
