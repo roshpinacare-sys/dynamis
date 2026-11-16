@@ -1,0 +1,36 @@
+name: fill-watcher
+# §52 · צופה-מילוי-החוץ · מדידה-שעתית: USDC/USDT-חי-בכל-36-כתובות-הקבלה
+# → receipts/fill/latest.json (ציבורי) · מילוי-חדש = אישיו-הכרזה-אוטומטי.
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: write
+
+concurrency:
+  group: fill-watcher
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 1 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: scan-reception-network
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node ops/paid-job/fill-watch.mjs
+      - name: commit-receipt
+        run: |
+          git config user.name "roshpinacare-sys"
+          git config user.email "326012154+roshpinacare-sys@users.noreply.github.com"
+          git add receipts/fill/ 2>/dev/null || true
+          git diff --cached --quiet && echo "no-fill-change" || git commit -m "fill-watch receipt [skip ci]" && git push
