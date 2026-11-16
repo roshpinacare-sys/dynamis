@@ -17,10 +17,10 @@
     "asset": "USDC",
     "network": "base",
     "reception": "0x2767e8146c11baD1d9B0784f11325375195c1b0f",
-    "tiers_usd": {
-     "micro": 0.5,
-     "standard": 2.0,
-     "deep": 5.0
+    "tiers_usd_cents": {
+     "micro": 50,
+     "standard": 200,
+     "deep": 500
     }
    },
    "holders": [
@@ -28,7 +28,10 @@
    ],
    "skill_doc": "/skills/sovereign-ai-paid/SKILL.md",
    "product_page": "/sovereign-ai-paid.html",
-   "public_receipts": "/receipts/fill/latest.json"
+   "public_receipts": "/receipts/fill/latest.json",
+   "holder_card_digests": [
+    "1d026a1dd2f919685ecb57d791f22cfc"
+   ]
   },
   {
    "id": "buy_job",
