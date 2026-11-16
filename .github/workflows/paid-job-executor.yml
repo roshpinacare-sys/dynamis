@@ -1,0 +1,37 @@
+name: paid-job-executor
+# §52 · THE PUBLIC MONEY DOOR · מבצה-העבודה-הבתשלום
+# אישיו-חדש-מתבנית-paid_job → אימות-תשלום-מול-Base (USDC→רשת-הקבלה) → עבודה-ב-NIM → קבלה.
+# חוק: fail-closed — תשלום-לא-מאומת = אין-עבודה · אפס-סודות-בפלט.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: paid-job-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  verify-and-work:
+    if: contains(join(github.event.issue.labels.*.name, ','), 'paid-job')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 1 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: verify-payment-and-deliver-work
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          NVIDIA_BASE_URL: ${{ secrets.NVIDIA_BASE_URL }}
+          NVIDIA_NIM_KEY: ${{ secrets.NVIDIA_NIM_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NIM_API_KEY: ${{ secrets.NIM_API_KEY }}
+          NIM_MODEL: ${{ secrets.NIM_MODEL }}
+        run: node ops/paid-job/verify-and-work.mjs
