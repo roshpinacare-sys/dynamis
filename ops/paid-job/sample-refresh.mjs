@@ -12,15 +12,41 @@ Keep it under 160 words per language. No filler.`;
 const base = (process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1").replace(/\/$/, "");
 const key = process.env.NVIDIA_NIM_KEY || process.env.NVIDIA_API_KEY || process.env.NIM_API_KEY;
 if (!key) { console.log("nim-key-missing (fail-closed)"); process.exit(1); }
-// §54 · שרשרת-מועמדים לרמת-micro (מדוד-חי): flash-מהיר קודם · נפילה-חזרה
-// ל-nemotron-המוכח (4-5ש'). לקוח-משלם לעולם-לא-נופל-על-דלת-מודל-אחת.
+// §54 · מועמדים-במקביל (Promise.any): המודל-החם-הראשון-מנצח — נלמד-חי:
+// מודלי-flash קרים-למפתח (75ש' פר-מודל בטור = 150ש' המתנה). במקביל: שניות.
 const MODEL_CANDIDATES_MICRO = [
   process.env.NIM_MODEL_MICRO,
   "z-ai/glm-5.3-flash",
-  "google/gemma-4-31b-it",
-  "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "minimaxai/minimax-m3.1-flash",
+  "deepseek-ai/deepseek-v4.1-flash",
+  "openai/gpt-oss-20b",
+  "google/gemma-3-12b-it",
+  "nvidia/nemotron-3.5-lightning-30b-a3b", // עוגן-מוכח (עונה-תמיד-ב-4-5ש')
 ].filter(Boolean);
 if (process.env.NIM_MODEL) MODEL_CANDIDATES_MICRO.splice(0, MODEL_CANDIDATES_MICRO.length, process.env.NIM_MODEL);
+
+async function callModel(cand) {
+  const t = Date.now();
+  const r = await fetch(base + "/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+    body: JSON.stringify({
+      model: cand,
+      messages: [
+        { role: "system", content: "You are SAOS Sovereign AI — a paid, frontier-grade work engine. Answer precisely, truthfully, completely. No filler." },
+        { role: "user", content: SAMPLE_PROMPT },
+      ],
+      max_tokens: 700, // רמת-micro בדיוק — מה ש-$0.50 קונה
+      temperature: 0.4,
+    }),
+    signal: AbortSignal.timeout(75000),
+  });
+  const jj = await r.json();
+  const mm = jj.choices?.[0]?.message;
+  const ww = mm?.content ?? mm?.reasoning_content; // §54: מודלי-חשיבה מחזירים-לפעמים content=null
+  if (!ww || !String(ww).trim()) throw new Error("empty-from " + cand + " http=" + r.status);
+  return { cand, jj, ww: String(ww), ms: Date.now() - t };
+}
 
 // גישוש-מודלים-חי (שמות-בלבד · §54): רשימת-המודלים-הזמינים-למפתח-הזה —
 // בסיס-החלטה לבחירת-מודל-ישיר (לא-חשיבה) לרמת-micro.
@@ -35,36 +61,17 @@ try {
 }
 
 let model = null, j = null, work = null, t0 = Date.now();
-const tried = [];
-for (const cand of MODEL_CANDIDATES_MICRO) {
-  tried.push(cand);
-  console.log("trying:", cand);
-  try {
-    const r = await fetch(base + "/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
-      body: JSON.stringify({
-        model: cand,
-        messages: [
-          { role: "system", content: "You are SAOS Sovereign AI — a paid, frontier-grade work engine. Answer precisely, truthfully, completely. No filler." },
-          { role: "user", content: SAMPLE_PROMPT },
-        ],
-        max_tokens: 700, // רמת-micro בדיוק — מה ש-$0.50 קונה
-        temperature: 0.4,
-      }),
-      signal: AbortSignal.timeout(75000), // flash-אמור-לענות-בשניות; 75ש' חסד לפני-מעבר-הלאה
-    });
-    const jj = await r.json();
-    // §54 לכידת-באג: מודלי-חשיבה עלולים-להחזיר content=null ואת-התשובה ב-reasoning_content
-    const mm = jj.choices?.[0]?.message;
-    const ww = mm?.content ?? mm?.reasoning_content;
-    if (ww && String(ww).trim()) { model = cand; j = jj; work = String(ww); break; }
-    console.log("empty-from", cand, "http=" + r.status);
-  } catch (e) {
-    console.log("fail-from", cand, String(e).slice(0, 90));
-  }
-}
-if (!work) { console.log("all-candidates-failed:", tried.join(" | ")); process.exit(1); }
+const tried = MODEL_CANDIDATES_MICRO;
+// Promise.any: המודל-החם-הראשון שעונה-תשובה-אמיתית מנצח · כל-השאר מבוטלים
+model = await Promise.any(tried.map(async (cand) => {
+  console.log("firing:", cand);
+  const res = await callModel(cand);
+  console.log("answered:", cand, res.ms + "ms");
+  return res;
+}));
+j = model.jj; work = model.ww;
+model = model.cand;
+if (!work) { console.log("all-candidates-failed"); process.exit(1); }
 
 const sample = {
   at: new Date().toISOString(),
