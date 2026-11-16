@@ -8,7 +8,7 @@
  */
 import { execFileSync } from "node:child_process";
 
-const RPC_BASE = "https://base-rpc.publicnode.com";
+const RPCS_BASE = ["https://mainnet.base.org", "https://base-rpc.publicnode.com"];
 const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const RECEPTION_EVM = [
@@ -32,21 +32,33 @@ function parseField(body, id) {
   return m ? m[1].trim() : null;
 }
 
-async function rpc(method, params) {
-  const r = await fetch(RPC_BASE, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    signal: AbortSignal.timeout(20000),
-  });
-  const j = await r.json();
-  if (j.error) throw new Error("rpc:" + j.error.message);
-  return j.result;
+async function rpcAny(method, params) {
+  let lastErr = null;
+  for (const url of RPCS_BASE) {
+    try {
+      const r = await fetch(url, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const j = await r.json();
+      if (j.error) { lastErr = "rpc:" + j.error.message; continue; }
+      return { result: j.result, via: url };
+    } catch (e) { lastErr = String(e.message).slice(0, 60); }
+  }
+  throw new Error(lastErr ?? "all-rpcs-failed");
 }
 
 function addrToTopic(a) { return "0x" + a.toLowerCase().replace(/^0x/, "").padStart(64, "0"); }
 
 async function verifyBaseUsdc(txid) {
-  const rc = await rpc("eth_getTransactionReceipt", [txid]);
+  let rc = null;
+  try {
+    const got = await rpcAny("eth_getTransactionReceipt", [txid]);
+    rc = got.result;
+  } catch (e) {
+    return { ok: false, reason: "tx-not-verifiable-on-base (" + String(e.message).slice(0, 60) + ")" };
+  }
   if (!rc || !rc.logs) return { ok: false, reason: "tx-not-found-on-base" };
   if (rc.status !== "0x1") return { ok: false, reason: "tx-reverted" };
   for (const lg of rc.logs) {
