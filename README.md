@@ -10,6 +10,7 @@
   then open an issue with the **Paid AI Job** template (txid + tier + prompt) → work + public receipt.
 - **x402 protocol door** (machine clients): `POST` any prompt to the sovereign terminal `/api/money-door` → HTTP 402 payment challenge (x402/exact, USDC, Base) → signed EIP-3009 payment → facilitator verify → work.
 - **Tiers**: micro $0.50 (≤600 chars) · standard $2.00 (≤2,500) · deep $5.00 (≤10,000, full reasoning).
+- **Contact for buyers**: `saos-d8b4h26f@fldubai.com` — sovereign mailbox, monitored live from the network's command center.
 - **Trust, measured live**: [security posture](https://roshpinacare-sys.github.io/dynamis/security.html) (HARDENED 100/100, red-teamed) · [public fill receipts](https://roshpinacare-sys.github.io/dynamis/receipts/fill/latest.json) · [product page](https://roshpinacare-sys.github.io/dynamis/sovereign-ai-paid.html).
 - **Fail-closed**: no verified payment → no work. Ever. Every settled job gets a public receipt.
 - Agent skill: [`skills/sovereign-ai-paid/SKILL.md`](skills/sovereign-ai-paid/SKILL.md)
