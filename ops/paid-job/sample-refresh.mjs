@@ -4,10 +4,10 @@
 import { execFileSync } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
 
-const SAMPLE_PROMPT = `You are being sampled as a paid work engine. A buyer pays $0.50 for this exact tier. Produce, in both English and Hebrew:
-1. Exactly 5 crisp bullets on why HTTP-402 native payments (x402, USDC on Base) change machine-to-machine commerce.
+const SAMPLE_PROMPT = `FINAL ANSWER ONLY — no thinking-out-loud, no preamble. A buyer pays $0.50 for this exact tier. Deliver, in both English and Hebrew:
+1. Exactly 3 crisp bullets on why HTTP-402 native payments (x402, USDC on Base) change machine-to-machine commerce.
 2. One 4-field JSON example of a purchase receipt (txid, usd, work, status).
-Keep it under 160 words per language. No filler.`;
+Under 70 words per language.`;
 
 const base = (process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1").replace(/\/$/, "");
 const key = process.env.NVIDIA_NIM_KEY || process.env.NVIDIA_API_KEY || process.env.NIM_API_KEY;
