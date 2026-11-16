@@ -1,0 +1,17 @@
+{
+ "at": "2026-11-16T17:12:53.618Z",
+ "protocol": "fill-watch v1 · §52",
+ "totalUsd": 0,
+ "balances": [],
+ "errors": [],
+ "scanned": {
+  "evmBase": 12,
+  "evmEth": 12,
+  "tron": 12,
+  "sol": 12
+ },
+ "reception": {
+  "baseUsdc": "0x2767e8146c11baD1d9B0784f11325375195c1b0f",
+  "note": "wallets-public digest 4442c2b9 · 12 agents × 10 chains"
+ }
+}
