@@ -62,16 +62,28 @@ try {
 
 let model = null, j = null, work = null, t0 = Date.now();
 const tried = MODEL_CANDIDATES_MICRO;
-// Promise.any: המודל-החם-הראשון שעונה-תשובה-אמיתית מנצח · כל-השאר מבוטלים
-model = await Promise.any(tried.map(async (cand) => {
-  console.log("firing:", cand);
-  const res = await callModel(cand);
-  console.log("answered:", cand, res.ms + "ms");
-  return res;
-}));
-j = model.jj; work = model.ww;
-model = model.cand;
-if (!work) { console.log("all-candidates-failed"); process.exit(1); }
+const ANCHOR = tried[tried.length - 1];
+// §54 · מירוץ-איכות-תחילה: העוגן-המוכח נורה-מיד (עונה-ב-4-5ש') אך המודלים-הישירים
+// מקבלים-חלון-חסד 25ש' לנצח-באיכות (פלט-ישיר-מלוטש) לפני-שהעוגן-לוקח.
+const anchorPromise = callModel(ANCHOR).catch(() => null);
+const graceMs = Number(process.env.SAMPLE_GRACE_MS || 25000);
+let winner = null;
+try {
+  winner = await Promise.any([
+    ...tried.slice(0, -1).map(async (cand) => {
+      console.log("firing-direct:", cand);
+      const res = await callModel(cand);
+      console.log("answered-direct:", cand, res.ms + "ms");
+      return res;
+    }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("grace-expired")), graceMs)),
+  ]);
+} catch {
+  console.log("direct-grace-expired — anchor takes it");
+}
+if (!winner) winner = await anchorPromise;
+if (!winner) { console.log("all-candidates-failed"); process.exit(1); }
+model = winner.cand; j = winner.jj; work = winner.ww;
 
 const sample = {
   at: new Date().toISOString(),

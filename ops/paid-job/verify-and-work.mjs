@@ -89,11 +89,11 @@ async function nimWork(prompt, tierId) {
   const base = process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
   const key = process.env.NVIDIA_NIM_KEY || process.env.NVIDIA_API_KEY || process.env.NIM_API_KEY;
   if (!key) throw new Error("nim-key-missing (fail-closed)");
-  // §54 · שרשרת-מודלים-עמידה: מודל-הרמה קודם · נפילה-חזרה-למוכח — לקוח-משלם
-  // לעולם-לא-נופל-על-דלת-מודל-אחת (נלמד-מדוגמה-חיה: gemma נתקע>120ש').
+  // §54 · שרשרת-מודלים-עמידה: מודל-הרמה קודם (תקרת-45ש' — לקוח-משלם לא ממתין\n  // על-מודל-קר) · נפילה-חזרה-מיידית-לעוגן-המוכח (4-5ש'). לקוח לעולם-לא-נופל\n  // על-דלת-מודל-אחת (נלמד-חי: מודלי-flash/gemma קרים-למפתח >120ש').
   const chain = [...new Set([pickModel(tierId), PROVEN_FALLBACK])];
   let lastErr = null;
   for (const model of chain) {
+    const isAnchor = model === PROVEN_FALLBACK;
     try {
       const r = await fetch(base.replace(/\/$/, "") + "/chat/completions", {
         method: "POST",
@@ -107,7 +107,7 @@ async function nimWork(prompt, tierId) {
           max_tokens: tierId === "deep" ? 2600 : tierId === "standard" ? 1600 : 700,
           temperature: 0.4,
         }),
-        signal: AbortSignal.timeout(120000),
+        signal: AbortSignal.timeout(isAnchor ? 120000 : 45000),
       });
       const j = await r.json();
       // §54 לכידת-באג-מוצר (נתפס-בדוגמה-החיה): מודלי-חשיבה מחזירים-לפעמים content=null
