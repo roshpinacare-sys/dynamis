@@ -73,11 +73,21 @@ async function verifyBaseUsdc(txid) {
   return { ok: false, reason: "no-usdc-transfer-to-reception-network-in-tx" };
 }
 
+// §54 · בחירת-מודל-לפי-מדרגה (נמדד-חי: 33-מודלים-זמינים):
+// micro = מודל-ישיר-מהיר (ההבטחה-בדף-המוצר: "direct") · standard = מאוזן ·
+// deep = חשיבה-מלאה. דריסה-בסביבה נשמרת (NIM_MODEL לכל-הרמות או פר-רמה).
+function pickModel(tierId) {
+  if (process.env.NIM_MODEL) return process.env.NIM_MODEL;
+  if (tierId === "micro") return process.env.NIM_MODEL_MICRO || "google/gemma-4-31b-it";
+  if (tierId === "deep") return process.env.NIM_MODEL_DEEP || "nvidia/nemotron-3.5-lightning-30b-a3b";
+  return process.env.NIM_MODEL_STANDARD || "nvidia/nemotron-3.5-lightning-30b-a3b";
+}
+
 async function nimWork(prompt, tierId) {
   const base = process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
   const key = process.env.NVIDIA_NIM_KEY || process.env.NVIDIA_API_KEY || process.env.NIM_API_KEY;
   if (!key) throw new Error("nim-key-missing (fail-closed)");
-  const model = process.env.NIM_MODEL || "nvidia/nemotron-3.5-lightning-30b-a3b";
+  const model = pickModel(tierId);
   const r = await fetch(base.replace(/\/$/, "") + "/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },

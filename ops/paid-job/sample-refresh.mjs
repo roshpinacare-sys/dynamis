@@ -12,7 +12,8 @@ Keep it under 160 words per language. No filler.`;
 const base = (process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1").replace(/\/$/, "");
 const key = process.env.NVIDIA_NIM_KEY || process.env.NVIDIA_API_KEY || process.env.NIM_API_KEY;
 if (!key) { console.log("nim-key-missing (fail-closed)"); process.exit(1); }
-const model = process.env.NIM_MODEL || "nvidia/nemotron-3.5-lightning-30b-a3b";
+// §54 · הדוגמה = רמת-micro אמיתית: מודל-ישיר (כמו-לקוח-משלם ב-micro · "direct")
+const model = process.env.NIM_MODEL || process.env.NIM_MODEL_MICRO || "google/gemma-4-31b-it";
 
 // גישוש-מודלים-חי (שמות-בלבד · §54): רשימת-המודלים-הזמינים-למפתח-הזה —
 // בסיס-החלטה לבחירת-מודל-ישיר (לא-חשיבה) לרמת-micro.
