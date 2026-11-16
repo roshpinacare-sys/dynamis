@@ -83,32 +83,44 @@ function pickModel(tierId) {
   return process.env.NIM_MODEL_STANDARD || "nvidia/nemotron-3.5-lightning-30b-a3b";
 }
 
+const PROVEN_FALLBACK = "nvidia/nemotron-3.5-lightning-30b-a3b"; // נמדד-חי: 4-5ש' תשובה
+
 async function nimWork(prompt, tierId) {
   const base = process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
   const key = process.env.NVIDIA_NIM_KEY || process.env.NVIDIA_API_KEY || process.env.NIM_API_KEY;
   if (!key) throw new Error("nim-key-missing (fail-closed)");
-  const model = pickModel(tierId);
-  const r = await fetch(base.replace(/\/$/, "") + "/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: "You are SAOS Sovereign AI — a paid, frontier-grade work engine. Answer precisely, truthfully, completely. No filler." },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: tierId === "deep" ? 2600 : tierId === "standard" ? 1600 : 700,
-      temperature: 0.4,
-    }),
-    signal: AbortSignal.timeout(120000),
-  });
-  const j = await r.json();
-  // §54 לכידת-באג-מוצר (נתפס-בדוגמה-החיה): מודלי-חשיבה מחזירים-לפעמים content=null
-  // ואת-העבודה ב-reasoning_content — בלי-נפילה-חזרה לקוח-משלם-היה-מקבל-כישלון.
-  const msg = j.choices?.[0]?.message;
-  const work = msg?.content ?? msg?.reasoning_content;
-  if (!work || !String(work).trim()) throw new Error("nim-empty-completion http=" + r.status);
-  return { work, model };
+  // §54 · שרשרת-מודלים-עמידה: מודל-הרמה קודם · נפילה-חזרה-למוכח — לקוח-משלם
+  // לעולם-לא-נופל-על-דלת-מודל-אחת (נלמד-מדוגמה-חיה: gemma נתקע>120ש').
+  const chain = [...new Set([pickModel(tierId), PROVEN_FALLBACK])];
+  let lastErr = null;
+  for (const model of chain) {
+    try {
+      const r = await fetch(base.replace(/\/$/, "") + "/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: "You are SAOS Sovereign AI — a paid, frontier-grade work engine. Answer precisely, truthfully, completely. No filler." },
+            { role: "user", content: prompt },
+          ],
+          max_tokens: tierId === "deep" ? 2600 : tierId === "standard" ? 1600 : 700,
+          temperature: 0.4,
+        }),
+        signal: AbortSignal.timeout(120000),
+      });
+      const j = await r.json();
+      // §54 לכידת-באג-מוצר (נתפס-בדוגמה-החיה): מודלי-חשיבה מחזירים-לפעמים content=null
+      // ואת-העבודה ב-reasoning_content — בלי-נפילה-חזרה לקוח-משלם-היה-מקבל-כישלון.
+      const msg = j.choices?.[0]?.message;
+      const work = msg?.content ?? msg?.reasoning_content;
+      if (work && String(work).trim()) return { work, model };
+      lastErr = new Error("nim-empty-completion http=" + r.status);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error("nim-all-candidates-failed");
 }
 
 function gh(method, path, body) {
