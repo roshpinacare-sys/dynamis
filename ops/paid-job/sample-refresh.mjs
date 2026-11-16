@@ -14,6 +14,18 @@ const key = process.env.NVIDIA_NIM_KEY || process.env.NVIDIA_API_KEY || process.
 if (!key) { console.log("nim-key-missing (fail-closed)"); process.exit(1); }
 const model = process.env.NIM_MODEL || "nvidia/nemotron-3.5-lightning-30b-a3b";
 
+// גישוש-מודלים-חי (שמות-בלבד · §54): רשימת-המודלים-הזמינים-למפתח-הזה —
+// בסיס-החלטה לבחירת-מודל-ישיר (לא-חשיבה) לרמת-micro.
+try {
+  const mr = await fetch(base + "/models", { headers: { Authorization: "Bearer " + key }, signal: AbortSignal.timeout(20000) });
+  const mj = await mr.json();
+  const ids = (mj.data || []).map((m) => m.id).sort();
+  console.log("models-available:", ids.length);
+  console.log(ids.join("\n"));
+} catch (e) {
+  console.log("models-probe-failed:", String(e).slice(0, 100));
+}
+
 const t0 = Date.now();
 const r = await fetch(base + "/chat/completions", {
   method: "POST",
