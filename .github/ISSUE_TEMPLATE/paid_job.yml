@@ -1,0 +1,47 @@
+name: Paid AI Job — עבודת-AI בתשלום USDC (Base)
+description: שלם USDC על-גבי-Base לכתובת-הקבלה הריבונית, קבל עבודת-מודל-חזית — התשלום מאומת מול השרשרת, אוטומטית.
+labels: [paid-job]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## SOVEREIGN AI · PAID — הדלת-הציבורית של DYNAMIS
+
+        **איך-זה-עובד (fail-closed):**
+        1. שלם **USDC** על-רשת **Base** לכתובת-הקבלה: `0x2767e8146c11baD1d9B0784f11325375195c1b0f`
+        2. בחר מדרגה (micro $0.50 · standard $2.00 · deep $5.00) והגש את העבודה המבוקשת
+        3. המנוע מאמת את ה-txid מול השרשרת הציבורית — **תשלום לא-מאומת = אין עבודה**
+        4. העבודה מבוצעת ומפורסמת כאן, בקבלה-ציבורית, אוטומטית (בדרך-כלל בתוך דקות)
+
+        *הכתובת היא כתובת-הקבלה הקנונית של הרשת-הריבונית (headcorner · wallets-public · digest 4442c2b9).*
+  - type: input
+    id: txid
+    attributes:
+      label: Payment txid (Base network)
+      description: מזהה-העסקה (0x…) של העברת ה-USDC לכתובת-הקבלה
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier — מדרגת-העבודה
+      options:
+        - micro ($0.50 · עד 600 תווים)
+        - standard ($2.00 · עד 2500 תווים)
+        - deep ($5.00 · עד 10000 תווים · חשיבה-מלאה)
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: Prompt — העבודה המבוקשת
+      description: מה שהמנוע צריך לבצע. התשובה תפורסם כתגובה באישיו זה.
+    validations:
+      required: true
+  - type: input
+    id: callback
+    attributes:
+      label: Callback URL (optional)
+      description: כתובת שאליה הפלט יישלח ב-POST (אופציונלי — ברירת-מחדל: פרסום-באישיו)
+    validations:
+      required: false
