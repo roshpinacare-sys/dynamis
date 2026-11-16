@@ -2,13 +2,17 @@ name: deploy-site
 
 # The live site must track main: gh-pages was pushed by hand once and went
 # stale within a day — the self-audit caught the discovery surfaces not being
-# served at all. This publishes exactly site/ to gh-pages on every push to
-# main; Pages then rebuilds from that branch on its own. Nothing else lands on
-# gh-pages — no repo clutter, no drift.
+# served at all. This publishes site/ AND receipts/ to gh-pages on every push
+# to main; Pages then rebuilds from that branch on its own.
+# §54-audit: receipts (fill + security) are public trust objects — they MUST
+# be served. Receipt commits carry [skip ci] (anti-churn), so an hourly
+# schedule guarantees the public receipts stay fresh regardless.
 
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "33 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -20,12 +24,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - name: Publish exactly site/ to gh-pages
+      - name: Publish site/ + receipts/ to gh-pages
         run: |
           git config user.name "dynamis-deploy"
           git config user.email "actions@users.noreply.github.com"
           rm -rf /tmp/publish && mkdir -p /tmp/publish
           cp -r site/. /tmp/publish/
+          cp -r receipts/. /tmp/publish/receipts/
           git fetch origin gh-pages || true
           git checkout -B gh-pages origin/gh-pages 2>/dev/null \
             || git checkout --orphan gh-pages
