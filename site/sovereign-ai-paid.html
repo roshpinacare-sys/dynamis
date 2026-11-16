@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOVEREIGN AI · PAID — דלת-הכסף הציבורית</title>
+<meta name="description" content="שלם USDC על-Base, קבל עבודת-מודל-חזית — תשלום מאומת מול השרשרת, קבלה ציבורית, fail-closed.">
+<style>
+  :root { --bg:#0d1117; --fg:#e6edf3; --mut:#8b949e; --gold:#f0b429; --grn:#3fb950; --brd:#30363d; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif; line-height:1.65; }
+  .wrap { max-width:880px; margin:0 auto; padding:48px 20px 80px; }
+  h1 { font-size:2rem; letter-spacing:-.02em; }
+  .sub { color:var(--mut); margin:8px 0 32px; font-size:1.02rem; }
+  .card { border:1px solid var(--brd); border-radius:14px; padding:24px; margin-bottom:20px; background:#161b22; }
+  .card h2 { font-size:1.15rem; margin-bottom:12px; color:var(--gold); }
+  .addr { font-family:ui-monospace,monospace; direction:ltr; display:block; background:#0d1117; border:1px solid var(--brd); border-radius:8px; padding:12px 14px; font-size:.92rem; color:#79c0ff; word-break:break-all; margin:8px 0; }
+  .steps { counter-reset:s; list-style:none; }
+  .steps li { counter-increment:s; padding:10px 0 10px 0; border-bottom:1px dashed var(--brd); }
+  .steps li::before { content:counter(s); display:inline-block; width:26px; height:26px; line-height:26px; text-align:center; border-radius:50%; background:var(--gold); color:#0d1117; font-weight:700; margin-left:10px; font-size:.9rem; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { text-align:right; padding:9px 12px; border-bottom:1px solid var(--brd); font-size:.95rem; }
+  th { color:var(--mut); font-weight:600; }
+  .usd { color:var(--grn); font-weight:700; }
+  .badge { display:inline-block; border:1px solid var(--brd); border-radius:999px; padding:2px 12px; font-size:.8rem; color:var(--mut); margin:2px; }
+  .law { color:var(--grn); }
+  a { color:#79c0ff; }
+  footer { color:var(--mut); font-size:.85rem; margin-top:36px; border-top:1px solid var(--brd); padding-top:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>דלת-הכסף · SOVEREIGN AI PAID</h1>
+  <p class="sub">עבודת-מודלי-חזית בתשלום-פר-קריאה · USDC על-Base · תשלום מאומת מול השרשרת · קבלה ציבורית · <span class="law">fail-closed — אין עבודה בלי תשלום מאומת</span></p>
+
+  <div class="card">
+    <h2>כתובת-הקבלה הריבונית (Base)</h2>
+    <span class="addr" id="addr">0x2767e8146c11baD1d9B0784f11325375195c1b0f</span>
+    <div><span class="badge">USDC · Base</span><span class="badge">headcorner · wallets-public</span><span class="badge">digest 4442c2b9</span></div>
+  </div>
+
+  <div class="card">
+    <h2>איך קונים עבודה</h2>
+    <ol class="steps">
+      <li><b>שלם</b> — העבר USDC על-רשת Base לכתובת-הקבלה שלמעלה</li>
+      <li><b>הגש</b> — פתח אישיו בגיטהאב עם תבנית <b>Paid AI Job</b>: מזהה-העסקה (txid) + מדרגה + ה-prompt</li>
+      <li><b>קבל</b> — המנוע מאמת את התשלום מול השרשרת הציבורית, מבצע את העבודה ומפרסם את התוצר והקבלה באישיו — אוטומטית</li>
+    </ol>
+    <p style="margin-top:12px"><a href="https://github.com/roshpinacare-sys/dynamis/issues/new/choose">→ פתיחת עבודה בתשלום (אישיו חדש)</a></p>
+  </div>
+
+  <div class="card">
+    <h2>מחירים</h2>
+    <table>
+      <tr><th>מדרגה</th><th>מחיר</th><th>היקף-prompt</th><th>מנוע</th></tr>
+      <tr><td>micro</td><td class="usd">$0.50</td><td>עד 600 תווים</td><td>מודל-חזית</td></tr>
+      <tr><td>standard</td><td class="usd">$2.00</td><td>עד 2,500 תווים</td><td>מודל-חזית</td></tr>
+      <tr><td>deep</td><td class="usd">$5.00</td><td>עד 10,000 תווים</td><td>מודל-חזית + חשיבה-מלאה</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>חוקי-הדלת (בלתי-ניתנים-למשא-ומתן)</h2>
+    <ul style="padding-right:20px">
+      <li><span class="law">fail-closed</span> — תשלום שלא מאומת מול השרשרת = אין עבודה. אף פעם.</li>
+      <li><b>קבלות-ציבוריות</b> — כל עבודה שנמכרת מתפרסמת עם txid, סכום, מנוע וזמן.</li>
+      <li><b>תשלום-חלקי נדחה בכנות</b> (תווית payment-underpaid).</li>
+      <li><b>אין הבטחות-תשואה</b> — קונים עבודה, לא השקעה.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>מד-המילוי החי (מתעדכן שעתית)</h2>
+    <p>צופה-המילוי סורק את כל 36 כתובות-הקבלה (USDC על-Base/ETH · USDT על-TRON/SOL) ומגיש את המדידה הציבורית ל-<a href="https://github.com/roshpinacare-sys/dynamis/blob/main/receipts/fill/latest.json">receipts/fill/latest.json</a>. מילוי חדש = אישיו-הכרזה אוטומטי.</p>
+  </div>
+
+  <div class="card">
+    <h2>לסוכנים-מכניים · x402</h2>
+    <p>הדלת קיימת גם בפרוטוקול-x402 (HTTP-402 + stablecoins): אתגר → תשלום EIP-3009 חתום → אימות-וסליקה ב-facilitator-הציבורי → עבודה. המסמכים: <a href="https://github.com/roshpinacare-sys/dynamis/blob/main/skills/sovereign-ai-paid/SKILL.md">skills/sovereign-ai-paid</a> · <a href="https://github.com/roshpinacare-sys/dynamis/blob/main/adr/0003-x402-usds.md">ADR-0003</a>.</p>
+  </div>
+
+  <footer>
+    DYNAMIS · הרשת-הציבורית של כלכלת-הסוכנים-המאומתת-עבודה · השורש: הרשת-הריבונית הפרטית.
+    הכל נמדד · הכל ציבורי · אפס-הבטחות-ריקות.
+  </footer>
+</div>
+</body>
+</html>
