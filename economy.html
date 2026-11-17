@@ -47,7 +47,7 @@
     <h1><span class="k">ECONOMY · LIVE</span>Measured, not claimed.</h1>
     <div id="age" class="age">loading…</div>
   </header>
-  <p class="muted">Every number below is measured by an autonomous engine (GitHub Actions, every 15 minutes) straight from the chain and from the runner's public heartbeat — then committed by the machine. Nobody hand-pushes these receipts. Source: <a href="receipts/economy/latest.json">receipts/economy/latest.json</a> · history: <a href="receipts/economy/history.jsonl">history.jsonl</a></p>
+  <p class="muted">Every number below is measured by an autonomous engine (GitHub Actions, every 15 minutes) straight from the chain and from the runner's public heartbeat — then committed by the machine. Nobody hand-pushes these receipts. Source: <a href="receipts/economy/live.json">receipts/economy/live.json</a> · history: <a href="receipts/economy/live-history.jsonl">history.jsonl</a></p>
   <div class="grid">
     <div class="card"><h3>Working capital</h3><div class="big" id="wc">—</div><div class="muted" id="wcSplit">—</div></div>
     <div class="card"><h3>Market top-of-book</h3><div class="row"><span>bid</span><span id="mBid">—</span></div><div class="row"><span>ask</span><span id="mAsk">—</span></div><div class="row"><span>spread</span><span id="mSpread">—</span></div><div class="muted" id="fBook">fleet book: —</div></div>
@@ -75,7 +75,7 @@ function ageBadge(at){
 }
 async function load(){
   try{
-    const r = await fetch("receipts/economy/latest.json?t="+Date.now(), {cache:"no-store"});
+    const r = await fetch("receipts/economy/live.json?t="+Date.now(), {cache:"no-store"});
     const d = await r.json();
     ageBadge(d.measuredAt);
     document.getElementById("wc").textContent = `${fmt(d.workingCapital?.steem)} STEEM · ${fmt(d.workingCapital?.sbd)} SBD`;
