@@ -1,0 +1,61 @@
+{
+  "at": "2026-11-17T15:47:16.512Z",
+  "kind": "sovereign-economy-measure",
+  "measuredThisSession": true,
+  "workingCapital": {
+    "steem": 237.108,
+    "sbd": 46.126
+  },
+  "liquid": {
+    "steem": 83.373,
+    "sbd": 5.546
+  },
+  "onBook": {
+    "steem": 153.735,
+    "sbd": 40.58
+  },
+  "openOrders": {
+    "total": 34,
+    "buys": 12,
+    "sells": 22
+  },
+  "spreadPct": 0.446,
+  "externalCounterparties": 7,
+  "externalFlows": {
+    "windowNote": "אגירה-מול-היסטוריית-החשבונות-הנסרקת (400-פעולות-אחרונות-לחשבון)",
+    "paidToFleet": {
+      "sbd": 5.099,
+      "steem": 27.532
+    },
+    "paidByFleet": {
+      "sbd": 2.802,
+      "steem": 47.923
+    },
+    "counterparties": [
+      "coin-raffle",
+      "olgiz247",
+      "cashly",
+      "vfund",
+      "puncakbukit",
+      "zappa100",
+      "progressivechef"
+    ],
+    "latestExternalFill": "2026-11-16T19:49:45Z puncakbukit ⇄ headcorner 0.241 SBD / 2.346 STEEM"
+  },
+  "protocolConvert": {
+    "sbd": 1.105,
+    "expectedSteem": 24.836,
+    "maturesAt": "2026-11-18T02:20:27Z"
+  },
+  "runner": {
+    "asof": "2026-11-17T15:38:51Z",
+    "runCount": 463,
+    "grids": 37,
+    "realFills": 730
+  },
+  "honesty": {
+    "realizedSbd": -2.473686,
+    "note": "מסחר-משמר-ערך-וצובר-מלאי · עדיין-אין-רווח-ממומש — כנות-מלאה",
+    "classificationFix": "§61: פנימי=שני-הצדדים-בצי (תיקון-שורש של-§60 שסיווג-לפי-פותח-הפקודה-בלבד)"
+  }
+}
