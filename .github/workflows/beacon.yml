@@ -35,7 +35,12 @@ jobs:
           git config user.name "saos-beacon"
           git config user.email "actions@users.noreply.github.com"
           git add receipts/economy/latest.json
-          if git diff --cached --quiet; then echo "no-change (identical measurement) — still published below"; else git commit -m "beacon: fresh chain measurement [skip ci]"; git push origin main; fi
+          if git diff --cached --quiet; then echo "no-change (identical measurement) — still published below"; else git commit -m "beacon: fresh chain measurement [skip ci]"; fi
+          # §63 cure: concurrent writers (sibling economy-live) can move main mid-run —
+          # non-ff push here failed once (measured 16:41Z). Ladder form: rebase onto
+          # origin, then push only if ahead (the saos-dex E12/E13 lesson, applied).
+          git pull --rebase --autostash origin main || true
+          if ! git diff --quiet origin/main HEAD; then git push origin main; else echo "main already current — nothing to push"; fi
       - name: Publish site/ + receipts/ to gh-pages (immediate, no deploy lag)
         run: |
           # same publish path as deploy-site.yml — freshness in minutes, not hours
