@@ -1,5 +1,5 @@
 # §62 · מנוע-המדידה-החי-הציבורי · economy-live
-# מודד-את-השרשרת-ואת-דופק-הרץ בכל-ריצה → receipts/economy/latest.json (+history.jsonl)
+# מודד-את-השרשרת-ואת-דופק-הרץ בכל-ריצה → receipts/economy/live.json (+live-history.jsonl) — פיצול-נתיבים-מהמגדלור-של-האח (§63)
 # הקבלה-הציבורית-מתעדכנת-אוטומטית — אף-מספר-ציבורי-לא-נדחף-ידנית-עוד.
 # הקומיט-נושא-[skip ci]-נגד-צ'רנה-ומצית-את-deploy-site-מיידית (פרסום-בדקות, לא-בשעה).
 on:
@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.name "economy-live"
           git config user.email "actions@users.noreply.github.com"
-          git add receipts/economy/
+          git add receipts/economy/live.json receipts/economy/live-history.jsonl
           if git diff --cached --quiet; then
             echo "receipt identical — nothing to commit"
           else
