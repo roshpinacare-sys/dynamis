@@ -1,9 +1,9 @@
 {
-  "at": "2026-11-17T16:14:00.898Z",
+  "at": "2026-11-17T16:15:09.986Z",
   "kind": "sovereign-economy-live-beacon",
   "liveness": {
-    "headBlock": 111407934,
-    "chainTime": "2026-11-17T16:13:42",
+    "headBlock": 111407955,
+    "chainTime": "2026-11-17T16:14:45",
     "note": "הבלוק-מתקדם-כל-3-ש' — אם-המספר-לא-זז-בין-ריצות המגדלור-כבה-בכנות"
   },
   "liquid": {
@@ -12,14 +12,14 @@
   },
   "openOrders": {
     "total": 34,
-    "buys": 0,
-    "sells": 34,
-    "onBookSteem": 193.938,
-    "onBookSbd": 0
+    "buys": 12,
+    "sells": 22,
+    "onBookSteem": 153.358,
+    "onBookSbd": 40.58
   },
   "market": {
-    "midPrice": null,
-    "spreadPct": null
+    "midPrice": 0.102845972,
+    "spreadPct": 0.45
   },
   "protocolConvert": [],
   "runner": {
