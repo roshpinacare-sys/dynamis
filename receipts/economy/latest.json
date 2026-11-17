@@ -1,10 +1,11 @@
 {
-  "at": "2026-11-17T16:22:01.723Z",
+  "at": "2026-11-17T16:25:28.287Z",
   "kind": "sovereign-economy-live-beacon",
+  "source": "github-actions (10-min cadence · measures chain directly · zero secrets)",
   "liveness": {
-    "headBlock": 111408092,
-    "chainTime": "2026-11-17T16:21:39",
-    "note": "הבלוק-מתקדם-כל-3-ש' — אם-המספר-לא-זז-בין-ריצות המגדלור-כבה-בכנות"
+    "headBlock": 111408161,
+    "chainTime": "2026-11-17T16:25:06",
+    "note": "הבלוק-מתקדם-כל-3-ש' — אם-לא-זז-בין-ריצות השרשרת-קפאה"
   },
   "liquid": {
     "steem": 83.373,
@@ -27,12 +28,8 @@
       "maturesAt": "2026-11-18T02:20:27"
     }
   ],
-  "runner": {
-    "runCount": 473,
-    "asof": "2026-11-17T16:19:18.676Z",
-    "realFills": 730,
-    "realizedSbd": -2.473686
-  },
+  "runner": null,
+  "runnerNote": "מספרי-הרץ-המקומי מתעדכנים-מהסנדבוקס-במחזורים-הנמוכים-בתדירות (3/יום) — כאן-כנות-מלאה-על-מה-שנמדד-עכשיו",
   "externalFlow": {
     "counterparties": 7,
     "paidToFleet": {
@@ -47,7 +44,7 @@
     "receipt": "fill-probe-20261117T154524.txt"
   },
   "honesty": {
-    "note": "כל-השדות-למעלה נמדדו-ישירות-מהשרשרת בריצה-זו · realizedSbd שלילי = מסחר-משמר-ערך, לא-רווח-ממומש",
-    "realizedSbd": -2.473686
+    "note": "כל-השדות החיים נמדדו-ישירות-מהשרשרת בריצה-זו · realizedSbd שלילי = מסחר-משמר-ערך, לא-רווח-ממומש",
+    "realizedSbd": null
   }
 }
