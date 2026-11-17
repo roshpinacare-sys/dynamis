@@ -1,9 +1,9 @@
 {
-  "at": "2026-11-17T16:15:09.986Z",
+  "at": "2026-11-17T16:22:01.723Z",
   "kind": "sovereign-economy-live-beacon",
   "liveness": {
-    "headBlock": 111407955,
-    "chainTime": "2026-11-17T16:14:45",
+    "headBlock": 111408092,
+    "chainTime": "2026-11-17T16:21:39",
     "note": "הבלוק-מתקדם-כל-3-ש' — אם-המספר-לא-זז-בין-ריצות המגדלור-כבה-בכנות"
   },
   "liquid": {
@@ -21,10 +21,15 @@
     "midPrice": 0.102845972,
     "spreadPct": 0.45
   },
-  "protocolConvert": [],
+  "protocolConvert": [
+    {
+      "sbd": 1.105,
+      "maturesAt": "2026-11-18T02:20:27"
+    }
+  ],
   "runner": {
-    "runCount": 471,
-    "asof": "2026-11-17T16:11:15.174Z",
+    "runCount": 473,
+    "asof": "2026-11-17T16:19:18.676Z",
     "realFills": 730,
     "realizedSbd": -2.473686
   },
