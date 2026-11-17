@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LIVE ECONOMY — measured, not claimed</title>
+<meta name="description" content="Live sovereign economy receipt — measured by an autonomous engine every 15 minutes, straight from the chain. No hand-pushed snapshots.">
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#10141d; --panel:#131926; --line:#1f2735;
+    --txt:#dbe4f0; --dim:#8494ab; --faint:#5a6980;
+    --teal:#3ecfb2; --amber:#e8a33d; --red:#d96a6a;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background-image:radial-gradient(900px 400px at 70% -10%,rgba(62,207,178,.07),transparent)}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 80px}
+  a{color:var(--teal);text-decoration:none}
+  header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  h1{font-size:22px;letter-spacing:.5px}
+  h1 .k{display:block;font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:2px;margin-bottom:6px}
+  .age{font-family:var(--mono);font-size:13px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel)}
+  .age.ok{color:var(--teal);border-color:rgba(62,207,178,.4)}
+  .age.warn{color:var(--amber);border-color:rgba(232,163,61,.4)}
+  .age.bad{color:var(--red);border-color:rgba(217,106,106,.4)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .card h3{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--faint);text-transform:uppercase;margin-bottom:10px}
+  .big{font-size:26px;font-weight:650;font-family:var(--mono)}
+  .row{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-family:var(--mono);font-size:13px}
+  .row span:first-child{color:var(--dim)}
+  .muted{color:var(--dim);font-size:12.5px}
+  .note{background:var(--bg2);border:1px dashed var(--line);border-radius:10px;padding:14px 16px;margin-top:18px;color:var(--dim);font-size:13px}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--faint);font-weight:500}
+  .flags{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .flag{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line)}
+  .flag.on{color:var(--teal)} .flag.off{color:var(--red);border-color:rgba(217,106,106,.5)}
+  footer{margin-top:26px;color:var(--faint);font-size:12px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="k">ECONOMY · LIVE</span>Measured, not claimed.</h1>
+    <div id="age" class="age">loading…</div>
+  </header>
+  <p class="muted">Every number below is measured by an autonomous engine (GitHub Actions, every 15 minutes) straight from the chain and from the runner's public heartbeat — then committed by the machine. Nobody hand-pushes these receipts. Source: <a href="receipts/economy/latest.json">receipts/economy/latest.json</a> · history: <a href="receipts/economy/history.jsonl">history.jsonl</a></p>
+  <div class="grid">
+    <div class="card"><h3>Working capital</h3><div class="big" id="wc">—</div><div class="muted" id="wcSplit">—</div></div>
+    <div class="card"><h3>Market top-of-book</h3><div class="row"><span>bid</span><span id="mBid">—</span></div><div class="row"><span>ask</span><span id="mAsk">—</span></div><div class="row"><span>spread</span><span id="mSpread">—</span></div><div class="muted" id="fBook">fleet book: —</div></div>
+    <div class="card"><h3>External flow (counterparties)</h3><div class="big" id="extCount">—</div><div class="row"><span>paid to fleet</span><span id="extIn">—</span></div><div class="row"><span>paid by fleet</span><span id="extOut">—</span></div><div class="row"><span>latest fill</span><span id="extLast">—</span></div></div>
+    <div class="card"><h3>Runner heartbeat</h3><div class="row"><span>engine saved</span><span id="hb">—</span></div><div class="row"><span>chain height</span><span id="height">—</span></div><div class="row"><span>repo pushed</span><span id="pushed">—</span></div><div class="muted">continuous keeper flush — public proof of life</div></div>
+    <div class="card"><h3>Fills · 24h</h3><div class="row"><span>unique</span><span id="f24">—</span></div><div class="row"><span>external</span><span id="f24e">—</span></div><div class="row"><span>open orders</span><span id="oo">—</span></div></div>
+    <div class="card"><h3>Protocol conversions</h3><div id="conv" class="muted">—</div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3>External counterparties (top 12)</h3>
+    <div style="overflow-x:auto"><table id="cpTable"><thead><tr><th>counterparty</th><th>fills</th><th>paid SBD</th><th>paid STEEM</th><th>got SBD</th><th>got STEEM</th><th>last</th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="note" id="honesty">—</div>
+  <div class="flags" id="flags"></div>
+  <footer>schema economy-live/1 · measured by ops/economy/live-measure.mjs · zero secrets · fail-closed</footer>
+</div>
+<script>
+const fmt = (n, d=3) => (n === null || n === undefined) ? "—" : Number(n).toFixed(d);
+function ageBadge(at){
+  const el = document.getElementById("age");
+  if (!at) { el.textContent="no data"; el.className="age bad"; return; }
+  const mins = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 60000));
+  el.textContent = `measured ${mins} min ago`;
+  el.className = "age " + (mins <= 20 ? "ok" : mins <= 60 ? "warn" : "bad");
+}
+async function load(){
+  try{
+    const r = await fetch("receipts/economy/latest.json?t="+Date.now(), {cache:"no-store"});
+    const d = await r.json();
+    ageBadge(d.measuredAt);
+    document.getElementById("wc").textContent = `${fmt(d.workingCapital?.steem)} STEEM · ${fmt(d.workingCapital?.sbd)} SBD`;
+    document.getElementById("wcSplit").textContent = `liquid ${fmt(d.liquid?.steem)}+${fmt(d.liquid?.sbd)} · on-book ${fmt(d.onBook?.steem)}+${fmt(d.onBook?.sbd)}`;
+    document.getElementById("mBid").textContent = fmt(d.marketBook?.bid,6);
+    document.getElementById("mAsk").textContent = fmt(d.marketBook?.ask,6);
+    document.getElementById("mSpread").textContent = d.marketBook?.spreadPct!=null ? d.marketBook.spreadPct+"%" : "—";
+    document.getElementById("fBook").textContent = `fleet book: bid ${fmt(d.book?.bid,6)} / ask ${fmt(d.book?.ask,6)} / spread ${d.book?.spreadPct!=null?d.book.spreadPct+"%":"—"}`;
+    const ef = d.externalFlows || {};
+    document.getElementById("extCount").textContent = `${ef.count ?? "—"} counterparties`;
+    document.getElementById("extIn").textContent = `${fmt(ef.totalPaidToFleetSbd)} SBD + ${fmt(ef.totalPaidToFleetSteem)} STEEM`;
+    document.getElementById("extOut").textContent = `${fmt(ef.totalPaidByFleetSbd)} SBD + ${fmt(ef.totalPaidByFleetSteem)} STEEM`;
+    document.getElementById("extLast").textContent = ef.latestExternalFill ? ef.latestExternalFill.slice(0,16).replace("T"," ") : "—";
+    const hb = d.runner || {};
+    document.getElementById("hb").textContent = hb.heartbeatAt ? hb.heartbeatAt.slice(0,19).replace("T"," ") : "—";
+    document.getElementById("height").textContent = hb.height ?? "—";
+    document.getElementById("pushed").textContent = hb.repoPushedAt ? hb.repoPushedAt.slice(0,19).replace("T"," ") : "—";
+    document.getElementById("f24").textContent = d.fills?.unique ?? "—";
+    document.getElementById("f24e").textContent = d.fills?.external ?? "—";
+    document.getElementById("oo").textContent = d.openOrders?.total ?? "—";
+    const cv = d.conversions || [];
+    document.getElementById("conv").innerHTML = cv.length
+      ? cv.map(c => `<div class="row"><span>${c.owner}</span><span>${c.amount} → matures ${c.maturesAt.slice(0,16).replace("T"," ")}</span></div>`).join("")
+      : "none pending (measured)";
+    const tb = document.querySelector("#cpTable tbody");
+    tb.innerHTML = (ef.counterparties || []).map(c => `<tr><td>${c.counterparty}</td><td>${c.fills}</td><td>${fmt(c.paidSbd)}</td><td>${fmt(c.paidSteem)}</td><td>${fmt(c.gotSbd)}</td><td>${fmt(c.gotSteem)}</td><td>${(c.last||"").slice(0,10)}</td></tr>`).join("");
+    const h = d.honesty || {};
+    document.getElementById("honesty").textContent = `Honesty: ${h.note || ""} ${h.zeroFillsPolicy ? "· " + h.zeroFillsPolicy : ""} ${h.staleSourcesPolicy ? "· " + h.staleSourcesPolicy : ""}`;
+    const fl = d.flags || {};
+    document.getElementById("flags").innerHTML = Object.entries(fl).map(([k,v]) => `<span class="flag ${v?"on":"off"}">${v?"✓":"✗"} ${k}</span>`).join("");
+  } catch(e){
+    document.getElementById("age").textContent = "receipt unreachable"; document.getElementById("age").className = "age bad";
+  }
+}
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
