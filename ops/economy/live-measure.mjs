@@ -169,7 +169,7 @@ const recentExt = recent.filter(f => !(FLEET_SET.has(f.open_owner) && FLEET_SET.
 const extList = [...extFlows.entries()].map(([cp, v]) => ({ counterparty: cp, fills: v.fills, paidSbd: +v.paidSbd.toFixed(3), paidSteem: +v.paidSteem.toFixed(3), gotSbd: +v.gotSbd.toFixed(3), gotSteem: +v.gotSteem.toFixed(3), last: v.last })).sort((a, b) => b.fills - a.fills);
 
 const receipt = {
-  schema: "economy-live/1",
+  schema: "economy-live/2",
   measuredAt: now(),
   freshness: { cadenceMinutes: 15, promise: "measured by the autonomous engine on every run — never a hand-pushed snapshot", nextRunNote: "keeper wakes this workflow if any run is >25 min stale" },
   flags, // אמת-לכל-מקור · false = מקור-נכשל-הריצה-הזו (fail-closed-כנה)
@@ -189,10 +189,10 @@ const receipt = {
   honesty: { note: "market-making preserves value and builds inventory; every number here is measured by this engine at measuredAt — nothing hand-curated", zeroFillsPolicy: "no fill is ever fabricated; the receipts ledger is the scoreboard", staleSourcesPolicy: "a source that stops updating is shown via flags=false or heartbeat age — never carried as a live claim" },
 };
 
-writeFileSync("receipts/economy/latest.json", JSON.stringify(receipt, null, 2) + "\n");
+writeFileSync("receipts/economy/live.json", JSON.stringify(receipt, null, 2) + "\n");
 
 // ── 7. היסטוריה-ציבורית (שורה-קומפקטית-לריצה · תקרת-זיכרון-2016-שורות) ──
-const histPath = "receipts/economy/history.jsonl";
+const histPath = "receipts/economy/live-history.jsonl";
 let histLines = [];
 try { histLines = readFileSync(histPath, "utf8").split("\n").filter(Boolean); } catch {}
 histLines.push(JSON.stringify({ at: receipt.measuredAt, wc: receipt.workingCapital, orders: receipt.openOrders.total, spread: receipt.book.spreadPct, fills24: receipt.fills, extCount: receipt.externalFlows.count, runner: runner ? { asof: runner.asof, runCount: runner.runCount, realFills: runner.realFills } : null, flags }));
