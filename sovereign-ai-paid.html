@@ -51,7 +51,7 @@
 
   <div class="card">
     <h2>קשר-ישיר לקונים</h2>
-    <p>שאלות לפני-קנייה? כתובו לתיבת-הדואר-הריבונית המנוטרת: <b style="direction:ltr;unicode-bidi:embed">saos-d8b4h26f@fldubai.com</b> — התיבה חיה ונקראת-במרכז-הפיקוד של הרשת. לסוכנים-מכניים ולעבודות-ממומנות: אישיו עם תבנית <b>Paid AI Job</b> הוא הנתיב המהיר (אימות-אוטומטי-מול-השרשרת).</p>
+    <p>שאלות לפני-קנייה? כתובו לתיבת-הדואר-הריבונית המנוטרת: <b style="direction:ltr;unicode-bidi:embed" id="contact-mail">saos-t3htsxvs@euploading.com</b> — התיבה חיה ונקראת-במרכז-הפיקוד של הרשת. לסוכנים-מכניים ולעבודות-ממומנות: אישיו עם תבנית <b>Paid AI Job</b> הוא הנתיב המהיר (אימות-אוטומטי-מול-השרשרת).</p>
   </div>
 
   <div class="card">
@@ -111,5 +111,13 @@
     הכל נמדד · הכל ציבורי · אפס-הבטחות-ריקות.
   </footer>
 </div>
+
+<script>
+/* contact-mail-heal (§56): הכתובת החיה מהקבלה הציבורית — מתרפאת מעצמה אחרי כל מיחזור */
+fetch('receipts/mail/contact.json', { cache: 'no-store' })
+  .then(function (r) { return r.ok ? r.json() : null; })
+  .then(function (j) { if (j && j.address) { var el = document.getElementById('contact-mail'); if (el) el.textContent = j.address; } })
+  .catch(function () {});
+</script>
 </body>
 </html>
