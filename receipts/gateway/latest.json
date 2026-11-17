@@ -1,0 +1,89 @@
+{
+  "at": "2026-11-17T18:02:56.272Z",
+  "kind": "chain-gateway-receipt",
+  "version": "chain-gateway/1.0",
+  "uptimeSec": 373,
+  "nets": {
+    "BTC": {
+      "ok": true,
+      "height": 976309,
+      "latencyMs": 497,
+      "source": "blockstream.info"
+    },
+    "ETH": {
+      "ok": true,
+      "height": 26436430,
+      "latencyMs": 65,
+      "source": "publicnode"
+    },
+    "LTC": {
+      "ok": true,
+      "height": 3214767,
+      "latencyMs": 232,
+      "source": "blockcypher"
+    },
+    "DOGE": {
+      "ok": true,
+      "height": 6461687,
+      "latencyMs": 911,
+      "source": "blockcypher"
+    },
+    "SOL": {
+      "ok": true,
+      "height": 470627069,
+      "latencyMs": 138,
+      "source": "mainnet-beta.solana.com"
+    },
+    "STEEM": {
+      "ok": true,
+      "height": 111410105,
+      "latencyMs": 2120,
+      "source": "condenser_api"
+    }
+  },
+  "rates": {
+    "source": "coinbase(5)+binance-STEEM+SBD-נגזר(STEEM÷DEX-מיד)",
+    "usd": {
+      "BTC": 63748.62999985127,
+      "ETH": 1785.9699999998413,
+      "LTC": 44.210999999999984,
+      "DOGE": 0.05849,
+      "SOL": 72.28000000000011,
+      "STEEM": 0.04247,
+      "SBD": 0.4129594713776497
+    },
+    "degraded": [],
+    "measuredAt": "2026-11-17T18:02:43.270Z"
+  },
+  "market": {
+    "ok": true,
+    "bid": 0.10261101412039099,
+    "ask": 0.10307503075030751,
+    "mid": 0.102843022,
+    "spreadPct": 0.45,
+    "source": "DEX-get_order_book",
+    "measuredAt": "2026-11-17T18:02:46.741Z"
+  },
+  "fleet": {
+    "ok": true,
+    "accounts": 17,
+    "steem": 79.373,
+    "sbd": 5.956,
+    "sp": 4677.473,
+    "orders": {
+      "total": 34,
+      "buys": 12,
+      "sells": 22
+    },
+    "source": "condenser_api",
+    "measuredAt": "2026-11-17T18:02:50.117Z"
+  },
+  "ledger": {
+    "total": 3,
+    "open": 0
+  },
+  "feeBps": 35,
+  "honesty": "אורקל-מדידה+כוונות · אין-ביצוע-חוץ · אפס-סודות · כל-מספר-נמדד-ממקור-חי",
+  "publishedFrom": "הרשת-הפרטית · mini-services/chain-gateway · יציאה 3030",
+  "publicPanel": "לשונית «שער-חוץ · רב-שרשרת» במרכז-הפיקוד"
+}
