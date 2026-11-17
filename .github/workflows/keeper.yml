@@ -83,6 +83,7 @@ jobs:
           }
           wake uptime.yml 1200
           wake daily-proof.yml 72000
+          wake economy-live.yml 1500
 
       - name: Sleep, then hand over the watch
         if: steps.guard.outputs.proceed == 'true'
