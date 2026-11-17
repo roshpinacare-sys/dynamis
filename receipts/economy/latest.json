@@ -1,15 +1,14 @@
 {
-  "at": "2026-11-17T16:44:59.810Z",
+  "at": "2026-11-17T17:12:48.159Z",
   "kind": "sovereign-economy-live-beacon",
-  "source": "github-actions (10-min cadence · measures chain directly · zero secrets)",
   "liveness": {
-    "headBlock": 111408545,
-    "chainTime": "2026-11-17T16:44:24",
-    "note": "הבלוק-מתקדם-כל-3-ש' — אם-לא-זז-בין-ריצות השרשרת-קפאה"
+    "headBlock": 111409103,
+    "chainTime": "2026-11-17T17:12:24",
+    "note": "הבלוק-מתקדם-כל-3-ש' — אם-המספר-לא-זז-בין-ריצות המגדלור-כבה-בכנות"
   },
   "liquid": {
-    "steem": 83.373,
-    "sbd": 5.546
+    "steem": 79.373,
+    "sbd": 5.956
   },
   "openOrders": {
     "total": 34,
@@ -19,7 +18,7 @@
     "onBookSbd": 40.58
   },
   "market": {
-    "midPrice": 0.102845972,
+    "midPrice": 0.102843022,
     "spreadPct": 0.45
   },
   "protocolConvert": [
@@ -28,8 +27,12 @@
       "maturesAt": "2026-11-18T02:20:27"
     }
   ],
-  "runner": null,
-  "runnerNote": "מספרי-הרץ-המקומי מתעדכנים-מהסנדבוקס-במחזורים-הנמוכים-בתדירות (3/יום) — כאן-כנות-מלאה-על-מה-שנמדד-עכשיו",
+  "runner": {
+    "runCount": 486,
+    "asof": "2026-11-17T17:11:56.356Z",
+    "realFills": 732,
+    "realizedSbd": -2.473589
+  },
   "externalFlow": {
     "counterparties": 7,
     "paidToFleet": {
@@ -44,7 +47,7 @@
     "receipt": "fill-probe-20261117T154524.txt"
   },
   "honesty": {
-    "note": "כל-השדות החיים נמדדו-ישירות-מהשרשרת בריצה-זו · realizedSbd שלילי = מסחר-משמר-ערך, לא-רווח-ממומש",
-    "realizedSbd": null
+    "note": "כל-השדות-למעלה נמדדו-ישירות-מהשרשרת בריצה-זו · realizedSbd שלילי = מסחר-משמר-ערך, לא-רווח-ממומש",
+    "realizedSbd": -2.473589
   }
 }
