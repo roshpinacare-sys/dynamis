@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sovereign Economy — Live Beacon</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#0b0f14; color:#e6edf3; font-family:ui-sans-serif,system-ui,"Segoe UI",Arial; margin:0; padding:32px 16px; }
+  main { max-width:860px; margin:0 auto; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:#8b949e; font-size:.9rem; margin-bottom:24px; }
+  .live { display:inline-flex; align-items:center; gap:8px; font-weight:600; }
+  .dot { width:10px; height:10px; border-radius:50%; background:#3fb950; box-shadow:0 0 8px #3fb950; animation:pulse 2s infinite; }
+  .dot.stale { background:#d29922; box-shadow:0 0 8px #d29922; animation:none; }
+  .dot.dead { background:#f85149; box-shadow:0 0 8px #f85149; animation:none; }
+  @keyframes pulse { 50% { opacity:.4; } }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; }
+  .card { background:#111826; border:1px solid #21283b; border-radius:12px; padding:16px 18px; }
+  .card h2 { font-size:.78rem; color:#8b949e; margin:0 0 8px; text-transform:uppercase; letter-spacing:.06em; }
+  .big { font-size:1.45rem; font-weight:700; font-variant-numeric:tabular-nums; }
+  .row { display:flex; justify-content:space-between; margin:6px 0; font-size:.92rem; }
+  .row b { font-variant-numeric:tabular-nums; }
+  .muted { color:#8b949e; font-size:.82rem; }
+  .honesty { border-color:#d29922; }
+  a { color:#58a6ff; text-decoration:none; }
+  code { color:#a5b4fc; }
+  .updated { margin-top:22px; font-size:.85rem; color:#8b949e; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sovereign Economy — <span class="live"><span id="dot" class="dot"></span><span id="state">טוען…</span></span></h1>
+  <div class="sub">כל-נתון נמדד ישירות מהשרשרת בזמן-אמת · הדף שולף-טרי בכל-פתיחה · תרענון-אוטומטי כל-60ש' · אפס-טענות-סרק</div>
+  <div class="grid">
+    <div class="card"><h2>חיות-השרשרת</h2><div class="big" id="block">—</div><div class="muted">head-block (מתקדם כל 3 ש' · אם-לא-זז = השרשרת-קפאה)</div></div>
+    <div class="card"><h2>הון-נזיל-מדוד</h2><div class="big" id="liquid">—</div><div class="muted">סכום-17-חשבונות-ריבוניים · מדידה-ישירה</div></div>
+    <div class="card"><h2>פקודות-פתוחות</h2><div class="big" id="orders">—</div><div class="muted" id="ordersBreak">—</div></div>
+    <div class="card"><h2>הספר-הציבורי</h2><div class="big" id="price">—</div><div class="muted" id="spread">—</div></div>
+    <div class="card"><h2>הרץ-האוטונומי</h2><div class="big" id="runner">—</div><div class="muted" id="runnerNote">—</div></div>
+    <div class="card"><h2>תור-ההמרה (פרוטוקול-כצד-שכנגד)</h2><div class="big" id="convert">—</div><div class="muted" id="convertNote">—</div></div>
+    <div class="card"><h2>זרימה-חוץ-מוכחת (מצטבר-נסרק)</h2><div class="row"><span>חוץ-שילם-לצי</span><b id="extIn">—</b></div><div class="row"><span>צי-שילם-לחוץ</span><b id="extOut">—</b></div><div class="muted" id="extNote">—</div></div>
+    <div class="card honesty"><h2>הכנות-המלאה (מוצגת-גם-כאן)</h2><div class="row"><span>מילויי-אמת-מצטברים</span><b id="fills">—</b></div><div class="row"><span>רווח-ממומש</span><b id="pnl">—</b></div><div class="muted">רווח-שלילי = מסחר-משמר-ערך · לא-נטען-שאחרת</div></div>
+  </div>
+  <div class="updated" id="updated">—</div>
+  <div class="updated">הקבלה הגולמית: <a href="latest.json">receipts/economy/latest.json</a> · תקן-התנהלות: <a href="https://github.com/roshpinacare-sys/sovereign-ai-paid-sdk">SDK</a></div>
+</main>
+<script>
+const MAX_AGE_OK = 15 * 60 * 1000; // מעל-זה = מגדלור-כבה (מוצג-בכנות)
+let lastBlocks = [];
+async function tick() {
+  try {
+    const d = await (await fetch('latest.json?t=' + Date.now(), { cache: 'no-store' })).json();
+    const ageMs = Date.now() - new Date(d.at).getTime();
+    const ageMin = Math.floor(ageMs / 60000);
+    const age = ageMin === 0 ? 'ממש-עכשיו' : ('לפני ' + ageMin + ' ד׳');
+    const block = d.liveness?.headBlock ?? null;
+    lastBlocks.push(block); if (lastBlocks.length > 6) lastBlocks.shift();
+    const chainAdvancing = new Set(lastBlocks).size > 1;
+    const beaconStale = ageMs > MAX_AGE_OK;
+    const dot = document.getElementById('dot'), state = document.getElementById('state');
+    if (beaconStale) { dot.className = 'dot dead'; state.textContent = 'מגדלור-לא-מתרענן (' + age + ')'; }
+    else if (!chainAdvancing && lastBlocks.length > 3) { dot.className = 'dot stale'; state.textContent = 'שרשרת-זמנית-לא-מתקדמת'; }
+    else { dot.className = 'dot'; state.textContent = 'חי · נמדד ' + age; }
+    document.getElementById('block').textContent = block ?? '—';
+    document.getElementById('liquid').textContent = (d.liquid?.steem ?? '—') + ' STEEM + ' + (d.liquid?.sbd ?? '—') + ' SBD';
+    document.getElementById('orders').textContent = (d.openOrders?.total ?? '—');
+    document.getElementById('ordersBreak').textContent = (d.openOrders?.buys ?? '—') + ' קניות · ' + (d.openOrders?.sells ?? '—') + ' מכירות · בספר ' + (d.openOrders?.onBookSteem ?? '—') + ' STEEM + ' + (d.openOrders?.onBookSbd ?? '—') + ' SBD';
+    document.getElementById('price').textContent = d.market?.midPrice ? d.market.midPrice + ' SBD/STEEM' : '—';
+    document.getElementById('spread').textContent = d.market?.spreadPct != null ? 'ספרד ' + d.market.spreadPct + '%' : '—';
+    document.getElementById('runner').textContent = d.runner ? (d.runner.runCount + ' ticks') : '—';
+    document.getElementById('runnerNote').textContent = d.runner ? ('asof ' + d.runner.asof.slice(11, 16) + 'Z') : 'הרץ-לא-נמדד';
+    const cv = d.protocolConvert?.[0];
+    document.getElementById('convert').textContent = cv ? cv.sbd + ' SBD' : '0 (ריק)';
+    document.getElementById('convertNote').textContent = cv ? 'בשל ' + cv.maturesAt.replace('T', ' ').slice(0, 19) + 'Z' : '';
+    document.getElementById('extIn').textContent = (d.externalFlow?.paidToFleet?.sbd ?? '—') + ' SBD + ' + (d.externalFlow?.paidToFleet?.steem ?? '—') + ' STEEM';
+    document.getElementById('extOut').textContent = (d.externalFlow?.paidByFleet?.sbd ?? '—') + ' SBD + ' + (d.externalFlow?.paidByFleet?.steem ?? '—') + ' STEEM';
+    document.getElementById('extNote').textContent = '7-צדדים-חוץ · מדידה-אחרונה ' + (d.externalFlow?.measuredAt ?? '—');
+    document.getElementById('fills').textContent = d.runner?.realFills ?? '—';
+    document.getElementById('pnl').textContent = d.runner?.realizedSbd != null ? d.runner.realizedSbd.toFixed(3) + ' SBD' : '—';
+    document.getElementById('updated').textContent = 'מקור: מדידה-ישירה-מהשרשרת · קבלה-זו: ' + d.at + ' · גיל: ' + age;
+  } catch (e) {
+    const dot = document.getElementById('dot'), state = document.getElementById('state');
+    dot.className = 'dot dead'; state.textContent = 'אין-חיבור-לקבלה';
+  }
+}
+tick(); setInterval(tick, 60000);
+</script>
+</body>
+</html>
