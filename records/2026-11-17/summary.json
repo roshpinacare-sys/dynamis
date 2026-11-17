@@ -5,9 +5,9 @@
   "sim_days": 14,
   "heartbeat_ok": true,
   "uptime_24h": {
-    "beats": 53,
-    "completed": 53,
-    "succeeded": 53,
+    "beats": 52,
+    "completed": 52,
+    "succeeded": 52,
     "uptime_bps": 10000
   },
   "jobs_opened": 27,
@@ -23,6 +23,6 @@
     "law19_refund_emits_nothing": true,
     "no_payout_without_pass": true
   },
-  "generated_at": "2026-11-17T02:16:09Z",
-  "record_digest": "1c0182966719776dcb93afbf86f97637"
+  "generated_at": "2026-11-17T07:45:36Z",
+  "record_digest": "d1ab1889f597472dd77728f63a81fc42"
 }
