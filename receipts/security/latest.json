@@ -1,8 +1,8 @@
 {
-  "at": "2026-11-17T10:43:28.084Z",
+  "at": "2026-11-17T14:38:16.760Z",
   "posture": "HARDENED",
   "score": 100,
-  "durationMs": 5168,
+  "durationMs": 11826,
   "rolesRun": 8,
   "rolesOk": 8,
   "findings": {
