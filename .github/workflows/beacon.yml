@@ -1,0 +1,53 @@
+name: beacon
+
+# The live economy beacon — measures the chain DIRECTLY every 10 minutes and
+# publishes receipts/economy/latest.json. No secrets: chain RPC is public,
+# pushes use the repo's own GITHUB_TOKEN. The public dashboard (receipts/
+# economy/index.html) fetches this file at view time, so the site never shows
+# stale numbers. This is the §62 answer to "static dead receipts".
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: beacon
+  cancel-in-progress: true
+
+jobs:
+  measure-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Measure chain → receipts/economy/latest.json
+        run: node scripts/beacon-measure.js
+      - name: Commit fresh receipt to main
+        run: |
+          git config user.name "saos-beacon"
+          git config user.email "actions@users.noreply.github.com"
+          git add receipts/economy/latest.json
+          if git diff --cached --quiet; then echo "no-change (identical measurement) — still published below"; else git commit -m "beacon: fresh chain measurement [skip ci]"; git push origin main; fi
+      - name: Publish site/ + receipts/ to gh-pages (immediate, no deploy lag)
+        run: |
+          # same publish path as deploy-site.yml — freshness in minutes, not hours
+          rm -rf /tmp/publish && mkdir -p /tmp/publish
+          cp -r site/. /tmp/publish/
+          cp -r receipts/. /tmp/publish/receipts/
+          git fetch origin gh-pages || true
+          git checkout -B gh-pages origin/gh-pages 2>/dev/null \
+            || git checkout --orphan gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          cp -r /tmp/publish/. .
+          git add -A
+          git commit -m "beacon-publish: block-fresh receipts [skip ci]" \
+            || echo "site unchanged — nothing to publish"
+          git push origin gh-pages
