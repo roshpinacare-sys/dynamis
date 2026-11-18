@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-18T04:29:51.167Z",
+  "measuredAt": "2026-11-18T04:44:04.818Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -54,10 +54,10 @@
       {
         "counterparty": "coin-raffle",
         "fills": 13,
-        "paidSbd": 7.252,
+        "paidSbd": 6.424,
         "paidSteem": 0,
         "gotSbd": 0,
-        "gotSteem": 69.164
+        "gotSteem": 61.136
       },
       {
         "counterparty": "olgiz247",
@@ -141,17 +141,17 @@
       }
     ],
     "count": 11,
-    "totalPaidToFleetSbd": 11.531,
+    "totalPaidToFleetSbd": 10.703,
     "totalPaidToFleetSteem": 46.607,
     "totalPaidByFleetSbd": 4.749,
-    "totalPaidByFleetSteem": 110.312
+    "totalPaidByFleetSteem": 102.284
   },
   "conversions": [],
   "runner": {
     "heartbeatAt": "2026-11-18T03:54:29.813Z",
     "height": 4104382,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-18T04:22:21Z"
+    "repoPushedAt": "2026-11-18T04:36:46Z"
   },
   "feed": {
     "sbdPerSteem": 9.609422,
