@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-18T06:28:25.053Z",
+  "measuredAt": "2026-11-18T06:54:31.449Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -15,37 +15,37 @@
   },
   "fleetAccounts": 17,
   "liquid": {
-    "steem": 92.085,
-    "sbd": 33.324
+    "steem": 74.171,
+    "sbd": 41.101
   },
   "onBook": {
-    "steem": 62.833,
-    "sbd": 24.58
+    "steem": 100.032,
+    "sbd": 12.58
   },
   "workingCapital": {
-    "steem": 154.918,
-    "sbd": 57.904
+    "steem": 174.203,
+    "sbd": 53.681
   },
   "openOrders": {
-    "total": 23
+    "total": 22
   },
   "book": {
-    "bid": 0.097338,
-    "ask": 0.103792,
-    "spreadPct": 6.418,
+    "bid": 0.097886,
+    "ask": 0.104374,
+    "spreadPct": 6.416,
     "note": "fleet-only top-of-book"
   },
   "marketBook": {
-    "bid": 0.102701,
-    "ask": 0.103792,
-    "spreadPct": 1.056,
+    "bid": 0.102651,
+    "ask": 0.104374,
+    "spreadPct": 1.664,
     "note": "whole-market top-of-book (get_order_book 50)"
   },
   "fills": {
     "window": "24h",
     "unique": 0,
     "external": 0,
-    "scannedTotal": 49
+    "scannedTotal": 50
   },
   "internalFillsAll": 7,
   "externalFlows": {
@@ -77,10 +77,10 @@
       },
       {
         "counterparty": "genially",
-        "fills": 2,
+        "fills": 3,
         "paidSbd": 0,
-        "paidSteem": 6,
-        "gotSbd": 0.615,
+        "paidSteem": 47.911,
+        "gotSbd": 4.932,
         "gotSteem": 0
       },
       {
@@ -142,8 +142,8 @@
     ],
     "count": 11,
     "totalPaidToFleetSbd": 12.983,
-    "totalPaidToFleetSteem": 46.607,
-    "totalPaidByFleetSbd": 4.749,
+    "totalPaidToFleetSteem": 88.518,
+    "totalPaidByFleetSbd": 9.066,
     "totalPaidByFleetSteem": 124.442
   },
   "conversions": [],
@@ -151,7 +151,7 @@
     "heartbeatAt": "2026-11-18T06:21:23.236Z",
     "height": 4115475,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-18T06:27:44Z"
+    "repoPushedAt": "2026-11-18T06:46:36Z"
   },
   "feed": {
     "sbdPerSteem": 9.609426,
