@@ -1,26 +1,26 @@
 {
-  "at": "2026-11-18T04:41:26.807Z",
+  "at": "2026-11-18T13:28:31.168Z",
   "kind": "sovereign-economy-live-beacon",
   "source": "github-actions (10-min cadence · measures chain directly · zero secrets)",
   "liveness": {
-    "headBlock": 111422823,
-    "chainTime": "2026-11-18T04:41:00",
+    "headBlock": 111433318,
+    "chainTime": "2026-11-18T13:27:57",
     "note": "הבלוק-מתקדם-כל-3-ש' — אם-לא-זז-בין-ריצות השרשרת-קפאה"
   },
   "liquid": {
-    "steem": 94.085,
-    "sbd": 5.956
+    "steem": 72.671,
+    "sbd": 5.101
   },
   "openOrders": {
-    "total": 33,
-    "buys": 12,
-    "sells": 21,
-    "onBookSteem": 149.264,
-    "onBookSbd": 40.58
+    "total": 31,
+    "buys": 14,
+    "sells": 17,
+    "onBookSteem": 101.532,
+    "onBookSbd": 48.58
   },
   "market": {
-    "midPrice": 0.102789294,
-    "spreadPct": 0.27
+    "midPrice": 0.103361269,
+    "spreadPct": 1.24
   },
   "protocolConvert": [],
   "runner": null,
