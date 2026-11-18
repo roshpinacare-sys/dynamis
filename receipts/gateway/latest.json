@@ -1,82 +1,82 @@
 {
-  "at": "2026-11-18T06:29:07.861Z",
+  "at": "2026-11-18T06:35:09.411Z",
   "kind": "chain-gateway-receipt",
   "version": "chain-gateway/2.0",
-  "uptimeSec": 331,
+  "uptimeSec": 692,
   "nets": {
     "BTC": {
       "ok": true,
       "height": 976390,
-      "latencyMs": 499,
+      "latencyMs": 490,
       "source": "blockstream.info"
     },
     "ETH": {
       "ok": true,
-      "height": 26440143,
-      "latencyMs": 64,
+      "height": 26440173,
+      "latencyMs": 79,
       "source": "publicnode"
     },
     "LTC": {
       "ok": true,
-      "height": 3215033,
-      "latencyMs": 238,
+      "height": 3215034,
+      "latencyMs": 251,
       "source": "blockcypher"
     },
     "DOGE": {
       "ok": true,
-      "height": 6462388,
-      "latencyMs": 250,
-      "source": "blockcypher"
+      "height": 6604437,
+      "latencyMs": 1388,
+      "source": "blockchair"
     },
     "SOL": {
       "ok": true,
-      "height": 470834372,
-      "latencyMs": 133,
+      "height": 470836047,
+      "latencyMs": 142,
       "source": "mainnet-beta.solana.com"
     },
     "STEEM": {
       "ok": true,
-      "height": 111424949,
-      "latencyMs": 1138,
+      "height": 111425069,
+      "latencyMs": 1533,
       "source": "condenser_api"
     }
   },
   "rates": {
     "source": "coingecko(7/7)",
     "usd": {
-      "SBD": 0.444755,
-      "STEEM": 0.04601527,
-      "BTC": 64606,
-      "ETH": 1810.5,
-      "LTC": 44.51,
-      "DOGE": 0.059414,
-      "SOL": 74.92
+      "SBD": 0.446051,
+      "STEEM": 0.04694701,
+      "BTC": 64622,
+      "ETH": 1810.77,
+      "LTC": 44.48,
+      "DOGE": 0.059402,
+      "SOL": 74.89
     },
     "degraded": [],
-    "measuredAt": "2026-11-18T06:28:56.670Z"
+    "measuredAt": "2026-11-18T06:34:36.739Z"
   },
   "market": {
     "ok": true,
-    "bid": 0.1027013251783894,
-    "ask": 0.10379194892159153,
-    "mid": 0.103246637,
-    "spreadPct": 1.06,
+    "bid": 0.10290340920229764,
+    "ask": 0.1045,
+    "mid": 0.103701705,
+    "spreadPct": 1.54,
     "source": "DEX-get_order_book",
-    "measuredAt": "2026-11-18T06:27:39.680Z"
+    "measuredAt": "2026-11-18T06:33:41.190Z"
   },
   "fleet": {
     "ok": true,
     "accounts": 17,
-    "steem": 92.085,
-    "sbd": 33.324,
-    "sp": 4677.82,
+    "steem": 76.294,
+    "sbd": 45.418,
+    "sp": 4677.821,
     "orders": {
-      "total": 23,
-      "buys": 8,
+      "total": 20,
+      "buys": 5,
       "sells": 15
     },
     "source": "condenser_api",
-    "measuredAt": "2026-11-18T06:27:44.837Z"
+    "measuredAt": "2026-11-18T06:33:46.617Z"
   },
   "arm": {
     "enabled": true,
@@ -96,13 +96,13 @@
     }
   },
   "executions": {
-    "total": 5,
+    "total": 6,
     "executed": 0,
     "last": null
   },
   "ledger": {
     "total": 3,
-    "open": 1
+    "open": 0
   },
   "feeBps": 35,
   "honesty": "מסלק-חי במסילת-Steem (מפתח-בזיכרון-התהליך-בלבד · אפס-דיסק · אפס-לוג-סוד) · שאר-הרשתות: אורקל+ציטוט+כוונות · כל-מספר-נמדד-ממקור-חי",
