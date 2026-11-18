@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-18T02:18:36.607Z",
+  "measuredAt": "2026-11-18T02:44:45.077Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -15,7 +15,7 @@
   },
   "fleetAccounts": 17,
   "liquid": {
-    "steem": 83.467,
+    "steem": 94.085,
     "sbd": 5.956
   },
   "onBook": {
@@ -23,7 +23,7 @@
     "sbd": 40.58
   },
   "workingCapital": {
-    "steem": 233.108,
+    "steem": 243.726,
     "sbd": 46.536
   },
   "openOrders": {
@@ -54,10 +54,10 @@
       {
         "counterparty": "coin-raffle",
         "fills": 13,
-        "paidSbd": 8.649,
+        "paidSbd": 6.995,
         "paidSteem": 0,
         "gotSbd": 0,
-        "gotSteem": 82.912
+        "gotSteem": 66.735
       },
       {
         "counterparty": "olgiz247",
@@ -141,26 +141,19 @@
       }
     ],
     "count": 11,
-    "totalPaidToFleetSbd": 12.928,
+    "totalPaidToFleetSbd": 11.274,
     "totalPaidToFleetSteem": 46.607,
     "totalPaidByFleetSbd": 4.749,
-    "totalPaidByFleetSteem": 124.06
+    "totalPaidByFleetSteem": 107.883
   },
-  "conversions": [
-    {
-      "owner": "headcorner",
-      "amount": "1.105 SBD",
-      "maturesAt": "2026-11-18T02:20:27.000Z"
-    }
-  ],
+  "conversions": [],
   "runner": {
     "heartbeatAt": "2026-11-18T02:16:21.388Z",
     "height": 4100290,
-    "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-18T02:16:22Z"
+    "source": "saos-dex db/state-snapshot.json (continuous keeper flush)"
   },
   "feed": {
-    "sbdPerSteem": 9.609417,
+    "sbdPerSteem": 9.609419,
     "note": "base=SBD quote=STEEM ← median feed"
   },
   "honesty": {
