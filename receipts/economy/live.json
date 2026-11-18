@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-18T03:10:58.630Z",
+  "measuredAt": "2026-11-18T03:37:08.023Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -9,7 +9,7 @@
   "flags": {
     "accounts": true,
     "orders": true,
-    "history": true,
+    "history": false,
     "runner": true,
     "feed": true
   },
@@ -45,116 +45,28 @@
     "window": "24h",
     "unique": 0,
     "external": 0,
-    "scannedTotal": 49
+    "scannedTotal": 27
   },
-  "internalFillsAll": 7,
+  "internalFillsAll": 3,
   "externalFlows": {
     "windowNote": "aggregated over the scanned history window (≈ last 4 days, backward pagination to coverage)",
-    "counterparties": [
-      {
-        "counterparty": "coin-raffle",
-        "fills": 13,
-        "paidSbd": 6.283,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 59.796
-      },
-      {
-        "counterparty": "olgiz247",
-        "fills": 10,
-        "paidSbd": 3.175,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 30.5
-      },
-      {
-        "counterparty": "cashly",
-        "fills": 8,
-        "paidSbd": 0.049,
-        "paidSteem": 30.817,
-        "gotSbd": 3.134,
-        "gotSteem": 0.483
-      },
-      {
-        "counterparty": "genially",
-        "fills": 2,
-        "paidSbd": 0,
-        "paidSteem": 6,
-        "gotSbd": 0.615,
-        "gotSteem": 0
-      },
-      {
-        "counterparty": "progressivechef",
-        "fills": 2,
-        "paidSbd": 0,
-        "paidSteem": 9.79,
-        "gotSbd": 1,
-        "gotSteem": 0
-      },
-      {
-        "counterparty": "vfund",
-        "fills": 2,
-        "paidSbd": 0.192,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 1.802
-      },
-      {
-        "counterparty": "puncakbukit",
-        "fills": 1,
-        "paidSbd": 0.241,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 2.346
-      },
-      {
-        "counterparty": "toniq",
-        "fills": 1,
-        "paidSbd": 0.361,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 3.517
-      },
-      {
-        "counterparty": "mk-gg-token",
-        "fills": 1,
-        "paidSbd": 0.053,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 0.5
-      },
-      {
-        "counterparty": "trading.account",
-        "fills": 1,
-        "paidSbd": 0.053,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 0.5
-      },
-      {
-        "counterparty": "zappa100",
-        "fills": 1,
-        "paidSbd": 0.155,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 1.5
-      }
-    ],
-    "count": 11,
-    "totalPaidToFleetSbd": 10.562,
-    "totalPaidToFleetSteem": 46.607,
-    "totalPaidByFleetSbd": 4.749,
-    "totalPaidByFleetSteem": 100.944
+    "counterparties": [],
+    "count": 0,
+    "totalPaidToFleetSbd": 0,
+    "totalPaidToFleetSteem": 0,
+    "totalPaidByFleetSbd": 0,
+    "totalPaidByFleetSteem": 0,
+    "latestExternalFill": null
   },
   "conversions": [],
   "runner": {
     "heartbeatAt": "2026-11-18T02:55:52.505Z",
     "height": 4103895,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-18T03:05:27Z"
+    "repoPushedAt": "2026-11-18T03:34:45Z"
   },
   "feed": {
-    "sbdPerSteem": 9.609419,
+    "sbdPerSteem": 9.609422,
     "note": "base=SBD quote=STEEM ← median feed"
   },
   "honesty": {
