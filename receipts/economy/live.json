@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-18T00:05:53.033Z",
+  "measuredAt": "2026-11-18T00:32:22.256Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -30,9 +30,9 @@
     "total": 33
   },
   "book": {
-    "bid": 0.096934,
+    "bid": 0.096667,
     "ask": 0.102928,
-    "spreadPct": 5.997,
+    "spreadPct": 6.274,
     "note": "fleet-only top-of-book"
   },
   "marketBook": {
@@ -154,13 +154,13 @@
     }
   ],
   "runner": {
-    "heartbeatAt": "2026-11-17T23:56:23.544Z",
-    "height": 4084827,
+    "heartbeatAt": "2026-11-18T00:22:46.222Z",
+    "height": 4085314,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-18T00:00:54Z"
+    "repoPushedAt": "2026-11-18T00:23:39Z"
   },
   "feed": {
-    "sbdPerSteem": 9.609412,
+    "sbdPerSteem": 9.609414,
     "note": "base=SBD quote=STEEM ← median feed"
   },
   "honesty": {
