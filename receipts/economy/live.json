@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-18T01:51:17.680Z",
+  "measuredAt": "2026-11-18T02:18:36.607Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -154,10 +154,10 @@
     }
   ],
   "runner": {
-    "heartbeatAt": "2026-11-18T00:56:13.570Z",
-    "height": 4092802,
+    "heartbeatAt": "2026-11-18T02:16:21.388Z",
+    "height": 4100290,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-18T01:37:35Z"
+    "repoPushedAt": "2026-11-18T02:16:22Z"
   },
   "feed": {
     "sbdPerSteem": 9.609417,
