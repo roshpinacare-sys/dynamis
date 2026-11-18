@@ -33,4 +33,13 @@ jobs:
           git config user.name "roshpinacare-sys"
           git config user.email "326012154+roshpinacare-sys@users.noreply.github.com"
           git add receipts/fill/ 2>/dev/null || true
-          git diff --cached --quiet && echo "no-fill-change" || git commit -m "fill-watch receipt [skip ci]" && git push
+          if git diff --cached --quiet; then echo "no-fill-change"; exit 0; fi
+          git commit -m "fill-watch receipt [skip ci]"
+          ok=0
+          for i in 1 2 3 4; do
+            if git -c rebase.autoStash=true pull --rebase origin main && git push; then ok=1; echo "push-ok try-$i"; break; fi
+            echo "push-race try-$i — מביאים main החדש ומנסים שוב (§68)"
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          [ "$ok" = "1" ] || { echo "push failed after 4 tries — honest fail"; exit 1; }
