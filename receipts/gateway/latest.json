@@ -1,89 +1,111 @@
 {
-  "at": "2026-11-17T18:02:56.272Z",
+  "at": "2026-11-18T06:29:07.861Z",
   "kind": "chain-gateway-receipt",
-  "version": "chain-gateway/1.0",
-  "uptimeSec": 373,
+  "version": "chain-gateway/2.0",
+  "uptimeSec": 331,
   "nets": {
     "BTC": {
       "ok": true,
-      "height": 976309,
-      "latencyMs": 497,
+      "height": 976390,
+      "latencyMs": 499,
       "source": "blockstream.info"
     },
     "ETH": {
       "ok": true,
-      "height": 26436430,
-      "latencyMs": 65,
+      "height": 26440143,
+      "latencyMs": 64,
       "source": "publicnode"
     },
     "LTC": {
       "ok": true,
-      "height": 3214767,
-      "latencyMs": 232,
+      "height": 3215033,
+      "latencyMs": 238,
       "source": "blockcypher"
     },
     "DOGE": {
       "ok": true,
-      "height": 6461687,
-      "latencyMs": 911,
+      "height": 6462388,
+      "latencyMs": 250,
       "source": "blockcypher"
     },
     "SOL": {
       "ok": true,
-      "height": 470627069,
-      "latencyMs": 138,
+      "height": 470834372,
+      "latencyMs": 133,
       "source": "mainnet-beta.solana.com"
     },
     "STEEM": {
       "ok": true,
-      "height": 111410105,
-      "latencyMs": 2120,
+      "height": 111424949,
+      "latencyMs": 1138,
       "source": "condenser_api"
     }
   },
   "rates": {
-    "source": "coinbase(5)+binance-STEEM+SBD-נגזר(STEEM÷DEX-מיד)",
+    "source": "coingecko(7/7)",
     "usd": {
-      "BTC": 63748.62999985127,
-      "ETH": 1785.9699999998413,
-      "LTC": 44.210999999999984,
-      "DOGE": 0.05849,
-      "SOL": 72.28000000000011,
-      "STEEM": 0.04247,
-      "SBD": 0.4129594713776497
+      "SBD": 0.444755,
+      "STEEM": 0.04601527,
+      "BTC": 64606,
+      "ETH": 1810.5,
+      "LTC": 44.51,
+      "DOGE": 0.059414,
+      "SOL": 74.92
     },
     "degraded": [],
-    "measuredAt": "2026-11-17T18:02:43.270Z"
+    "measuredAt": "2026-11-18T06:28:56.670Z"
   },
   "market": {
     "ok": true,
-    "bid": 0.10261101412039099,
-    "ask": 0.10307503075030751,
-    "mid": 0.102843022,
-    "spreadPct": 0.45,
+    "bid": 0.1027013251783894,
+    "ask": 0.10379194892159153,
+    "mid": 0.103246637,
+    "spreadPct": 1.06,
     "source": "DEX-get_order_book",
-    "measuredAt": "2026-11-17T18:02:46.741Z"
+    "measuredAt": "2026-11-18T06:27:39.680Z"
   },
   "fleet": {
     "ok": true,
     "accounts": 17,
-    "steem": 79.373,
-    "sbd": 5.956,
-    "sp": 4677.473,
+    "steem": 92.085,
+    "sbd": 33.324,
+    "sp": 4677.82,
     "orders": {
-      "total": 34,
-      "buys": 12,
-      "sells": 22
+      "total": 23,
+      "buys": 8,
+      "sells": 15
     },
     "source": "condenser_api",
-    "measuredAt": "2026-11-17T18:02:50.117Z"
+    "measuredAt": "2026-11-18T06:27:44.837Z"
+  },
+  "arm": {
+    "enabled": true,
+    "activeFp": "8fc001a6",
+    "ownerFp": "9b10ce9d",
+    "ownerMatched": true,
+    "ownerChainBlock": 111424869,
+    "ownerCheckedAt": "2026-11-18T06:23:38.380Z",
+    "error": null,
+    "law": {
+      "minSteem": 0.5,
+      "capSteem": 4,
+      "capSbdNotional": 4,
+      "reserveSteem": 2,
+      "marginBps": 200,
+      "direction": "STEEM→SBD בלבד"
+    }
+  },
+  "executions": {
+    "total": 5,
+    "executed": 0,
+    "last": null
   },
   "ledger": {
     "total": 3,
-    "open": 0
+    "open": 1
   },
   "feeBps": 35,
-  "honesty": "אורקל-מדידה+כוונות · אין-ביצוע-חוץ · אפס-סודות · כל-מספר-נמדד-ממקור-חי",
+  "honesty": "מסלק-חי במסילת-Steem (מפתח-בזיכרון-התהליך-בלבד · אפס-דיסק · אפס-לוג-סוד) · שאר-הרשתות: אורקל+ציטוט+כוונות · כל-מספר-נמדד-ממקור-חי",
   "publishedFrom": "הרשת-הפרטית · mini-services/chain-gateway · יציאה 3030",
   "publicPanel": "לשונית «שער-חוץ · רב-שרשרת» במרכז-הפיקוד"
 }
