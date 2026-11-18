@@ -1,33 +1,28 @@
 {
-  "at": "2026-11-17T23:35:39.797Z",
+  "at": "2026-11-18T04:41:26.807Z",
   "kind": "sovereign-economy-live-beacon",
   "source": "github-actions (10-min cadence · measures chain directly · zero secrets)",
   "liveness": {
-    "headBlock": 111416736,
-    "chainTime": "2026-11-17T23:35:21",
+    "headBlock": 111422823,
+    "chainTime": "2026-11-18T04:41:00",
     "note": "הבלוק-מתקדם-כל-3-ש' — אם-לא-זז-בין-ריצות השרשרת-קפאה"
   },
   "liquid": {
-    "steem": 88.079,
+    "steem": 94.085,
     "sbd": 5.956
   },
   "openOrders": {
-    "total": 34,
+    "total": 33,
     "buys": 12,
-    "sells": 22,
-    "onBookSteem": 144.652,
+    "sells": 21,
+    "onBookSteem": 149.264,
     "onBookSbd": 40.58
   },
   "market": {
-    "midPrice": 0.1027823,
-    "spreadPct": 0.33
+    "midPrice": 0.102789294,
+    "spreadPct": 0.27
   },
-  "protocolConvert": [
-    {
-      "sbd": 1.105,
-      "maturesAt": "2026-11-18T02:20:27"
-    }
-  ],
+  "protocolConvert": [],
   "runner": null,
   "runnerNote": "מספרי-הרץ-המקומי מתעדכנים-מהסנדבוקס-במחזורים-הנמוכים-בתדירות (3/יום) — כאן-כנות-מלאה-על-מה-שנמדד-עכשיו",
   "externalFlow": {
