@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-19T13:31:11.550Z",
+  "measuredAt": "2026-11-19T13:59:16.214Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -8,147 +8,64 @@
   },
   "flags": {
     "accounts": true,
-    "orders": true,
-    "history": true,
+    "orders": false,
+    "history": false,
     "runner": true,
-    "feed": true
+    "feed": false
   },
   "fleetAccounts": 17,
   "liquid": {
-    "steem": 76.945,
+    "steem": 74.578,
     "sbd": 4.565
   },
   "onBook": {
-    "steem": 97.258,
+    "steem": 81.621,
     "sbd": 49.116
   },
   "workingCapital": {
-    "steem": 174.203,
+    "steem": 156.199,
     "sbd": 53.681
   },
   "openOrders": {
-    "total": 31
+    "total": 23
   },
   "book": {
-    "bid": 0.096667,
-    "ask": 0.103239,
-    "spreadPct": 6.576,
+    "bid": null,
+    "ask": null,
+    "spreadPct": null,
     "note": "fleet-only top-of-book"
   },
   "marketBook": {
     "bid": 0.102906,
-    "ask": 0.10321,
-    "spreadPct": 0.295,
+    "ask": 0.10304,
+    "spreadPct": 0.13,
     "note": "whole-market top-of-book (get_order_book 50)"
   },
   "fills": {
     "window": "24h",
     "unique": 0,
     "external": 0,
-    "scannedTotal": 49
+    "scannedTotal": 5
   },
-  "internalFillsAll": 7,
+  "internalFillsAll": 0,
   "externalFlows": {
     "windowNote": "aggregated over the scanned history window (≈ last 4 days, backward pagination to coverage)",
-    "counterparties": [
-      {
-        "counterparty": "coin-raffle",
-        "fills": 13,
-        "paidSbd": 8.704,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 83.294
-      },
-      {
-        "counterparty": "olgiz247",
-        "fills": 10,
-        "paidSbd": 3.175,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 30.5
-      },
-      {
-        "counterparty": "cashly",
-        "fills": 8,
-        "paidSbd": 0.049,
-        "paidSteem": 30.817,
-        "gotSbd": 3.134,
-        "gotSteem": 0.483
-      },
-      {
-        "counterparty": "genially",
-        "fills": 3,
-        "paidSbd": 0,
-        "paidSteem": 47.911,
-        "gotSbd": 4.932,
-        "gotSteem": 0
-      },
-      {
-        "counterparty": "progressivechef",
-        "fills": 2,
-        "paidSbd": 0,
-        "paidSteem": 9.79,
-        "gotSbd": 1,
-        "gotSteem": 0
-      },
-      {
-        "counterparty": "vfund",
-        "fills": 2,
-        "paidSbd": 0.192,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 1.802
-      },
-      {
-        "counterparty": "puncakbukit",
-        "fills": 1,
-        "paidSbd": 0.241,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 2.346
-      },
-      {
-        "counterparty": "toniq",
-        "fills": 1,
-        "paidSbd": 0.361,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 3.517
-      },
-      {
-        "counterparty": "trading.account",
-        "fills": 1,
-        "paidSbd": 0.135,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 1.314
-      },
-      {
-        "counterparty": "zappa100",
-        "fills": 1,
-        "paidSbd": 0.155,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 1.5
-      }
-    ],
-    "count": 10,
-    "totalPaidToFleetSbd": 13.012,
-    "totalPaidToFleetSteem": 88.518,
-    "totalPaidByFleetSbd": 9.066,
-    "totalPaidByFleetSteem": 124.756
+    "counterparties": [],
+    "count": 0,
+    "totalPaidToFleetSbd": 0,
+    "totalPaidToFleetSteem": 0,
+    "totalPaidByFleetSbd": 0,
+    "totalPaidByFleetSteem": 0,
+    "latestExternalFill": null
   },
   "conversions": [],
   "runner": {
-    "heartbeatAt": "2026-11-19T12:55:46.918Z",
-    "height": 4279047,
+    "heartbeatAt": "2026-11-19T13:56:09.750Z",
+    "height": 4282654,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-19T13:30:37Z"
+    "repoPushedAt": "2026-11-19T13:56:11Z"
   },
-  "feed": {
-    "sbdPerSteem": 9.609741,
-    "note": "base=SBD quote=STEEM ← median feed"
-  },
+  "feed": null,
   "honesty": {
     "note": "market-making preserves value and builds inventory; every number here is measured by this engine at measuredAt — nothing hand-curated",
     "zeroFillsPolicy": "no fill is ever fabricated; the receipts ledger is the scoreboard",
