@@ -1,8 +1,8 @@
 {
-  "at": "2026-11-20T16:01:41.805Z",
+  "at": "2026-11-20T19:05:17.572Z",
   "posture": "EXPOSED",
   "score": 75,
-  "durationMs": 14151,
+  "durationMs": 12227,
   "rolesRun": 8,
   "rolesOk": 8,
   "findings": {
@@ -71,7 +71,7 @@
       {
         "role": "supply-chain",
         "severity": "critical",
-        "title": "51 קבצי-כספת עקובים-בגיט-עם-remote — החומר-עוזב-את-המכונה",
+        "title": "52 קבצי-כספת עקובים-בגיט-עם-remote — החומר-עוזב-את-המכונה",
         "target": "git-index"
       }
     ]
@@ -80,7 +80,7 @@
     {
       "role": "supply-chain",
       "severity": "critical",
-      "title": "51 קבצי-כספת עקובים-בגיט-עם-remote — החומר-עוזב-את-המכונה",
+      "title": "52 קבצי-כספת עקובים-בגיט-עם-remote — החומר-עוזב-את-המכונה",
       "target": "git-index"
     }
   ],
