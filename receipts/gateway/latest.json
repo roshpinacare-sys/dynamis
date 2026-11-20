@@ -1,90 +1,90 @@
 {
-  "at": "2026-11-19T16:04:55.661Z",
+  "at": "2026-11-20T16:13:52.882Z",
   "kind": "chain-gateway-receipt",
   "version": "chain-gateway/2.0",
-  "uptimeSec": 6517,
+  "uptimeSec": 746,
   "nets": {
     "BTC": {
       "ok": true,
-      "height": 976603,
-      "latencyMs": 505,
+      "height": 976752,
+      "latencyMs": 494,
       "source": "blockstream.info"
     },
     "ETH": {
       "ok": true,
-      "height": 26450203,
-      "latencyMs": 61,
+      "height": 26457426,
+      "latencyMs": 67,
       "source": "publicnode"
     },
     "LTC": {
       "ok": true,
-      "height": 3215828,
-      "latencyMs": 244,
+      "height": 3216382,
+      "latencyMs": 241,
       "source": "blockcypher"
     },
     "DOGE": {
       "ok": true,
-      "height": 6464289,
-      "latencyMs": 257,
+      "height": 6465672,
+      "latencyMs": 985,
       "source": "blockcypher"
     },
     "SOL": {
       "ok": true,
-      "height": 471396030,
-      "latencyMs": 144,
+      "height": 471800101,
+      "latencyMs": 148,
       "source": "mainnet-beta.solana.com"
     },
     "STEEM": {
       "ok": true,
-      "height": 111465121,
-      "latencyMs": 1365,
+      "height": 111493990,
+      "latencyMs": 1390,
       "source": "condenser_api"
     }
   },
   "rates": {
     "source": "coinbase(5)+binance-STEEM+SBD-נגזר(STEEM÷DEX-מיד)",
     "usd": {
-      "BTC": 62989.50999994445,
-      "ETH": 1776.7400000001376,
-      "LTC": 43.31999999999992,
-      "DOGE": 0.058480000000000004,
-      "SOL": 73.4300000000002,
-      "STEEM": 0.04238,
-      "SBD": 0.41187366666469377
+      "BTC": 59321.73000007019,
+      "ETH": 1646.8899999998991,
+      "LTC": 40.07499999999999,
+      "DOGE": 0.053880000000000004,
+      "SOL": 68.78999999999986,
+      "STEEM": 0.04202,
+      "SBD": 0.4084045178909073
     },
     "degraded": [],
-    "measuredAt": "2026-11-19T16:04:19.208Z"
+    "measuredAt": "2026-11-20T16:13:26.336Z"
   },
   "market": {
     "ok": true,
-    "bid": 0.10271726185022995,
-    "ask": 0.10307399637307542,
-    "mid": 0.102895629,
-    "spreadPct": 0.35,
+    "bid": 0.10278688524590164,
+    "ask": 0.10289422185600988,
+    "mid": 0.102840554,
+    "spreadPct": 0.1,
     "source": "DEX-get_order_book",
-    "measuredAt": "2026-11-19T16:04:21.324Z"
+    "measuredAt": "2026-11-20T16:13:30.175Z"
   },
   "fleet": {
     "ok": true,
     "accounts": 17,
-    "steem": 72.882,
-    "sbd": 5.275,
-    "sp": 4678.61,
+    "steem": 57.89,
+    "sbd": 31.72,
+    "sp": 4679.359,
     "orders": {
-      "total": 32,
-      "buys": 14,
-      "sells": 18
+      "total": 19,
+      "buys": 6,
+      "sells": 13
     },
     "source": "condenser_api",
-    "measuredAt": "2026-11-19T16:04:27.719Z"
+    "measuredAt": "2026-11-20T16:13:34.538Z"
   },
   "arm": {
     "enabled": true,
     "activeFp": "8fc001a6",
     "ownerFp": "9b10ce9d",
     "ownerMatched": true,
-    "ownerChainBlock": 111462969,
-    "ownerCheckedAt": "2026-11-19T14:16:22.092Z",
+    "ownerChainBlock": 111493752,
+    "ownerCheckedAt": "2026-11-20T16:01:29.520Z",
     "error": null,
     "law": {
       "minSteem": 0.5,
