@@ -8,6 +8,7 @@
 
 - **Issue-queue door**: send USDC (Base) to `0x2767e8146c11baD1d9B0784f11325375195c1b0f`,
   then open an issue with the **Paid AI Job** template (txid + tier + prompt) → work + public receipt.
+- **Direct-ETH lane (§88)**: send ETH directly (Ethereum mainnet / Optimism / Base) to the proven signer address `0x01Bd2879Cd9990Cb4B25cD6DE47f378Dc5D18B37` → open the same **Paid AI Job** issue with your txid → the door watches this address on-chain 24/7 (mainnet + Optimism + Base, live USD meter), same tiers, same fail-closed law.
 - **x402 protocol door** (machine clients): `POST` any prompt to the sovereign terminal `/api/money-door` → HTTP 402 payment challenge (x402/exact, USDC, Base) → signed EIP-3009 payment → facilitator verify → work.
 - **Tiers**: micro $0.50 (≤600 chars) · standard $2.00 (≤2,500) · deep $5.00 (≤10,000, full reasoning).
 - **Contact for buyers**: `saos-t3htsxvs@euploading.com` — sovereign mailbox, monitored live from the network's command center.
