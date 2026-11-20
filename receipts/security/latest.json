@@ -1,17 +1,17 @@
 {
-  "at": "2026-11-19T18:32:11.548Z",
-  "posture": "HARDENED",
-  "score": 100,
-  "durationMs": 14846,
+  "at": "2026-11-20T08:48:05.220Z",
+  "posture": "EXPOSED",
+  "score": 75,
+  "durationMs": 9948,
   "rolesRun": 8,
   "rolesOk": 8,
   "findings": {
-    "critical": 0,
+    "critical": 1,
     "high": 0,
     "medium": 0,
     "low": 0,
     "info": 0,
-    "total": 0
+    "total": 1
   },
   "threatModel": {
     "assets": [
@@ -67,8 +67,22 @@
       }
     ],
     "jailbreakCorpus": 12,
-    "openRisks": []
+    "openRisks": [
+      {
+        "role": "supply-chain",
+        "severity": "critical",
+        "title": "51 קבצי-כספת עקובים-בגיט-עם-remote — החומר-עוזב-את-המכונה",
+        "target": "git-index"
+      }
+    ]
   },
-  "findingsList": [],
+  "findingsList": [
+    {
+      "role": "supply-chain",
+      "severity": "critical",
+      "title": "51 קבצי-כספת עקובים-בגיט-עם-remote — החומר-עוזב-את-המכונה",
+      "target": "git-index"
+    }
+  ],
   "law": "אפס-סודות-בקבלה · כל-ראיה-ממוסכת-fp8 · סריקה-עצמית-מורשית-על-רכוש-עצמי-בלבד"
 }
