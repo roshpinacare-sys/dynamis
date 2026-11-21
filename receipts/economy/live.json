@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-21T19:03:55.633Z",
+  "measuredAt": "2026-11-21T19:31:52.621Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -15,37 +15,37 @@
   },
   "fleetAccounts": 17,
   "liquid": {
-    "steem": 56.678,
+    "steem": 139.15,
     "sbd": 1.209
   },
   "onBook": {
     "steem": 0,
-    "sbd": 61.425
+    "sbd": 50.826
   },
   "workingCapital": {
-    "steem": 56.678,
-    "sbd": 62.634
+    "steem": 139.15,
+    "sbd": 52.035
   },
   "openOrders": {
-    "total": 10
+    "total": 3
   },
   "book": {
-    "bid": 0.107759,
+    "bid": 0.106871,
     "ask": null,
     "spreadPct": null,
     "note": "fleet-only top-of-book"
   },
   "marketBook": {
-    "bid": 0.109842,
-    "ask": 0.110395,
-    "spreadPct": 0.502,
+    "bid": 0.108662,
+    "ask": 0.109062,
+    "spreadPct": 0.368,
     "note": "whole-market top-of-book (get_order_book 50)"
   },
   "fills": {
     "window": "24h",
     "unique": 0,
     "external": 0,
-    "scannedTotal": 51
+    "scannedTotal": 52
   },
   "internalFillsAll": 6,
   "externalFlows": {
@@ -140,26 +140,26 @@
         "gotSteem": 5.98
       },
       {
-        "counterparty": "toniq",
+        "counterparty": "btsx",
         "fills": 1,
-        "paidSbd": 0.361,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 3.517
+        "paidSbd": 0,
+        "paidSteem": 2.088,
+        "gotSbd": 0.225,
+        "gotSteem": 0
       }
     ],
-    "count": 13,
+    "count": 14,
     "totalPaidToFleetSbd": 13.489,
-    "totalPaidToFleetSteem": 88.518,
-    "totalPaidByFleetSbd": 9.066,
+    "totalPaidToFleetSteem": 90.606,
+    "totalPaidByFleetSbd": 9.291,
     "totalPaidByFleetSteem": 129.713
   },
   "conversions": [],
   "runner": {
-    "heartbeatAt": "2026-11-21T18:56:33.394Z",
-    "height": 4565475,
+    "heartbeatAt": "2026-11-21T19:14:02.736Z",
+    "height": 4569358,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-21T19:02:59Z"
+    "repoPushedAt": "2026-11-21T19:23:48Z"
   },
   "feed": {
     "sbdPerSteem": 9.609815,
