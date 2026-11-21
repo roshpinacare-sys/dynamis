@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-21T09:04:57.119Z",
+  "measuredAt": "2026-11-21T09:31:35.877Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -16,23 +16,23 @@
   "fleetAccounts": 17,
   "liquid": {
     "steem": 60.657,
-    "sbd": 1.218
+    "sbd": 1.229
   },
   "onBook": {
     "steem": 91.118,
-    "sbd": 54.769
+    "sbd": 54.758
   },
   "workingCapital": {
     "steem": 151.775,
     "sbd": 55.987
   },
   "openOrders": {
-    "total": 31
+    "total": 35
   },
   "book": {
-    "bid": 0.091963,
+    "bid": 0.09304,
     "ask": 0.103,
-    "spreadPct": 11.322,
+    "spreadPct": 10.161,
     "note": "fleet-only top-of-book"
   },
   "marketBook": {
@@ -134,7 +134,8 @@
   "runner": {
     "heartbeatAt": "2026-11-21T08:49:06.288Z",
     "height": 4507719,
-    "source": "saos-dex db/state-snapshot.json (continuous keeper flush)"
+    "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
+    "repoPushedAt": "2026-11-21T09:30:52Z"
   },
   "feed": {
     "sbdPerSteem": 9.609804,
