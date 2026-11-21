@@ -1,8 +1,8 @@
 {
-  "at": "2026-11-20T23:59:11.187Z",
+  "at": "2026-11-21T00:24:01.062Z",
   "posture": "EXPOSED",
   "score": 75,
-  "durationMs": 11378,
+  "durationMs": 12746,
   "rolesRun": 8,
   "rolesOk": 8,
   "findings": {
