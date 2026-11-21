@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-21T03:49:01.905Z",
+  "measuredAt": "2026-11-21T04:10:49.192Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -16,23 +16,23 @@
   "fleetAccounts": 17,
   "liquid": {
     "steem": 56.671,
-    "sbd": 26.217
+    "sbd": 43.845
   },
   "onBook": {
     "steem": 96.49,
-    "sbd": 29.628
+    "sbd": 12
   },
   "workingCapital": {
     "steem": 153.161,
     "sbd": 55.845
   },
   "openOrders": {
-    "total": 24
+    "total": 16
   },
   "book": {
-    "bid": 0.087909,
+    "bid": 0.08962,
     "ask": 0.103,
-    "spreadPct": 15.81,
+    "spreadPct": 13.893,
     "note": "fleet-only top-of-book"
   },
   "marketBook": {
@@ -45,7 +45,7 @@
     "window": "24h",
     "unique": 0,
     "external": 0,
-    "scannedTotal": 48
+    "scannedTotal": 47
   },
   "internalFillsAll": 6,
   "externalFlows": {
@@ -108,14 +108,6 @@
         "gotSteem": 1.014
       },
       {
-        "counterparty": "puncakbukit",
-        "fills": 1,
-        "paidSbd": 0.241,
-        "paidSteem": 0,
-        "gotSbd": 0,
-        "gotSteem": 2.346
-      },
-      {
         "counterparty": "toniq",
         "fills": 1,
         "paidSbd": 0.361,
@@ -132,18 +124,18 @@
         "gotSteem": 1.5
       }
     ],
-    "count": 10,
-    "totalPaidToFleetSbd": 13.064,
+    "count": 9,
+    "totalPaidToFleetSbd": 12.823,
     "totalPaidToFleetSteem": 88.518,
     "totalPaidByFleetSbd": 9.066,
-    "totalPaidByFleetSteem": 125.296
+    "totalPaidByFleetSteem": 122.95
   },
   "conversions": [],
   "runner": {
-    "heartbeatAt": "2026-11-21T03:43:35.803Z",
-    "height": 4481439,
+    "heartbeatAt": "2026-11-21T03:56:03.011Z",
+    "height": 4485046,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-21T03:43:36Z"
+    "repoPushedAt": "2026-11-21T04:04:37Z"
   },
   "feed": {
     "sbdPerSteem": 9.609796,
