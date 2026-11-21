@@ -1,6 +1,6 @@
 {
   "schema": "economy-live/2",
-  "measuredAt": "2026-11-21T14:40:00.076Z",
+  "measuredAt": "2026-11-21T15:04:43.182Z",
   "freshness": {
     "cadenceMinutes": 15,
     "promise": "measured by the autonomous engine on every run — never a hand-pushed snapshot",
@@ -16,29 +16,29 @@
   "fleetAccounts": 17,
   "liquid": {
     "steem": 56.678,
-    "sbd": 1.501
+    "sbd": 2.798
   },
   "onBook": {
-    "steem": 12.203,
-    "sbd": 59.883
+    "steem": 0,
+    "sbd": 59.836
   },
   "workingCapital": {
-    "steem": 68.881,
-    "sbd": 61.384
+    "steem": 56.678,
+    "sbd": 62.634
   },
   "openOrders": {
-    "total": 15
+    "total": 6
   },
   "book": {
-    "bid": 0.095935,
-    "ask": 0.102434,
-    "spreadPct": 6.553,
+    "bid": 0.104109,
+    "ask": null,
+    "spreadPct": null,
     "note": "fleet-only top-of-book"
   },
   "marketBook": {
-    "bid": 0.102304,
-    "ask": 0.102367,
-    "spreadPct": 0.062,
+    "bid": 0.105556,
+    "ask": 0.105783,
+    "spreadPct": 0.215,
     "note": "whole-market top-of-book (get_order_book 50)"
   },
   "fills": {
@@ -54,10 +54,10 @@
       {
         "counterparty": "coin-raffle",
         "fills": 13,
-        "paidSbd": 8.704,
+        "paidSbd": 6.396,
         "paidSteem": 0,
         "gotSbd": 0,
-        "gotSteem": 83.294
+        "gotSteem": 60.929
       },
       {
         "counterparty": "cashly",
@@ -149,17 +149,17 @@
       }
     ],
     "count": 13,
-    "totalPaidToFleetSbd": 15.797,
+    "totalPaidToFleetSbd": 13.489,
     "totalPaidToFleetSteem": 88.518,
     "totalPaidByFleetSbd": 9.066,
-    "totalPaidByFleetSteem": 152.078
+    "totalPaidByFleetSteem": 129.713
   },
   "conversions": [],
   "runner": {
-    "heartbeatAt": "2026-11-21T14:19:06.960Z",
-    "height": 4538919,
+    "heartbeatAt": "2026-11-21T14:56:09.470Z",
+    "height": 4542526,
     "source": "saos-dex db/state-snapshot.json (continuous keeper flush)",
-    "repoPushedAt": "2026-11-21T14:27:37Z"
+    "repoPushedAt": "2026-11-21T15:01:48Z"
   },
   "feed": {
     "sbdPerSteem": 9.609812,
